@@ -1,0 +1,4 @@
+.idea
+.gradle
+core/build
+sandbox/build
