@@ -1,5 +1,5 @@
 plugins {
-    id("java-library")
+    `java-library`
 }
 
 val lwjglVersion = "3.3.2-SNAPSHOT"
@@ -31,10 +31,18 @@ val lwjglNatives = Pair(
     }
 }
 
-sourceSets.main.get().resources.srcDirs(resourcesPath)
-
 logger.quiet("[ENGINE] Natives in use: $lwjglNatives")
 logger.quiet("[ENGINE] Resources path: $resourcesPath")
+
+java {
+    sourceSets {
+        main {
+            resources {
+                srcDirs(resourcesPath)
+            }
+        }
+    }
+}
 
 dependencies {
     implementation(platform("org.lwjgl:lwjgl-bom:$lwjglVersion"))

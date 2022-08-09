@@ -2,9 +2,8 @@ import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
 import org.gradle.nativeplatform.platform.internal.DefaultOperatingSystem
 
 plugins {
-    id("java")
-    id("application")
-    id("org.beryx.jlink").version("2.25.0")
+    application
+    id("org.beryx.jlink") version("2.25.0")
 }
 
 dependencies {
@@ -47,4 +46,3 @@ jlink {
         skipInstaller = true
     }
 }
-
