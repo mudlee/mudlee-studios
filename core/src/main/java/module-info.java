@@ -6,6 +6,7 @@ module hu.mudlee.core {
     requires org.lwjgl.glfw;
     requires org.lwjgl.glfw.natives;
     requires org.slf4j;
+    requires org.slf4j.simple;
     requires transitive org.joml;
 
     exports hu.mudlee.core;
