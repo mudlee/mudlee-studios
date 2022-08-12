@@ -121,11 +121,19 @@ public class OpenGLShader extends Shader {
 			glGetProgramiv(shaderId, pname, buffer);
 
 			if (buffer.get() == GL_FALSE) {
+				final var error = glGetProgramInfoLog(shaderId, 1024);
+				if (error.isEmpty()) {
+					// On OSX somewhy the validator says it's invalid, even though the shader
+					// runs correctly. In such cases, it produces an empty error.
+					log.debug(" * Validation {} OK", pnameReadable);
+					return;
+				}
+
 				log.error(
 						" * Validation {} failed for '{}'\n---\n{}---",
 						pnameReadable,
 						path,
-						glGetProgramInfoLog(shaderId, 1024)
+						error
 				);
 				throw new RuntimeException("Shader validating failed");
 			}
