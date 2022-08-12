@@ -21,7 +21,7 @@ public class OpenGLShader extends Shader {
 	private final int fragmentId;
 
 	public OpenGLShader(String vertexShaderName, String fragmentShaderName) {
-		log.debug("Creating shader pipeline program for with vertex shader '{}' and fragment shader '{}'", vertexShaderName, fragmentShaderName);
+		log.debug("Creating shader pipeline program for vertex shader '{}' and fragment shader '{}'", vertexShaderName, fragmentShaderName);
 		pipelineId = glGenProgramPipelines();
 		log.debug(" * Pipeline was created ID:{} for {}", pipelineId, this.getClass().getSimpleName());
 

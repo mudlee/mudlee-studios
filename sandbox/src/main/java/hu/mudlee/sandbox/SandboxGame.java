@@ -1,7 +1,8 @@
 package hu.mudlee.sandbox;
 
-import hu.mudlee.core.Engine;
+import hu.mudlee.core.GameEngine;
 import hu.mudlee.core.LifeCycleListener;
+import hu.mudlee.core.ecs.entities.RawRenderableEntity;
 import hu.mudlee.core.input.InputMultiplexer;
 import hu.mudlee.core.input.InputProcessor;
 import hu.mudlee.core.render.*;
@@ -20,7 +21,7 @@ public class SandboxGame implements LifeCycleListener, InputProcessor {
 	@Override
 	public void onCreated() {
 		inputMultiplexer.addProcessor(this);
-		Engine.input.setMultiplexer(inputMultiplexer);
+		GameEngine.input.setMultiplexer(inputMultiplexer);
 
 		/*camera = new PerspectiveCamera(60f, 0.01f, 1000f);
 		camera.resize(window.getSize().x, window.getSize().y);
@@ -32,8 +33,7 @@ public class SandboxGame implements LifeCycleListener, InputProcessor {
 		shader.setUniform(shader.getVertexProgramId(), Shader.UNIFORM_PROJ_MAT, camera.getProjectionMatrix());
 		shader.setUniform(shader.getVertexProgramId(), Shader.UNIFORM_VIEW_MAT, camera.getViewMatrix());*/
 
-		shader = Shader.create("simple/basic_vert.glsl", "simple/basic_frag.glsl");
-		//shader = Shader.create("simple/colored_vert.glsl", "simple/colored_frag.glsl");
+		shader = Shader.create("simple/colored_vert.glsl", "simple/colored_frag.glsl");
 
 		int stride = 7 * Float.BYTES;
 		final var layout = new VertexBufferLayout(
@@ -44,19 +44,19 @@ public class SandboxGame implements LifeCycleListener, InputProcessor {
 		va = VertexArray.create();
 		va.addVertexBuffer(VertexBuffer.create(squareColoredIndexed, layout, BufferDataLocation.STATIC_DRAW));
 		va.setIndexBuffer(IndexBuffer.create(squareInd));
-		va.setInstanceCount(3);
+
+		GameEngine.ecs.addEntity(new RawRenderableEntity("Square", va, shader, RenderMode.TRIANGLES, PolygonMode.FILL));
 	}
 
 	@Override
 	public void onKeyPress(int keyCode) {
 		if(keyCode == GLFW_KEY_ESCAPE) {
-			Engine.app.stop();
+			GameEngine.app.stop();
 		}
 	}
 
 	@Override
 	public void onUpdate(float delta) {
-		Engine.app.renderer.renderRaw(va, shader, RenderMode.TRIANGLES, PolygonMode.FILL);
 	}
 
 	private static final float[] squareColoredIndexed = {
@@ -64,16 +64,6 @@ public class SandboxGame implements LifeCycleListener, InputProcessor {
 			0.5f, -0.5f, 0.0f, 0.2f, 0.5f, 0.5f, 1f,
 			0.5f, 0.5f, 0.0f, 0.2f, 0.5f, 0.5f, 1f,
 			-0.5f, 0.5f, 0.0f, 0.2f, 0.5f, 0.5f, 1f,
-	};
-
-	private static final float[] squareBasic = {
-			0.5f,  0.5f, 0.0f,
-			-0.5f, -0.5f, 0.0f,
-			0.5f, -0.5f, 0.0f,
-
-			-0.5f, -0.5f, 0.0f,
-			0.5f,  0.5f, 0.0f,
-			-0.5f, 0.5f, 0.0f,
 	};
 
 	private static final int[] squareInd = {

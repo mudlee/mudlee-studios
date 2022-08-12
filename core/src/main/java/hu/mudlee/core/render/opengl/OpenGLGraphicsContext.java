@@ -5,6 +5,7 @@ import hu.mudlee.core.render.Shader;
 import hu.mudlee.core.render.VertexArray;
 import hu.mudlee.core.render.VertexBuffer;
 import hu.mudlee.core.render.types.PolygonMode;
+import hu.mudlee.core.render.types.RenderMode;
 import org.joml.Vector4f;
 import org.lwjgl.opengl.GLUtil;
 import org.slf4j.Logger;
@@ -20,7 +21,7 @@ public class OpenGLGraphicsContext implements GraphicsContext {
 	private final boolean debug;
 	private int clearFlags = 0;
 	private long windowId;
-	private int prevPolygonMode = PolygonMode.FILL;
+	private PolygonMode prevPolygonMode = PolygonMode.FILL;
 
 	public OpenGLGraphicsContext(boolean debug) {
 		this.debug = debug;
@@ -76,32 +77,32 @@ public class OpenGLGraphicsContext implements GraphicsContext {
 	}
 
 	@Override
-	public void renderRaw(VertexArray vao, Shader shader, int renderMode, int polygonMode) {
+	public void renderRaw(VertexArray vao, Shader shader, RenderMode renderMode, PolygonMode polygonMode) {
 		shader.bind();
 		vao.bind();
 
 		if(prevPolygonMode != polygonMode) {
-			glPolygonMode(GL41.GL_FRONT_AND_BACK, polygonMode);
+			glPolygonMode(GL41.GL_FRONT_AND_BACK, polygonMode.glRef);
 		}
 
 		if(vao.isInstanced()) {
 			if (vao.getIndexBuffer().isPresent()) {
-				glDrawElementsInstanced(renderMode, vao.getIndexBuffer().get().getLength(), GL_UNSIGNED_INT, 0, vao.getInstanceCount());
+				glDrawElementsInstanced(renderMode.glRef, vao.getIndexBuffer().get().getLength(), GL_UNSIGNED_INT, 0, vao.getInstanceCount());
 			}
 			else {
 				for (VertexBuffer buffer : vao.getVertexBuffers()) {
 					// NOTE: we suppose that vertex coordinates always passed as vec3
-					glDrawArraysInstanced(renderMode, 0, buffer.getLength() / 3, vao.getInstanceCount());
+					glDrawArraysInstanced(renderMode.glRef, 0, buffer.getLength() / 3, vao.getInstanceCount());
 				}
 			}
 		}
 		else {
 			if (vao.getIndexBuffer().isPresent()) {
-				glDrawElements(renderMode, vao.getIndexBuffer().get().getLength(), GL_UNSIGNED_INT, 0);
+				glDrawElements(renderMode.glRef, vao.getIndexBuffer().get().getLength(), GL_UNSIGNED_INT, 0);
 			} else {
 				for (VertexBuffer buffer : vao.getVertexBuffers()) {
 					// NOTE: we suppose that vertex coordinates always passed as vec3
-					glDrawArrays(renderMode, 0, buffer.getLength() / 3);
+					glDrawArrays(renderMode.glRef, 0, buffer.getLength() / 3);
 				}
 			}
 		}

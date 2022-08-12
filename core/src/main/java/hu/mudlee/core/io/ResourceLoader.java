@@ -11,49 +11,49 @@ import java.nio.charset.StandardCharsets;
 import java.util.Scanner;
 
 public class ResourceLoader {
-    private static final Logger log = LoggerFactory.getLogger(ResourceLoader.class);
+	private static final Logger log = LoggerFactory.getLogger(ResourceLoader.class);
 
-    public static ByteBuffer loadToByteBuffer(String path, MemoryStack stack){
-        log.debug("Loading resource {}", path);
-        try {
-            final var url = ResourceLoader.class.getResource(path);
+	public static ByteBuffer loadToByteBuffer(String path, MemoryStack stack){
+		log.debug("Loading resource {}", path);
+		try {
+			final var url = ResourceLoader.class.getResource(path);
 
-            if (url == null) {
-                throw new RuntimeException("Resource not found: " + path);
-            }
+			if (url == null) {
+				throw new RuntimeException("Resource not found: " + path);
+			}
 
-            final var resourceSize = url.openConnection().getContentLength();
+			final var resourceSize = url.openConnection().getContentLength();
 
-            log.debug("Loading resource '{}' ({}bytes)", url.getFile(), resourceSize);
+			log.debug("Loading resource '{}' ({}bytes)", url.getFile(), resourceSize);
 
-            final var resource = stack.calloc(resourceSize);
+			final var resource = stack.calloc(resourceSize);
 
-            try (BufferedInputStream bis = new BufferedInputStream(url.openStream())) {
-                int b;
-                do {
-                    b = bis.read();
-                    if (b != -1) {
-                        resource.put((byte) b);
-                    }
-                } while (b != -1);
-            }
+			try (BufferedInputStream bis = new BufferedInputStream(url.openStream())) {
+				int b;
+				do {
+					b = bis.read();
+					if (b != -1) {
+						resource.put((byte) b);
+					}
+				} while (b != -1);
+			}
 
-            resource.flip();
+			resource.flip();
 
-            return resource;
-        }
-        catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
+			return resource;
+		}
+		catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
 
-    public static String load(String path) {
-        log.debug("Loading resource {}", path);
-        final var in = ResourceLoader.class.getResourceAsStream(path);
-        if(in == null) {
-            throw new RuntimeException("Could not find resource: "+path);
-        }
-        final var scanner = new Scanner(in, StandardCharsets.UTF_8);
-        return scanner.useDelimiter("\\A").next();
-    }
+	public static String load(String path) {
+		log.debug("Loading resource {}", path);
+		final var in = ResourceLoader.class.getResourceAsStream(path);
+		if(in == null) {
+			throw new RuntimeException("Could not find resource: "+path);
+		}
+		final var scanner = new Scanner(in, StandardCharsets.UTF_8);
+		return scanner.useDelimiter("\\A").next();
+	}
 }

@@ -1,6 +1,8 @@
 package hu.mudlee.core.render;
 
 import hu.mudlee.core.render.opengl.OpenGLGraphicsContext;
+import hu.mudlee.core.render.types.PolygonMode;
+import hu.mudlee.core.render.types.RenderMode;
 import hu.mudlee.core.window.WindowEventListener;
 import org.joml.Vector4f;
 
@@ -26,7 +28,7 @@ public class Renderer implements WindowEventListener {
 		context.windowResized(width, height);
 	}
 
-	public void renderRaw(VertexArray vao, Shader shader, int renderMode, int polygonMode) {
+	public void renderRaw(VertexArray vao, Shader shader, RenderMode renderMode, PolygonMode polygonMode) {
 		context.renderRaw(vao, shader, renderMode, polygonMode);
 	}
 

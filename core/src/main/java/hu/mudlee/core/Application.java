@@ -1,5 +1,8 @@
 package hu.mudlee.core;
 
+import com.badlogic.ashley.core.EntitySystem;
+import hu.mudlee.core.ecs.ECS;
+import hu.mudlee.core.ecs.systems.RawRenderableSystem;
 import hu.mudlee.core.render.Renderer;
 import hu.mudlee.core.render.types.BufferBitTypes;
 import hu.mudlee.core.settings.WindowPreferences;
@@ -9,6 +12,7 @@ import org.joml.Vector4f;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class Application implements WindowEventListener {
@@ -22,13 +26,17 @@ public class Application implements WindowEventListener {
 	public Application(LifeCycleListener game, WindowPreferences windowPreferences) {
 		this.game = game;
 		renderer = new Renderer(true);
-		window = new Window(windowPreferences, Engine.input, List.of(renderer, this));
+		window = new Window(windowPreferences, GameEngine.input, List.of(renderer, this));
 
-		if(Engine.app != null) {
+		if(GameEngine.app != null) {
 			throw new RuntimeException("Cannot run multiple applications");
 		}
 
-		Engine.app = this;
+		final var systems = new ArrayList<EntitySystem>();
+		systems.add(new RawRenderableSystem(renderer));
+
+		GameEngine.ecs = new ECS(systems);
+		GameEngine.app = this;
 	}
 
 	@Override
@@ -65,6 +73,7 @@ public class Application implements WindowEventListener {
 			lastTime = now;
 
 			renderer.clear();
+			GameEngine.ecs.update(deltaTime);
 			game.onUpdate(deltaTime);
 
 			renderer.swapBuffers(deltaTime);

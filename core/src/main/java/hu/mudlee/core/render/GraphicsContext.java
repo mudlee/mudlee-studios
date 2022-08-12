@@ -1,6 +1,8 @@
 package hu.mudlee.core.render;
 
 import hu.mudlee.core.Disposable;
+import hu.mudlee.core.render.types.PolygonMode;
+import hu.mudlee.core.render.types.RenderMode;
 import org.joml.Vector4f;
 
 public interface GraphicsContext extends Disposable {
@@ -14,7 +16,7 @@ public interface GraphicsContext extends Disposable {
 
   void clear();
 
-  void renderRaw(VertexArray vao, Shader shader, int renderMode, int polygonMode);
+  void renderRaw(VertexArray vao, Shader shader, RenderMode renderMode, PolygonMode polygonMode);
 
   void swapBuffers(float frameTime);
 
