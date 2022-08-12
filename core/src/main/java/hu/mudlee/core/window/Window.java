@@ -1,5 +1,7 @@
 package hu.mudlee.core.window;
 
+import hu.mudlee.core.Disposable;
+import hu.mudlee.core.input.InputManager;
 import hu.mudlee.core.settings.Antialiasing;
 import hu.mudlee.core.settings.WindowPreferences;
 import org.joml.Vector2i;
@@ -8,111 +10,137 @@ import org.lwjgl.glfw.GLFWVidMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
+import java.util.Objects;
+
+import static org.lwjgl.glfw.Callbacks.glfwFreeCallbacks;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.system.MemoryUtil.NULL;
 
-public class Window {
-    private static final Logger log = LoggerFactory.getLogger(Window.class);
-    private final WindowPreferences preferences;
-    private final Vector2i size = new Vector2i();
-    private long id;
+public class Window implements Disposable {
+	private static final Logger log = LoggerFactory.getLogger(Window.class);
+	private final WindowPreferences preferences;
+	private final InputManager input;
+	private final Vector2i size = new Vector2i();
+	private final List<WindowEventListener> listeners;
+	private long id;
 
-    private GLFWVidMode glfwVidMode;
+	private GLFWVidMode glfwVidMode;
 
-    public Window(WindowPreferences preferences) {
-        this.preferences = preferences;
-    }
+	public Window(WindowPreferences preferences, InputManager input, List<WindowEventListener> listeners) {
+		this.preferences = preferences;
+		this.input = input;
+		this.listeners = listeners;
+	}
 
-    public void create() {
-        log.info("Creating window...");
+	@Override
+	public void dispose() {
+		glfwFreeCallbacks(id);
+		glfwDestroyWindow(id);
+		glfwTerminate();
+		Objects.requireNonNull(glfwSetErrorCallback(null)).free();
+	}
 
-        if(!glfwInit()) {
-            throw new RuntimeException("Could not initialize glfw");
-        }
+	public Vector2i getSize() {
+		return size;
+	}
 
-        glfwSetErrorCallback(GLFWErrorCallback.createPrint(System.err));
+	public void create() {
+		log.info("Creating window...");
 
-        glfwDefaultWindowHints();
-        glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
-        glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+		if(!glfwInit()) {
+			throw new RuntimeException("Could not initialize glfw");
+		}
 
-        glfwVidMode = pickMonitor();
+		glfwSetErrorCallback(GLFWErrorCallback.createPrint(System.err));
 
-        if (preferences.getAntialiasing() != Antialiasing.OFF) {
-            log.debug("Antialiasing: {}", preferences.getAntialiasing().value);
-            glfwWindowHint(GLFW_SAMPLES, preferences.getAntialiasing().value);
-        }
+		glfwDefaultWindowHints();
+		glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+		glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
-        if (preferences.getFullscreen()) {
-            size.set(glfwVidMode.width(), glfwVidMode.height());
-            glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
-        }
-        else {
-            size.set(preferences.getWidth(), preferences.getHeight());
-        }
+		glfwVidMode = pickMonitor();
 
-        // listeners.forEach(WindowEventListener::onWindowPrepared);
+		if (preferences.getAntialiasing() != Antialiasing.OFF) {
+			log.debug("Antialiasing: {}", preferences.getAntialiasing().value);
+			glfwWindowHint(GLFW_SAMPLES, preferences.getAntialiasing().value);
+		}
 
-        id = glfwCreateWindow(size.x, size.y, preferences.getTitle(), preferences.getFullscreen() ? glfwGetPrimaryMonitor() : NULL, NULL);
+		if (preferences.isFullscreen()) {
+			size.set(glfwVidMode.width(), glfwVidMode.height());
+			glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
+		}
+		else {
+			size.set(preferences.getWidth(), preferences.getHeight());
+		}
 
-        if (id == NULL) {
-            throw new RuntimeException("Error creating GLFW window");
-        }
+		listeners.forEach(WindowEventListener::onWindowPrepared);
 
-        //listeners.forEach(listener -> listener.onWindowCreated(id, size.x, size.y, preferences.vSync));
+		id = glfwCreateWindow(size.x, size.y, preferences.getTitle(), preferences.isFullscreen() ? glfwGetPrimaryMonitor() : NULL, NULL);
 
-        glfwSetFramebufferSizeCallback(id, this::framebufferResized);
-        ScreenPixelRatioHandler.set(id, glfwVidMode);
+		if (id == NULL) {
+			glfwTerminate();
+			throw new RuntimeException("Error creating GLFW window");
+		}
 
-        log.debug("Creating input");
-        //input.initialize(new Input.InitializationParams(size.x, windowSize.y, this::cursorPositionHasChanged));
+		listeners.forEach(listener -> listener.onWindowCreated(id, size.x, size.y, preferences.isvSync()));
 
-        log.debug("Setting up input callbacks");
-        //glfwSetKeyCallback(id, (window, key, scancode, action, mods) -> Spck.input.keyCallback(key, scancode, action, mods));
+		glfwSetFramebufferSizeCallback(id, this::framebufferResized);
+		ScreenPixelRatioHandler.set(id, glfwVidMode);
+
+		log.debug("Setting up input callbacks");
+		glfwSetKeyCallback(id, (window, key, scancode, action, mods) -> input.keyCallback(key, scancode, action, mods));
         /*glfwSetCursorPosCallback(id, (window, x, y) -> input.cursorPosCallback(x, y));
         glfwSetScrollCallback(id, (window, xOffset, yOffset) -> input.mouseScrollCallback(xOffset, yOffset));
         glfwSetMouseButtonCallback(id, (window, button, action, mods) -> input.mouseButtonCallback(button, action, mods));
          */
 
-        if (!preferences.getFullscreen()) {
-            glfwSetWindowPos(id, (glfwVidMode.width() - size.x) / 2, (glfwVidMode.height() - size.y) / 2);
-        }
+		if (!preferences.isFullscreen()) {
+			glfwSetWindowPos(id, (glfwVidMode.width() - size.x) / 2, (glfwVidMode.height() - size.y) / 2);
+		}
 
-        log.debug("Window has been setup");
-        glfwShowWindow(id);
-    }
+		log.debug("Window has been setup");
+		glfwShowWindow(id);
+	}
 
-    private GLFWVidMode pickMonitor() {
-        final var buffer = glfwGetMonitors();
+	public boolean shouldClose() {
+		return glfwWindowShouldClose(id);
+	}
 
-        if (buffer == null) {
-            throw new RuntimeException("No monitors were found");
-        }
+	public void pollEvents() {
+		glfwPollEvents();
+	}
 
-        if (buffer.capacity() == 1) {
-            log.info("Found one monitor: {}", glfwGetMonitorName(buffer.get()));
-        } else {
-            log.info("Found multiple monitors:");
-            for (int i = 0; i < buffer.capacity(); i++) {
-                log.info(" Monitor-{} '{}'", i, glfwGetMonitorName(buffer.get(i)));
-            }
-        }
+	public void close() {
+		glfwSetWindowShouldClose(id, true);
+	}
 
-        return glfwGetVideoMode(glfwGetPrimaryMonitor());
-    }
+	private GLFWVidMode pickMonitor() {
+		final var buffer = glfwGetMonitors();
 
-    private void framebufferResized(long windowId, int width, int height) {
-        size.set(width, height);
-        //listeners.forEach(listener -> listener.onWindowResized(width, height));
-        ScreenPixelRatioHandler.set(windowId, glfwVidMode);
-        log.trace("Framebuffer size change to {}x{}", width, height);
-    }
+		if (buffer == null) {
+			throw new RuntimeException("No monitors were found");
+		}
 
-    public boolean shouldClose() {
-        return glfwWindowShouldClose(id);
-    }
+		if (buffer.capacity() == 1) {
+			log.info("Found one monitor: {}", glfwGetMonitorName(buffer.get()));
+		} else {
+			log.info("Found multiple monitors:");
+			for (int i = 0; i < buffer.capacity(); i++) {
+				log.info(" Monitor-{} '{}'", i, glfwGetMonitorName(buffer.get(i)));
+			}
+		}
 
-    public void pollEvents() {
-        glfwPollEvents();
-    }
+		return glfwGetVideoMode(glfwGetPrimaryMonitor());
+	}
+
+	private void framebufferResized(long windowId, int width, int height) {
+		size.set(width, height);
+
+		for (WindowEventListener listener : listeners) {
+			listener.onWindowResized(width, height);
+		}
+
+		ScreenPixelRatioHandler.set(windowId, glfwVidMode);
+		log.trace("Framebuffer size change to {}x{}", width, height);
+	}
 }

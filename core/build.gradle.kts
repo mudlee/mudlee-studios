@@ -45,10 +45,10 @@ java {
 }
 
 dependencies {
-    implementation(platform("org.lwjgl:lwjgl-bom:$lwjglVersion"))
+    api(platform("org.lwjgl:lwjgl-bom:$lwjglVersion"))
 
     implementation("org.lwjgl", "lwjgl")
-    implementation("org.lwjgl", "lwjgl-glfw")
+    api("org.lwjgl", "lwjgl-glfw")
     implementation("org.lwjgl", "lwjgl-opengl")
     implementation("org.lwjgl", "lwjgl", classifier = lwjglNatives)
     implementation("org.lwjgl", "lwjgl-glfw", classifier = lwjglNatives)

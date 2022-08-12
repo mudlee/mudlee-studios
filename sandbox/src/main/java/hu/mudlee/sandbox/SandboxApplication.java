@@ -5,15 +5,11 @@ import hu.mudlee.core.settings.Antialiasing;
 import hu.mudlee.core.settings.WindowPreferences;
 
 public class SandboxApplication {
-    public static void main(String[] args) {
-        final var windowPrefs = WindowPreferences
-                .builder()
-                .title("TESTING")
-                .antialiasing(Antialiasing.OFF)
-                .fullscreen(false)
-                .build();
-
-        var app = new Application(windowPrefs);
-        app.start();
-    }
+	public static void main(String[] args) {
+		var app = new Application(
+				new SandboxGame(),
+				WindowPreferences.builder().title("TESTING").antialiasing(Antialiasing.OFF).fullscreen(false).build()
+		);
+		app.start();
+	}
 }
