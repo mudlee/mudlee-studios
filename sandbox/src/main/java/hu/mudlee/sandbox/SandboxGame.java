@@ -36,18 +36,15 @@ public class SandboxGame implements LifeCycleListener, InputProcessor {
 		//shader = Shader.create("simple/colored_vert.glsl", "simple/colored_frag.glsl");
 
 		int stride = 7 * Float.BYTES;
-		/*final var layout = new VertexBufferLayout(
+		final var layout = new VertexBufferLayout(
 				new VertexLayoutAttribute(0, 3, ShaderTypes.FLOAT, false, stride, 0),
 				new VertexLayoutAttribute(1, 4, ShaderTypes.FLOAT, false, stride, 3 * Float.BYTES)
-		);*/
-		final var layout = new VertexBufferLayout(
-				new VertexLayoutAttribute(0, 3, ShaderTypes.FLOAT, false, 0, 0)
 		);
 
 		va = VertexArray.create();
-		va.addVertexBuffer(VertexBuffer.create(squareBasic, layout, BufferDataLocation.STATIC_DRAW));
-		//va.addVertexBuffer(VertexBuffer.create(squareColoredIndexed, layout, BufferDataLocation.STATIC_DRAW));
-		//va.setIndexBuffer(IndexBuffer.create(squareInd));
+		va.addVertexBuffer(VertexBuffer.create(squareColoredIndexed, layout, BufferDataLocation.STATIC_DRAW));
+		va.setIndexBuffer(IndexBuffer.create(squareInd));
+		va.setInstanceCount(3);
 	}
 
 	@Override
@@ -59,7 +56,7 @@ public class SandboxGame implements LifeCycleListener, InputProcessor {
 
 	@Override
 	public void onUpdate(float delta) {
-		Engine.app.renderer.renderRaw(va, shader, RenderMode.TRIANGLES, PolygonMode.LINE);
+		Engine.app.renderer.renderRaw(va, shader, RenderMode.TRIANGLES, PolygonMode.FILL);
 	}
 
 	private static final float[] squareColoredIndexed = {

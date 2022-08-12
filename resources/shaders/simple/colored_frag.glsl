@@ -5,5 +5,5 @@ layout (location = 0) in vec4 VERT_OUT_COLOR;
 
 void main()
 {
-    FINAL_COLOR = VERT_OUT_COLOR;
+	FINAL_COLOR = VERT_OUT_COLOR;
 }
