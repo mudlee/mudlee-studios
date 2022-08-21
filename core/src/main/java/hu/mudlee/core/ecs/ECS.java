@@ -3,28 +3,48 @@ package hu.mudlee.core.ecs;
 import com.badlogic.ashley.core.Engine;
 import com.badlogic.ashley.core.Entity;
 import com.badlogic.ashley.core.EntitySystem;
+import com.badlogic.ashley.utils.ImmutableArray;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
-
 public class ECS {
   private static final Logger log = LoggerFactory.getLogger(ECS.class);
-  private final Engine engine;
+  private static ECS instance;
+  private final Engine engine = new Engine();
 
-  public ECS(List<EntitySystem> systems) {
-    engine = new Engine();
-    systems.forEach(system -> {
-      log.debug("Registering ECS system: {}", system.getClass().getSimpleName());
-      engine.addSystem(system);
-    });
+  private ECS() {
   }
 
-  public void addEntity(Entity entity) {
-    engine.addEntity(entity);
+  public static ECS get() {
+    if (instance == null) {
+      instance = new ECS();
+    }
+
+    return instance;
   }
 
-  public void update(float delta) {
-    engine.update(delta);
+  public static void addSystem(EntitySystem system) {
+    log.debug("Registering ECS system: {}", system.getClass().getSimpleName());
+    get().engine.addSystem(system);
+  }
+
+  public static void addEntity(Entity entity) {
+    get().engine.addEntity(entity);
+  }
+
+  public static void removeEntity(Entity entity) {
+    get().engine.removeEntity(entity);
+  }
+
+  public static void removeAllEntities() {
+    get().engine.removeAllEntities();
+  }
+
+  public static void update(float delta) {
+    get().engine.update(delta);
+  }
+
+  public static ImmutableArray<Entity> getEntities() {
+    return get().engine.getEntities();
   }
 }

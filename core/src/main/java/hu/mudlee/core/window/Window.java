@@ -1,7 +1,8 @@
 package hu.mudlee.core.window;
 
 import hu.mudlee.core.Disposable;
-import hu.mudlee.core.input.InputManager;
+import hu.mudlee.core.input.KeyListener;
+import hu.mudlee.core.input.MouseListener;
 import hu.mudlee.core.settings.Antialiasing;
 import hu.mudlee.core.settings.WindowPreferences;
 import org.joml.Vector2i;
@@ -10,6 +11,7 @@ import org.lwjgl.glfw.GLFWVidMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -19,18 +21,23 @@ import static org.lwjgl.system.MemoryUtil.NULL;
 
 public class Window implements Disposable {
 	private static final Logger log = LoggerFactory.getLogger(Window.class);
-	private final WindowPreferences preferences;
-	private final InputManager input;
+	private static Window instance;
+	private WindowPreferences preferences;
 	private final Vector2i size = new Vector2i();
-	private final List<WindowEventListener> listeners;
+	private final List<WindowEventListener> listeners = new ArrayList<>();
 	private long id;
-
 	private GLFWVidMode glfwVidMode;
 
-	public Window(WindowPreferences preferences, InputManager input, List<WindowEventListener> listeners) {
-		this.preferences = preferences;
-		this.input = input;
-		this.listeners = listeners;
+	private Window() {
+		this.preferences = WindowPreferences.builder().build();
+	}
+
+	public static Window get() {
+		if (instance == null) {
+			instance = new Window();
+		}
+
+		return instance;
 	}
 
 	@Override
@@ -41,11 +48,24 @@ public class Window implements Disposable {
 		Objects.requireNonNull(glfwSetErrorCallback(null)).free();
 	}
 
-	public Vector2i getSize() {
-		return size;
+	public static void remove() {
+		get().dispose();
 	}
 
-	public void create() {
+	public static void setPreferences(WindowPreferences preferences) {
+		get().preferences = preferences;
+	}
+
+	public static int addListener(WindowEventListener listener) {
+		get().listeners.add(listener);
+		return get().listeners.size() - 1;
+	}
+
+	public static Vector2i getSize() {
+		return get().size;
+	}
+
+	public static void create() {
 		log.info("Creating window...");
 
 		if(!glfwInit()) {
@@ -58,63 +78,64 @@ public class Window implements Disposable {
 		glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 		glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
-		glfwVidMode = pickMonitor();
+		final var window = get();
 
-		if (preferences.getAntialiasing() != Antialiasing.OFF) {
-			log.debug("Antialiasing: {}", preferences.getAntialiasing().value);
-			glfwWindowHint(GLFW_SAMPLES, preferences.getAntialiasing().value);
+		window.glfwVidMode = pickMonitor();
+
+		if (window.preferences.getAntialiasing() != Antialiasing.OFF) {
+			log.debug("Antialiasing: {}", window.preferences.getAntialiasing().value);
+			glfwWindowHint(GLFW_SAMPLES, window.preferences.getAntialiasing().value);
 		}
 
-		if (preferences.isFullscreen()) {
-			size.set(glfwVidMode.width(), glfwVidMode.height());
+		if (window.preferences.isFullscreen()) {
+			window.size.set(window.glfwVidMode.width(), window.glfwVidMode.height());
 			glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
 		}
 		else {
-			size.set(preferences.getWidth(), preferences.getHeight());
+			window.size.set(window.preferences.getWidth(), window.preferences.getHeight());
 		}
 
-		listeners.forEach(WindowEventListener::onWindowPrepared);
+		window.listeners.forEach(WindowEventListener::onWindowPrepared);
 
-		id = glfwCreateWindow(size.x, size.y, preferences.getTitle(), preferences.isFullscreen() ? glfwGetPrimaryMonitor() : NULL, NULL);
+		window.id = glfwCreateWindow(window.size.x, window.size.y, window.preferences.getTitle(), window.preferences.isFullscreen() ? glfwGetPrimaryMonitor() : NULL, NULL);
 
-		if (id == NULL) {
+		if (window.id == NULL) {
 			glfwTerminate();
 			throw new RuntimeException("Error creating GLFW window");
 		}
 
-		listeners.forEach(listener -> listener.onWindowCreated(id, size.x, size.y, preferences.isvSync()));
+		window.listeners.forEach(listener -> listener.onWindowCreated(window.id, window.size.x, window.size.y, window.preferences.isvSync()));
 
-		glfwSetFramebufferSizeCallback(id, this::framebufferResized);
-		ScreenPixelRatioHandler.set(id, glfwVidMode);
+		glfwSetFramebufferSizeCallback(window.id, window::framebufferResized);
+		ScreenPixelRatioHandler.set(window.id, window.glfwVidMode);
 
 		log.debug("Setting up input callbacks");
-		glfwSetKeyCallback(id, (window, key, scancode, action, mods) -> input.keyCallback(key, scancode, action, mods));
-        /*glfwSetCursorPosCallback(id, (window, x, y) -> input.cursorPosCallback(x, y));
-        glfwSetScrollCallback(id, (window, xOffset, yOffset) -> input.mouseScrollCallback(xOffset, yOffset));
-        glfwSetMouseButtonCallback(id, (window, button, action, mods) -> input.mouseButtonCallback(button, action, mods));
-         */
+		glfwSetCursorPosCallback(window.id, MouseListener::mousePosCallback);
+		glfwSetMouseButtonCallback(window.id, MouseListener::mouseButtonCallback);
+		glfwSetScrollCallback(window.id, MouseListener::mouseScrollCallback);
+		glfwSetKeyCallback(window.id, KeyListener::keyCallback);
 
-		if (!preferences.isFullscreen()) {
-			glfwSetWindowPos(id, (glfwVidMode.width() - size.x) / 2, (glfwVidMode.height() - size.y) / 2);
+		if (!window.preferences.isFullscreen()) {
+			glfwSetWindowPos(window.id, (window.glfwVidMode.width() - window.size.x) / 2, (window.glfwVidMode.height() - window.size.y) / 2);
 		}
 
 		log.debug("Window has been setup");
-		glfwShowWindow(id);
+		glfwShowWindow(window.id);
 	}
 
-	public boolean shouldClose() {
-		return glfwWindowShouldClose(id);
+	public static boolean shouldClose() {
+		return glfwWindowShouldClose(get().id);
 	}
 
-	public void pollEvents() {
+	public static void pollEvents() {
 		glfwPollEvents();
 	}
 
-	public void close() {
-		glfwSetWindowShouldClose(id, true);
+	public static void close() {
+		glfwSetWindowShouldClose(get().id, true);
 	}
 
-	private GLFWVidMode pickMonitor() {
+	private static GLFWVidMode pickMonitor() {
 		final var buffer = glfwGetMonitors();
 
 		if (buffer == null) {

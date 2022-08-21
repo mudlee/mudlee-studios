@@ -12,7 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class RawRenderableEntity extends Entity {
-  private static final Logger log = LoggerFactory.getLogger(RawRenderableEntity.class);
+  private static final Logger LOG = LoggerFactory.getLogger(RawRenderableEntity.class);
   private final VertexArray vao;
   private final Shader shader;
 
@@ -24,6 +24,6 @@ public class RawRenderableEntity extends Entity {
     add(new ShaderComponent(shader));
     add(new RawRenderSettingsComponent(renderMode, polygoneMode));
 
-    log.debug("Entity '{}'created", name);
+    LOG.debug("Entity '{}'created", name);
   }
 }

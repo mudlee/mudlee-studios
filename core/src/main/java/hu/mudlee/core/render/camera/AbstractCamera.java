@@ -6,12 +6,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public abstract class AbstractCamera implements Camera {
-  private static final Logger log = LoggerFactory.getLogger(AbstractCamera.class);
+  private static final Logger LOG = LoggerFactory.getLogger(AbstractCamera.class);
+  private static final Vector3f UP_VECTOR = new Vector3f(0, 1, 0);
   private final Matrix4f projectionMatrix = new Matrix4f();
   private final Matrix4f viewMatrix = new Matrix4f();
   private final Vector3f position = new Vector3f();
   private final Vector3f rotation = new Vector3f();
-  private final Vector3f tmpViewMatrixUpVec = new Vector3f(0, 1, 0);
   private final Vector3f camFrontVec = new Vector3f(0, 0, -1); // RIGHT HANDED
   private final Vector3f tmpViewMatrixPositionVec = new Vector3f().zero();
   private boolean projectionMatrixChanged;
@@ -22,10 +22,10 @@ public abstract class AbstractCamera implements Camera {
   protected abstract void updateProjectionMatrix(Matrix4f projectionMatrix);
 
   @Override
-  public void resize(int width, int height) {
-    log.debug("Camera resized to {}x{}", width, height);
-    this.width = width;
-    this.height = height;
+  public void resize(int newWidth, int newHeight) {
+    LOG.debug("Camera resized to {}x{}", newWidth, newHeight);
+    width = newWidth;
+    height = newHeight;
     projectionMatrixChanged = true;
   }
 
@@ -49,8 +49,11 @@ public abstract class AbstractCamera implements Camera {
   }
 
   @Override
-  public void setRotation(Vector3f rotation) {
-    this.rotation.set(rotation);
+  public void setRotation(Vector3f newRotation) {
+    rotation.set(newRotation);
+    //recalculateFrontVector();
+    viewMatrixChanged = true;
+    //projectionMatrixChanged = true;
   }
 
   @Override
@@ -83,6 +86,16 @@ public abstract class AbstractCamera implements Camera {
     viewMatrix.identity();
     tmpViewMatrixPositionVec.set(position);
 
-    viewMatrix.lookAt(position, tmpViewMatrixPositionVec.add(camFrontVec), tmpViewMatrixUpVec);
+    viewMatrix.lookAt(position, tmpViewMatrixPositionVec.add(camFrontVec), UP_VECTOR);
+  }
+
+  private void recalculateFrontVector() {
+    // x -> pitch
+    // y -> yaw
+    // z -> roll
+    camFrontVec.x = (float) (Math.sin(Math.toRadians(rotation.y)) * Math.cos(Math.toRadians(rotation.x)));
+    camFrontVec.y = (float) (Math.sin(Math.toRadians(rotation.x)));
+    camFrontVec.z = (float) (-Math.cos(Math.toRadians(rotation.y)) * Math.cos(Math.toRadians(rotation.x)));
+    camFrontVec.normalize();
   }
 }

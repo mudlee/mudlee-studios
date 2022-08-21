@@ -1,10 +1,11 @@
 package hu.mudlee.core;
 
-import com.badlogic.ashley.core.EntitySystem;
 import hu.mudlee.core.ecs.ECS;
 import hu.mudlee.core.ecs.systems.RawRenderableSystem;
 import hu.mudlee.core.render.Renderer;
 import hu.mudlee.core.render.types.BufferBitTypes;
+import hu.mudlee.core.scene.Scene;
+import hu.mudlee.core.scene.SceneManager;
 import hu.mudlee.core.settings.WindowPreferences;
 import hu.mudlee.core.window.Window;
 import hu.mudlee.core.window.WindowEventListener;
@@ -12,73 +13,72 @@ import org.joml.Vector4f;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class Application implements WindowEventListener {
-	public final Renderer renderer;
-	protected final Window window;
-	private final LifeCycleListener game;
 	private static final Logger log = LoggerFactory.getLogger(Application.class);
-	private float deltaTime;
-	private float frameTime;
+	private static Application instance;
 
-	public Application(LifeCycleListener game, WindowPreferences windowPreferences) {
-		this.game = game;
-		renderer = new Renderer(true);
-		window = new Window(windowPreferences, GameEngine.input, List.of(renderer, this));
-
-		if(GameEngine.app != null) {
-			throw new RuntimeException("Cannot run multiple applications");
+	public static Application get() {
+		if (instance == null) {
+			instance = new Application();
 		}
 
-		final var systems = new ArrayList<EntitySystem>();
-		systems.add(new RawRenderableSystem(renderer));
+		return instance;
+	}
 
-		GameEngine.ecs = new ECS(systems);
-		GameEngine.app = this;
+	private Application() {
 	}
 
 	@Override
 	public void onWindowResized(int width, int height) {
-		game.onResize(width,height);
+		SceneManager.onWindowResized(width, height);
 	}
 
-	public void start() {
-		window.create();
-		game.onCreated();
+	public static void start(WindowPreferences windowPreferences, Scene startingScene) {
+		Window.setPreferences(windowPreferences);
+		Window.addListener(Renderer.get());
+		Window.addListener(get());
+		ECS.addSystem(new RawRenderableSystem());
 
-		loop();
+		Window.create();
+		Renderer.setClearColor(new Vector4f(1f, 1f, 1f, 1f));
+		SceneManager.setScreen(startingScene);
+
+		get().loop();
 
 		log.info("Application is shutting down");
-		game.onDispose();
-		renderer.dispose();
-		window.dispose();
+		SceneManager.onDispose();
+		Renderer.dispose();
+		Window.remove();
 		log.info("Terminated");
 	}
 
-	public void stop() {
-		window.close();
+	public static void stop() {
+		Window.close();
 	}
 
 	private void loop() {
-		long lastTime = System.nanoTime();
-		renderer.setClearColor(new Vector4f(1f, 1f, 1f, 1f));
-		renderer.setClearFlags(BufferBitTypes.COLOR);
+		Renderer.setClearFlags(BufferBitTypes.COLOR);
 
-		while (!window.shouldClose()) {
-			long now = System.nanoTime();
-			long frameTimeNanos = now - lastTime;
-			deltaTime = frameTimeNanos / 1_000_000_000f;
-			lastTime = now;
+		float beginTime = Time.getTime();
+		float endTime;
+		float deltaTime = -1.0f;
 
-			renderer.clear();
-			GameEngine.ecs.update(deltaTime);
-			game.onUpdate(deltaTime);
+		while (!Window.shouldClose()) {
+			Window.pollEvents();
 
-			renderer.swapBuffers(deltaTime);
-			window.pollEvents();
-			frameTime = (System.nanoTime() - now) / 1_000_000f;
+			Renderer.clear();
+
+			if(deltaTime >= 0) {
+				SceneManager.onUpdate(deltaTime);
+				ECS.update(deltaTime);
+			}
+
+			Renderer.swapBuffers(deltaTime);
+			endTime = Time.getTime();
+			deltaTime = endTime - beginTime;
+			beginTime = endTime;
 		}
 	}
 }

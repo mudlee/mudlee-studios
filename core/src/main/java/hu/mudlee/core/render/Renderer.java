@@ -8,9 +8,18 @@ import org.joml.Vector4f;
 
 public class Renderer implements WindowEventListener {
 	private final GraphicsContext context;
+	private static Renderer instance;
 
-	public Renderer(boolean debug) {
-		context = new OpenGLGraphicsContext(debug);
+	private Renderer() {
+		context = new OpenGLGraphicsContext(true);
+	}
+
+	public static Renderer get() {
+		if (instance == null) {
+			instance = new Renderer();
+		}
+
+		return instance;
 	}
 
 	@Override
@@ -28,27 +37,27 @@ public class Renderer implements WindowEventListener {
 		context.windowResized(width, height);
 	}
 
-	public void renderRaw(VertexArray vao, Shader shader, RenderMode renderMode, PolygonMode polygonMode) {
-		context.renderRaw(vao, shader, renderMode, polygonMode);
+	public static void renderRaw(VertexArray vao, Shader shader, RenderMode renderMode, PolygonMode polygonMode) {
+		get().context.renderRaw(vao, shader, renderMode, polygonMode);
 	}
 
-	public void setClearColor(Vector4f color) {
-		context.setClearColor(color);
+	public static void setClearColor(Vector4f color) {
+		get().context.setClearColor(color);
 	}
 
-	public void setClearFlags(int mask) {
-		context.setClearFlags(mask);
+	public static void setClearFlags(int mask) {
+		get().context.setClearFlags(mask);
 	}
 
-	public void swapBuffers(float frameTime) {
-		context.swapBuffers(frameTime);
+	public static void swapBuffers(float frameTime) {
+		get().context.swapBuffers(frameTime);
 	}
 
-	public void clear() {
-		context.clear();
+	public static void clear() {
+		get().context.clear();
 	}
 
-	public void dispose() {
-		context.dispose();
+	public static void dispose() {
+		get().context.dispose();
 	}
 }

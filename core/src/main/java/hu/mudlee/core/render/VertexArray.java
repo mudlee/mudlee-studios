@@ -14,15 +14,15 @@ public abstract class VertexArray {
 
 	public abstract void unbind();
 
-	public abstract void addVertexBuffer(VertexBuffer buffer);
+	public abstract void addVBO(VertexBuffer buffer);
 
-	public abstract void setIndexBuffer(IndexBuffer indexBuffer);
+	public abstract void setEBO(ElementBuffer elementBuffer);
 
 	public abstract void setInstanceCount(int count);
 
-	public abstract List<VertexBuffer> getVertexBuffers();
+	public abstract List<VertexBuffer> getVBOs();
 
-	public abstract Optional<IndexBuffer> getIndexBuffer();
+	public abstract Optional<ElementBuffer> getEBO();
 
 	public abstract int getInstanceCount();
 

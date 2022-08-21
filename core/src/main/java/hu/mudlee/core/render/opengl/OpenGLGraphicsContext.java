@@ -86,21 +86,21 @@ public class OpenGLGraphicsContext implements GraphicsContext {
 		}
 
 		if(vao.isInstanced()) {
-			if (vao.getIndexBuffer().isPresent()) {
-				glDrawElementsInstanced(renderMode.glRef, vao.getIndexBuffer().get().getLength(), GL_UNSIGNED_INT, 0, vao.getInstanceCount());
+			if (vao.getEBO().isPresent()) {
+				glDrawElementsInstanced(renderMode.glRef, vao.getEBO().get().getLength(), GL_UNSIGNED_INT, 0, vao.getInstanceCount());
 			}
 			else {
-				for (VertexBuffer buffer : vao.getVertexBuffers()) {
+				for (VertexBuffer buffer : vao.getVBOs()) {
 					// NOTE: we suppose that vertex coordinates always passed as vec3
 					glDrawArraysInstanced(renderMode.glRef, 0, buffer.getLength() / 3, vao.getInstanceCount());
 				}
 			}
 		}
 		else {
-			if (vao.getIndexBuffer().isPresent()) {
-				glDrawElements(renderMode.glRef, vao.getIndexBuffer().get().getLength(), GL_UNSIGNED_INT, 0);
+			if (vao.getEBO().isPresent()) {
+				glDrawElements(renderMode.glRef, vao.getEBO().get().getLength(), GL_UNSIGNED_INT, 0);
 			} else {
-				for (VertexBuffer buffer : vao.getVertexBuffers()) {
+				for (VertexBuffer buffer : vao.getVBOs()) {
 					// NOTE: we suppose that vertex coordinates always passed as vec3
 					glDrawArrays(renderMode.glRef, 0, buffer.getLength() / 3);
 				}

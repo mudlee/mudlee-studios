@@ -14,7 +14,7 @@ public class OpenGLVertexArray extends VertexArray {
 	private static final Logger log = LoggerFactory.getLogger(OpenGLVertexArray.class);
 	private final int id;
 	private final List<VertexBuffer> vertexBuffers = new ArrayList<>();
-	private IndexBuffer indexBuffer;
+	private ElementBuffer elementBuffer;
 	private int instanceCount;
 	private boolean instanced;
 
@@ -36,7 +36,7 @@ public class OpenGLVertexArray extends VertexArray {
 	}
 
 	@Override
-	public void addVertexBuffer(VertexBuffer buffer) {
+	public void addVBO(VertexBuffer buffer) {
 		log.trace("Add vertex buffer ID:{} to vertex array ID:{}", buffer.getId(), id);
 		bind();
 		if (buffer.getLayout() == null) {
@@ -66,12 +66,12 @@ public class OpenGLVertexArray extends VertexArray {
 	}
 
 	@Override
-	public void setIndexBuffer(IndexBuffer buffer) {
-		log.trace("Add index buffer ID:{} to vertex array ID:{}", buffer.getId(), id);
+	public void setEBO(ElementBuffer buffer) {
+		log.trace("Add element buffer ID:{} to vertex array ID:{}", buffer.getId(), id);
 		bind();
 		buffer.bind();
 		unbind();
-		indexBuffer = buffer;
+		elementBuffer = buffer;
 	}
 
 	@Override
@@ -80,13 +80,13 @@ public class OpenGLVertexArray extends VertexArray {
 	}
 
 	@Override
-	public List<VertexBuffer> getVertexBuffers() {
+	public List<VertexBuffer> getVBOs() {
 		return vertexBuffers;
 	}
 
 	@Override
-	public Optional<IndexBuffer> getIndexBuffer() {
-		return Optional.ofNullable(indexBuffer);
+	public Optional<ElementBuffer> getEBO() {
+		return Optional.ofNullable(elementBuffer);
 	}
 
 	@Override

@@ -10,14 +10,12 @@ import hu.mudlee.core.ecs.components.VertexArrayComponent;
 import hu.mudlee.core.render.Renderer;
 
 public class RawRenderableSystem extends IteratingSystem {
-  private final Renderer renderer;
   private ComponentMapper<VertexArrayComponent> vaoMapper = ComponentMapper.getFor(VertexArrayComponent.class);
   private ComponentMapper<ShaderComponent> shaderMapper = ComponentMapper.getFor(ShaderComponent.class);
   private ComponentMapper<RawRenderSettingsComponent> settingsMapper = ComponentMapper.getFor(RawRenderSettingsComponent.class);
 
-  public RawRenderableSystem(Renderer renderer) {
+  public RawRenderableSystem() {
     super(Family.all(VertexArrayComponent.class, ShaderComponent.class, RawRenderSettingsComponent.class).get());
-    this.renderer = renderer;
   }
 
   @Override
@@ -25,6 +23,6 @@ public class RawRenderableSystem extends IteratingSystem {
     final var vaoC = vaoMapper.get(entity);
     final var shaderC = shaderMapper.get(entity);
     final var settingsC = settingsMapper.get(entity);
-    renderer.renderRaw(vaoC.vertexArray(), shaderC.shader(), settingsC.renderMode(), settingsC.polygonMode());
+    Renderer.renderRaw(vaoC.vertexArray(), shaderC.shader(), settingsC.renderMode(), settingsC.polygonMode());
   }
 }

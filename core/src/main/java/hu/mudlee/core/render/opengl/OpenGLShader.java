@@ -3,6 +3,7 @@ package hu.mudlee.core.render.opengl;
 import hu.mudlee.core.io.ResourceLoader;
 import hu.mudlee.core.render.Shader;
 import org.joml.Matrix4f;
+import org.joml.Vector4f;
 import org.lwjgl.system.MemoryStack;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -90,6 +91,31 @@ public class OpenGLShader extends Shader {
 				value.get(buffer);
 				glProgramUniformMatrix4fv(programId, uniforms.get(name), false, buffer);
 			}
+		}
+	}
+
+	@Override
+	public void setUniform(int programId, String name, Vector4f value) {
+		if(doesUniformExist(name)) {
+			try (MemoryStack stack = MemoryStack.stackPush()) {
+				final var buffer = stack.mallocFloat(4);
+				value.get(buffer);
+				glProgramUniform4fv(programId, uniforms.get(name), buffer);
+			}
+		}
+	}
+
+	@Override
+	public void setUniform(int programId, String name, float value) {
+		if(doesUniformExist(name)) {
+			glProgramUniform1f(programId, uniforms.get(name), value);
+		}
+	}
+
+	@Override
+	public void setUniform(int programId, String name, int value) {
+		if(doesUniformExist(name)) {
+			glProgramUniform1i(programId, uniforms.get(name), value);
 		}
 	}
 

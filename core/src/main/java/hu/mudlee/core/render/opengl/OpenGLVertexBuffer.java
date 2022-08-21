@@ -14,14 +14,14 @@ public class OpenGLVertexBuffer extends VertexBuffer {
 	private final VertexBufferLayout layout;
 	private final int length;
 
-	public OpenGLVertexBuffer(float[] vertices, VertexBufferLayout layout, int dataLocation) {
+	public OpenGLVertexBuffer(float[] vertices, VertexBufferLayout layout, int bufferUsage) {
 		try (final var stack = stackPush()) {
 			this.layout = layout;
 			length = vertices.length;
 			id = glGenBuffers();
 			bind();
 			final var buffer = stack.callocFloat(vertices.length).put(vertices).flip();
-			glBufferData(GL_ARRAY_BUFFER, buffer, dataLocation);
+			glBufferData(GL_ARRAY_BUFFER, buffer, bufferUsage);
 			unbind();
 			log.debug("VertexBuffer created ID:{}", id);
 		}
