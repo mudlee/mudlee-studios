@@ -2,9 +2,9 @@ plugins {
 	`java-library`
 }
 
-val lwjglVersion = "3.3.2-SNAPSHOT"
-val jomlVersion = "1.10.4"
-val slf4jVersion = "2.0.0-beta1"
+val lwjglVersion = "3.4.0"
+val jomlVersion = "1.10.8"
+val slf4jVersion = "2.0.17"
 val resourcesPath = "../resources"
 val ashleyVersion = "1.7.3"
 

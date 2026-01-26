@@ -3,7 +3,7 @@ import org.gradle.nativeplatform.platform.internal.DefaultOperatingSystem
 
 plugins {
 	application
-	id("org.beryx.jlink") version("2.25.0")
+	id("org.beryx.jlink") version("3.1.5")
 }
 
 dependencies {

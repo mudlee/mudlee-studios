@@ -1,6 +1,6 @@
 plugins {
 	java
-	id("org.javamodularity.moduleplugin") version("1.8.12") apply(false)
+	id("org.javamodularity.moduleplugin") version("2.0.0") apply(false)
 }
 
 subprojects {
