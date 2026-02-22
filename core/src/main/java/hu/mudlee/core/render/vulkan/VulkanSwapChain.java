@@ -55,11 +55,7 @@ class VulkanSwapChain implements Disposable {
             extent.width(stackExtent.width()).height(stackExtent.height());
             imageFormat = surfaceFormat.format();
 
-            // One more image than the minimum gives the driver room to breathe without stalling us
-            var imageCount = capabilities.minImageCount() + 1;
-            if (capabilities.maxImageCount() > 0) {
-                imageCount = Math.min(imageCount, capabilities.maxImageCount());
-            }
+            var imageCount = capabilities.minImageCount();
 
             var createInfo = VkSwapchainCreateInfoKHR.calloc(stack)
                     .sType(VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR)

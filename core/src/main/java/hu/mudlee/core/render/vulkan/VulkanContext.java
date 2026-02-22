@@ -89,6 +89,10 @@ public class VulkanContext implements GraphicsContext {
         return instance;
     }
 
+    int currentFrame() {
+        return currentFrame;
+    }
+
     VulkanDevice device() {
         return device;
     }
