@@ -116,6 +116,11 @@ public class OpenGLGraphicsContext implements GraphicsContext {
     }
 
     @Override
+    public void setViewport(int x, int y, int width, int height) {
+        glViewport(x, y, width, height);
+    }
+
+    @Override
     public void windowResized(int newWidth, int newHeight) {
         glViewport(0, 0, newWidth, newHeight);
     }

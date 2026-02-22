@@ -61,6 +61,10 @@ public class Renderer implements WindowEventListener {
         get().context.renderRaw(vao, shader, renderMode, polygonMode);
     }
 
+    public static void setViewport(int x, int y, int width, int height) {
+        get().context.setViewport(x, y, width, height);
+    }
+
     public static void setClearColor(Vector4f color) {
         get().context.setClearColor(color);
     }

@@ -5,13 +5,11 @@ import hu.mudlee.core.content.ContentManager;
 import hu.mudlee.core.input.InputActionMap;
 import hu.mudlee.core.input.Keys;
 import hu.mudlee.core.render.RenderBackend;
-import hu.mudlee.core.render.Renderer;
 import hu.mudlee.core.render.SpriteBatch;
 import hu.mudlee.core.render.camera.Camera2D;
 import hu.mudlee.core.render.camera.OrthographicCamera;
 import hu.mudlee.core.render.texture.Texture2D;
 import org.joml.Vector2f;
-import org.joml.Vector4f;
 
 public class SandboxApplication extends Game {
 
@@ -32,8 +30,6 @@ public class SandboxApplication extends Game {
 
     @Override
     protected void loadContent() {
-        Renderer.setClearColor(new Vector4f(0, 0, 0, 1));
-
         content = new ContentManager("textures");
         marioTexture = content.load(Texture2D.class, "mario");
 
@@ -56,6 +52,7 @@ public class SandboxApplication extends Game {
 
     @Override
     protected void draw(GameTime gameTime) {
+        graphicsDevice.clear(Color.BLACK);
         spriteBatch.begin(camera.getTransformMatrix());
         spriteBatch.draw(marioTexture, new Vector2f(0.5f, 0.5f), Color.WHITE);
         spriteBatch.end();

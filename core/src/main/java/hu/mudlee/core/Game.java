@@ -5,13 +5,11 @@ import hu.mudlee.core.ecs.ECS;
 import hu.mudlee.core.ecs.systems.RawRenderableSystem;
 import hu.mudlee.core.input.InputSystem;
 import hu.mudlee.core.render.Renderer;
-import hu.mudlee.core.render.types.BufferBitTypes;
 import hu.mudlee.core.scene.SceneManager;
 import hu.mudlee.core.settings.Antialiasing;
 import hu.mudlee.core.settings.WindowPreferences;
 import hu.mudlee.core.window.Window;
 import hu.mudlee.core.window.WindowEventListener;
-import org.joml.Vector4f;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,6 +19,7 @@ public abstract class Game implements WindowEventListener {
     private static final float TARGET_ELAPSED_SECONDS = 1f / 60f;
 
     protected GraphicsDeviceManager gdm;
+    protected GraphicsDevice graphicsDevice;
     protected ContentManager content;
 
     protected Game() {}
@@ -46,7 +45,7 @@ public abstract class Game implements WindowEventListener {
         ECS.addSystem(new RawRenderableSystem());
 
         Window.create();
-        Renderer.setClearColor(new Vector4f(1f, 1f, 1f, 1f));
+        graphicsDevice = new GraphicsDevice();
 
         if (content == null) {
             content = new ContentManager("");
@@ -86,20 +85,17 @@ public abstract class Game implements WindowEventListener {
     protected void unloadContent() {}
 
     private void loop() {
-        Renderer.setClearFlags(BufferBitTypes.COLOR);
-
         var beginTime = Time.getTime();
         var totalTime = 0f;
         float endTime;
-        var deltaTime = -1.0f;
+        var deltaTime = 0f;
         var gameTime = new GameTime(0f, 0f, false);
 
         while (!Window.shouldClose()) {
             InputSystem.update();
             Window.pollEvents();
-            Renderer.clear();
 
-            if (deltaTime >= 0) {
+            if (deltaTime >= 0f) {
                 totalTime += deltaTime;
                 gameTime.set(deltaTime, totalTime, deltaTime > TARGET_ELAPSED_SECONDS);
                 SceneManager.onUpdate(gameTime);

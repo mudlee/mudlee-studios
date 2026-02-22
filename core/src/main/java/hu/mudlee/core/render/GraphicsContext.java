@@ -22,6 +22,8 @@ public interface GraphicsContext extends Disposable {
 
     void windowResized(int newWidth, int newHeight);
 
+    default void setViewport(int x, int y, int width, int height) {}
+
     /** Block until the GPU has finished all in-flight work. No-op for stateless backends. */
     default void waitIdle() {}
 }
