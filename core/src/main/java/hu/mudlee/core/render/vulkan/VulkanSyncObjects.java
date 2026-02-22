@@ -20,76 +20,74 @@ import org.slf4j.LoggerFactory;
  */
 class VulkanSyncObjects implements Disposable {
 
-  private static final Logger log = LoggerFactory.getLogger(VulkanSyncObjects.class);
+    private static final Logger log = LoggerFactory.getLogger(VulkanSyncObjects.class);
 
-  private final VulkanDevice device;
-  private final long[] imageAvailableSemaphores = new long[FRAMES_IN_FLIGHT];
-  // One per swapchain image so the presentation engine and the next submit never race on the same
-  // semaphore.
-  private final long[] renderFinishedSemaphores;
-  private final long[] inFlightFences = new long[FRAMES_IN_FLIGHT];
+    private final VulkanDevice device;
+    private final long[] imageAvailableSemaphores = new long[FRAMES_IN_FLIGHT];
+    // One per swapchain image so the presentation engine and the next submit never race on the same
+    // semaphore.
+    private final long[] renderFinishedSemaphores;
+    private final long[] inFlightFences = new long[FRAMES_IN_FLIGHT];
 
-  VulkanSyncObjects(VulkanDevice device, int swapChainImageCount) {
-    this.device = device;
-    this.renderFinishedSemaphores = new long[swapChainImageCount];
+    VulkanSyncObjects(VulkanDevice device, int swapChainImageCount) {
+        this.device = device;
+        this.renderFinishedSemaphores = new long[swapChainImageCount];
 
-    try (MemoryStack stack = stackPush()) {
-      var semaphoreInfo =
-          VkSemaphoreCreateInfo.calloc(stack).sType(VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO);
+        try (MemoryStack stack = stackPush()) {
+            var semaphoreInfo = VkSemaphoreCreateInfo.calloc(stack).sType(VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO);
 
-      // Fences start signalled so the first vkWaitForFences at frame 0 doesn't block forever
-      var fenceInfo =
-          VkFenceCreateInfo.calloc(stack)
-              .sType(VK_STRUCTURE_TYPE_FENCE_CREATE_INFO)
-              .flags(VK_FENCE_CREATE_SIGNALED_BIT);
+            // Fences start signalled so the first vkWaitForFences at frame 0 doesn't block forever
+            var fenceInfo = VkFenceCreateInfo.calloc(stack)
+                    .sType(VK_STRUCTURE_TYPE_FENCE_CREATE_INFO)
+                    .flags(VK_FENCE_CREATE_SIGNALED_BIT);
 
-      var pLong = stack.mallocLong(1);
-      for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
-        if (vkCreateSemaphore(device.device(), semaphoreInfo, null, pLong) != VK_SUCCESS) {
-          throw new RuntimeException("Failed to create imageAvailableSemaphore[" + i + "]");
+            var pLong = stack.mallocLong(1);
+            for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
+                if (vkCreateSemaphore(device.device(), semaphoreInfo, null, pLong) != VK_SUCCESS) {
+                    throw new RuntimeException("Failed to create imageAvailableSemaphore[" + i + "]");
+                }
+                imageAvailableSemaphores[i] = pLong.get(0);
+
+                if (vkCreateFence(device.device(), fenceInfo, null, pLong) != VK_SUCCESS) {
+                    throw new RuntimeException("Failed to create inFlightFence[" + i + "]");
+                }
+                inFlightFences[i] = pLong.get(0);
+            }
+
+            for (int i = 0; i < swapChainImageCount; i++) {
+                if (vkCreateSemaphore(device.device(), semaphoreInfo, null, pLong) != VK_SUCCESS) {
+                    throw new RuntimeException("Failed to create renderFinishedSemaphore[" + i + "]");
+                }
+                renderFinishedSemaphores[i] = pLong.get(0);
+            }
         }
-        imageAvailableSemaphores[i] = pLong.get(0);
+        log.debug(
+                "Vulkan sync objects created ({} frames in flight, {} render-finished semaphores)",
+                FRAMES_IN_FLIGHT,
+                swapChainImageCount);
+    }
 
-        if (vkCreateFence(device.device(), fenceInfo, null, pLong) != VK_SUCCESS) {
-          throw new RuntimeException("Failed to create inFlightFence[" + i + "]");
+    long imageAvailableSemaphore(int frame) {
+        return imageAvailableSemaphores[frame];
+    }
+
+    long renderFinishedSemaphore(int frame) {
+        return renderFinishedSemaphores[frame];
+    }
+
+    long inFlightFence(int frame) {
+        return inFlightFences[frame];
+    }
+
+    @Override
+    public void dispose() {
+        for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
+            vkDestroySemaphore(device.device(), imageAvailableSemaphores[i], null);
+            vkDestroyFence(device.device(), inFlightFences[i], null);
         }
-        inFlightFences[i] = pLong.get(0);
-      }
-
-      for (int i = 0; i < swapChainImageCount; i++) {
-        if (vkCreateSemaphore(device.device(), semaphoreInfo, null, pLong) != VK_SUCCESS) {
-          throw new RuntimeException("Failed to create renderFinishedSemaphore[" + i + "]");
+        for (long sem : renderFinishedSemaphores) {
+            vkDestroySemaphore(device.device(), sem, null);
         }
-        renderFinishedSemaphores[i] = pLong.get(0);
-      }
+        log.debug("Vulkan sync objects destroyed");
     }
-    log.debug(
-        "Vulkan sync objects created ({} frames in flight, {} render-finished semaphores)",
-        FRAMES_IN_FLIGHT,
-        swapChainImageCount);
-  }
-
-  long imageAvailableSemaphore(int frame) {
-    return imageAvailableSemaphores[frame];
-  }
-
-  long renderFinishedSemaphore(int frame) {
-    return renderFinishedSemaphores[frame];
-  }
-
-  long inFlightFence(int frame) {
-    return inFlightFences[frame];
-  }
-
-  @Override
-  public void dispose() {
-    for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
-      vkDestroySemaphore(device.device(), imageAvailableSemaphores[i], null);
-      vkDestroyFence(device.device(), inFlightFences[i], null);
-    }
-    for (long sem : renderFinishedSemaphores) {
-      vkDestroySemaphore(device.device(), sem, null);
-    }
-    log.debug("Vulkan sync objects destroyed");
-  }
 }

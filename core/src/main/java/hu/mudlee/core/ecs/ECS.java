@@ -8,42 +8,42 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ECS {
-  private static final Logger log = LoggerFactory.getLogger(ECS.class);
-  private static ECS instance;
-  private final Engine engine = new Engine();
+    private static final Logger log = LoggerFactory.getLogger(ECS.class);
+    private static ECS instance;
+    private final Engine engine = new Engine();
 
-  private ECS() {}
+    private ECS() {}
 
-  public static ECS get() {
-    if (instance == null) {
-      instance = new ECS();
+    public static ECS get() {
+        if (instance == null) {
+            instance = new ECS();
+        }
+
+        return instance;
     }
 
-    return instance;
-  }
+    public static void addSystem(EntitySystem system) {
+        log.debug("Registering ECS system: {}", system.getClass().getSimpleName());
+        get().engine.addSystem(system);
+    }
 
-  public static void addSystem(EntitySystem system) {
-    log.debug("Registering ECS system: {}", system.getClass().getSimpleName());
-    get().engine.addSystem(system);
-  }
+    public static void addEntity(Entity entity) {
+        get().engine.addEntity(entity);
+    }
 
-  public static void addEntity(Entity entity) {
-    get().engine.addEntity(entity);
-  }
+    public static void removeEntity(Entity entity) {
+        get().engine.removeEntity(entity);
+    }
 
-  public static void removeEntity(Entity entity) {
-    get().engine.removeEntity(entity);
-  }
+    public static void removeAllEntities() {
+        get().engine.removeAllEntities();
+    }
 
-  public static void removeAllEntities() {
-    get().engine.removeAllEntities();
-  }
+    public static void update(float delta) {
+        get().engine.update(delta);
+    }
 
-  public static void update(float delta) {
-    get().engine.update(delta);
-  }
-
-  public static ImmutableArray<Entity> getEntities() {
-    return get().engine.getEntities();
-  }
+    public static ImmutableArray<Entity> getEntities() {
+        return get().engine.getEntities();
+    }
 }

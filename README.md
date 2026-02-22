@@ -21,7 +21,7 @@ $ ./sandbox/build/image/bin/sandbox-app
 
 ## Code Formatting
 
-This project uses [google-java-format](https://github.com/google/google-java-format) via the [Spotless](https://github.com/diffplug/spotless) Gradle plugin.
+This project uses [palantir-java-format](https://github.com/palantir/palantir-java-format) (120 character line length) via the [Spotless](https://github.com/diffplug/spotless) Gradle plugin.
 
 ```bash
 # Apply formatting to all Java source files in-place

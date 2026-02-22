@@ -6,32 +6,32 @@ import org.joml.Matrix4f;
 import org.joml.Vector4f;
 
 public abstract class Shader {
-  public static Shader create(String vertexShaderName, String fragmentShaderName) {
-    return switch (Renderer.activeBackend()) {
-      case OPENGL -> new OpenGLShader(vertexShaderName, fragmentShaderName);
-      case VULKAN -> new VulkanShader(vertexShaderName, fragmentShaderName);
-    };
-  }
+    public static Shader create(String vertexShaderName, String fragmentShaderName) {
+        return switch (Renderer.activeBackend()) {
+            case OPENGL -> new OpenGLShader(vertexShaderName, fragmentShaderName);
+            case VULKAN -> new VulkanShader(vertexShaderName, fragmentShaderName);
+        };
+    }
 
-  public abstract int getPipelineId();
+    public abstract int getPipelineId();
 
-  public abstract void bind();
+    public abstract void bind();
 
-  public abstract void unbind();
+    public abstract void unbind();
 
-  public abstract int getVertexProgramId();
+    public abstract int getVertexProgramId();
 
-  public abstract int getFragmentProgramId();
+    public abstract int getFragmentProgramId();
 
-  public abstract void createUniform(int programId, String name);
+    public abstract void createUniform(int programId, String name);
 
-  public abstract void setUniform(int programId, String name, Matrix4f value);
+    public abstract void setUniform(int programId, String name, Matrix4f value);
 
-  public abstract void setUniform(int programId, String name, Vector4f value);
+    public abstract void setUniform(int programId, String name, Vector4f value);
 
-  public abstract void setUniform(int programId, String name, float value);
+    public abstract void setUniform(int programId, String name, float value);
 
-  public abstract void setUniform(int programId, String name, int value);
+    public abstract void setUniform(int programId, String name, int value);
 
-  public abstract void dispose();
+    public abstract void dispose();
 }

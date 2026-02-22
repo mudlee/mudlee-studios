@@ -17,89 +17,83 @@ import org.slf4j.LoggerFactory;
  */
 public class VulkanVertexBuffer extends VertexBuffer {
 
-  private static final Logger log = LoggerFactory.getLogger(VulkanVertexBuffer.class);
+    private static final Logger log = LoggerFactory.getLogger(VulkanVertexBuffer.class);
 
-  private final VulkanBuffer gpuBuffer;
-  private final VertexBufferLayout layout;
-  private final int length;
+    private final VulkanBuffer gpuBuffer;
+    private final VertexBufferLayout layout;
+    private final int length;
 
-  /** Convenience constructor — resolves device and command pool from the active VulkanContext. */
-  public VulkanVertexBuffer(float[] vertices, VertexBufferLayout layout) {
-    this(vertices, layout, VulkanContext.get().device(), VulkanContext.get().commandPool());
-  }
+    /** Convenience constructor — resolves device and command pool from the active VulkanContext. */
+    public VulkanVertexBuffer(float[] vertices, VertexBufferLayout layout) {
+        this(vertices, layout, VulkanContext.get().device(), VulkanContext.get().commandPool());
+    }
 
-  public VulkanVertexBuffer(
-      float[] vertices,
-      VertexBufferLayout layout,
-      VulkanDevice device,
-      VulkanCommandPool commandPool) {
-    this.layout = layout;
-    this.length = vertices.length;
+    public VulkanVertexBuffer(
+            float[] vertices, VertexBufferLayout layout, VulkanDevice device, VulkanCommandPool commandPool) {
+        this.layout = layout;
+        this.length = vertices.length;
 
-    var sizeBytes = (long) vertices.length * Float.BYTES;
+        var sizeBytes = (long) vertices.length * Float.BYTES;
 
-    // Stage: host-visible buffer for CPU upload
-    var staging =
-        new VulkanBuffer(
-            device,
-            sizeBytes,
-            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        // Stage: host-visible buffer for CPU upload
+        var staging = new VulkanBuffer(
+                device,
+                sizeBytes,
+                VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-    staging.map(
-        dst -> {
-          var floatView = dst.asFloatBuffer();
-          floatView.put(vertices).flip();
+        staging.map(dst -> {
+            var floatView = dst.asFloatBuffer();
+            floatView.put(vertices).flip();
         });
 
-    // Device-local: fast GPU memory, only accessible from the GPU
-    gpuBuffer =
-        new VulkanBuffer(
-            device,
-            sizeBytes,
-            VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        // Device-local: fast GPU memory, only accessible from the GPU
+        gpuBuffer = new VulkanBuffer(
+                device,
+                sizeBytes,
+                VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    gpuBuffer.copyFrom(staging, commandPool);
-    staging.dispose();
+        gpuBuffer.copyFrom(staging, commandPool);
+        staging.dispose();
 
-    log.debug("VulkanVertexBuffer created ({} floats)", vertices.length);
-  }
+        log.debug("VulkanVertexBuffer created ({} floats)", vertices.length);
+    }
 
-  /** Returns the raw VkBuffer handle for use in vkCmdBindVertexBuffers. */
-  long bufferHandle() {
-    return gpuBuffer.handle();
-  }
+    /** Returns the raw VkBuffer handle for use in vkCmdBindVertexBuffers. */
+    long bufferHandle() {
+        return gpuBuffer.handle();
+    }
 
-  @Override
-  public int getId() {
-    // Vulkan buffer handles are long — return 0, use bufferHandle() instead
-    return 0;
-  }
+    @Override
+    public int getId() {
+        // Vulkan buffer handles are long — return 0, use bufferHandle() instead
+        return 0;
+    }
 
-  @Override
-  public int getLength() {
-    return length;
-  }
+    @Override
+    public int getLength() {
+        return length;
+    }
 
-  @Override
-  public VertexBufferLayout getLayout() {
-    return layout;
-  }
+    @Override
+    public VertexBufferLayout getLayout() {
+        return layout;
+    }
 
-  @Override
-  public void bind() {
-    // No-op: binding happens in vkCmdBindVertexBuffers during command recording
-  }
+    @Override
+    public void bind() {
+        // No-op: binding happens in vkCmdBindVertexBuffers during command recording
+    }
 
-  @Override
-  public void unbind() {
-    // No-op
-  }
+    @Override
+    public void unbind() {
+        // No-op
+    }
 
-  @Override
-  public void dispose() {
-    gpuBuffer.dispose();
-    log.debug("VulkanVertexBuffer disposed");
-  }
+    @Override
+    public void dispose() {
+        gpuBuffer.dispose();
+        log.debug("VulkanVertexBuffer disposed");
+    }
 }

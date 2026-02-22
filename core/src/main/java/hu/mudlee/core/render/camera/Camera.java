@@ -4,19 +4,19 @@ import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
 public interface Camera {
-  boolean update();
+    boolean update();
 
-  void resize(int width, int height);
+    void resize(int width, int height);
 
-  void setRotation(Vector3f rotation);
+    void setRotation(Vector3f rotation);
 
-  void setPosition(Vector3f position);
+    void setPosition(Vector3f position);
 
-  Vector3f getPosition();
+    Vector3f getPosition();
 
-  Vector3f getRotation();
+    Vector3f getRotation();
 
-  Matrix4f getViewMatrix();
+    Matrix4f getViewMatrix();
 
-  Matrix4f getProjectionMatrix();
+    Matrix4f getProjectionMatrix();
 }

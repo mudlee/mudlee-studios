@@ -15,242 +15,239 @@ import org.slf4j.LoggerFactory;
 
 class VulkanDevice implements Disposable {
 
-  private static final Logger log = LoggerFactory.getLogger(VulkanDevice.class);
-  private static final Set<String> REQUIRED_DEVICE_EXTENSIONS =
-      Set.of(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+    private static final Logger log = LoggerFactory.getLogger(VulkanDevice.class);
+    private static final Set<String> REQUIRED_DEVICE_EXTENSIONS = Set.of(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 
-  /**
-   * Indices for the queue families needed for rendering and presentation. graphicsFamily: submits
-   * draw commands. presentFamily: presents rendered images to the surface. These may or may not be
-   * the same family depending on the GPU.
-   */
-  record QueueFamilyIndices(int graphicsFamily, int presentFamily) {
-    boolean isComplete() {
-      return graphicsFamily >= 0 && presentFamily >= 0;
-    }
-  }
-
-  private final VkPhysicalDevice physicalDevice;
-  private final VkDevice logicalDevice;
-  private final VkQueue graphicsQueue;
-  private final VkQueue presentQueue;
-  private final QueueFamilyIndices queueFamilyIndices;
-  private final VkPhysicalDeviceMemoryProperties memoryProperties;
-
-  VulkanDevice(VkInstance instance, long surface) {
-    physicalDevice = selectPhysicalDevice(instance, surface);
-    queueFamilyIndices = findQueueFamilies(physicalDevice, surface);
-    logicalDevice = createLogicalDevice();
-    graphicsQueue = retrieveQueue(queueFamilyIndices.graphicsFamily());
-    presentQueue = retrieveQueue(queueFamilyIndices.presentFamily());
-
-    // Heap-allocated because it's referenced across many frames
-    memoryProperties = VkPhysicalDeviceMemoryProperties.malloc();
-    vkGetPhysicalDeviceMemoryProperties(physicalDevice, memoryProperties);
-  }
-
-  VkPhysicalDevice physicalDevice() {
-    return physicalDevice;
-  }
-
-  VkDevice device() {
-    return logicalDevice;
-  }
-
-  VkQueue graphicsQueue() {
-    return graphicsQueue;
-  }
-
-  VkQueue presentQueue() {
-    return presentQueue;
-  }
-
-  QueueFamilyIndices queueFamilyIndices() {
-    return queueFamilyIndices;
-  }
-
-  VkPhysicalDeviceMemoryProperties memoryProperties() {
-    return memoryProperties;
-  }
-
-  void waitIdle() {
-    vkDeviceWaitIdle(logicalDevice);
-  }
-
-  private VkPhysicalDevice selectPhysicalDevice(VkInstance instance, long surface) {
-    try (MemoryStack stack = stackPush()) {
-      var count = stack.mallocInt(1);
-      vkEnumeratePhysicalDevices(instance, count, null);
-      if (count.get(0) == 0) {
-        throw new RuntimeException("No Vulkan-capable GPU found");
-      }
-
-      var pDevices = stack.mallocPointer(count.get(0));
-      vkEnumeratePhysicalDevices(instance, count, pDevices);
-
-      VkPhysicalDevice best = null;
-      var bestScore = Long.MIN_VALUE;
-
-      for (int i = 0; i < pDevices.capacity(); i++) {
-        var candidate = new VkPhysicalDevice(pDevices.get(i), instance);
-        var score = scoreDevice(candidate, surface, stack);
-        if (score > bestScore) {
-          bestScore = score;
-          best = candidate;
+    /**
+     * Indices for the queue families needed for rendering and presentation. graphicsFamily: submits
+     * draw commands. presentFamily: presents rendered images to the surface. These may or may not be
+     * the same family depending on the GPU.
+     */
+    record QueueFamilyIndices(int graphicsFamily, int presentFamily) {
+        boolean isComplete() {
+            return graphicsFamily >= 0 && presentFamily >= 0;
         }
-      }
-
-      if (best == null || bestScore < 0) {
-        throw new RuntimeException("No suitable Vulkan GPU found");
-      }
-
-      var props = VkPhysicalDeviceProperties.malloc(stack);
-      vkGetPhysicalDeviceProperties(best, props);
-      log.debug("Selected GPU: {} (score={})", props.deviceNameString(), bestScore);
-      return best;
-    }
-  }
-
-  private long scoreDevice(VkPhysicalDevice device, long surface, MemoryStack stack) {
-    // Disqualify if required queues or extensions are missing
-    var families = findQueueFamilies(device, surface);
-    if (!families.isComplete()) {
-      return Long.MIN_VALUE;
-    }
-    if (!supportsRequiredExtensions(device, stack)) {
-      return Long.MIN_VALUE;
     }
 
-    // Disqualify if swap chain support is inadequate
-    var count = stack.mallocInt(1);
-    vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, count, null);
-    if (count.get(0) == 0) {
-      return Long.MIN_VALUE;
-    }
-    vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, count.position(0), null);
-    if (count.get(0) == 0) {
-      return Long.MIN_VALUE;
-    }
+    private final VkPhysicalDevice physicalDevice;
+    private final VkDevice logicalDevice;
+    private final VkQueue graphicsQueue;
+    private final VkQueue presentQueue;
+    private final QueueFamilyIndices queueFamilyIndices;
+    private final VkPhysicalDeviceMemoryProperties memoryProperties;
 
-    var props = VkPhysicalDeviceProperties.malloc(stack);
-    vkGetPhysicalDeviceProperties(device, props);
+    VulkanDevice(VkInstance instance, long surface) {
+        physicalDevice = selectPhysicalDevice(instance, surface);
+        queueFamilyIndices = findQueueFamilies(physicalDevice, surface);
+        logicalDevice = createLogicalDevice();
+        graphicsQueue = retrieveQueue(queueFamilyIndices.graphicsFamily());
+        presentQueue = retrieveQueue(queueFamilyIndices.presentFamily());
 
-    // Compute score: discrete GPU preferred, VRAM as tiebreaker
-    var memProps = VkPhysicalDeviceMemoryProperties.malloc(stack);
-    vkGetPhysicalDeviceMemoryProperties(device, memProps);
-    long vramMB = 0;
-    for (int i = 0; i < memProps.memoryHeapCount(); i++) {
-      if ((memProps.memoryHeaps(i).flags() & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) != 0) {
-        vramMB = memProps.memoryHeaps(i).size() / (1024 * 1024);
-        break;
-      }
+        // Heap-allocated because it's referenced across many frames
+        memoryProperties = VkPhysicalDeviceMemoryProperties.malloc();
+        vkGetPhysicalDeviceMemoryProperties(physicalDevice, memoryProperties);
     }
 
-    var score = vramMB;
-    if (props.deviceType() == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
-      score += 100_000L;
+    VkPhysicalDevice physicalDevice() {
+        return physicalDevice;
     }
-    return score;
-  }
 
-  private boolean supportsRequiredExtensions(VkPhysicalDevice device, MemoryStack stack) {
-    var count = stack.mallocInt(1);
-    vkEnumerateDeviceExtensionProperties(device, (String) null, count, null);
-    var available = VkExtensionProperties.malloc(count.get(0), stack);
-    vkEnumerateDeviceExtensionProperties(device, (String) null, count, available);
-
-    var remaining = new HashSet<>(REQUIRED_DEVICE_EXTENSIONS);
-    for (VkExtensionProperties ext : available) {
-      remaining.remove(ext.extensionNameString());
+    VkDevice device() {
+        return logicalDevice;
     }
-    return remaining.isEmpty();
-  }
 
-  static QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device, long surface) {
-    try (MemoryStack stack = stackPush()) {
-      var count = stack.mallocInt(1);
-      vkGetPhysicalDeviceQueueFamilyProperties(device, count, null);
+    VkQueue graphicsQueue() {
+        return graphicsQueue;
+    }
 
-      var families = VkQueueFamilyProperties.malloc(count.get(0), stack);
-      vkGetPhysicalDeviceQueueFamilyProperties(device, count, families);
+    VkQueue presentQueue() {
+        return presentQueue;
+    }
 
-      int graphicsFamily = -1;
-      int presentFamily = -1;
-      var presentSupport = stack.mallocInt(1);
+    QueueFamilyIndices queueFamilyIndices() {
+        return queueFamilyIndices;
+    }
 
-      for (int i = 0; i < families.capacity(); i++) {
-        if ((families.get(i).queueFlags() & VK_QUEUE_GRAPHICS_BIT) != 0) {
-          graphicsFamily = i;
+    VkPhysicalDeviceMemoryProperties memoryProperties() {
+        return memoryProperties;
+    }
+
+    void waitIdle() {
+        vkDeviceWaitIdle(logicalDevice);
+    }
+
+    private VkPhysicalDevice selectPhysicalDevice(VkInstance instance, long surface) {
+        try (MemoryStack stack = stackPush()) {
+            var count = stack.mallocInt(1);
+            vkEnumeratePhysicalDevices(instance, count, null);
+            if (count.get(0) == 0) {
+                throw new RuntimeException("No Vulkan-capable GPU found");
+            }
+
+            var pDevices = stack.mallocPointer(count.get(0));
+            vkEnumeratePhysicalDevices(instance, count, pDevices);
+
+            VkPhysicalDevice best = null;
+            var bestScore = Long.MIN_VALUE;
+
+            for (int i = 0; i < pDevices.capacity(); i++) {
+                var candidate = new VkPhysicalDevice(pDevices.get(i), instance);
+                var score = scoreDevice(candidate, surface, stack);
+                if (score > bestScore) {
+                    bestScore = score;
+                    best = candidate;
+                }
+            }
+
+            if (best == null || bestScore < 0) {
+                throw new RuntimeException("No suitable Vulkan GPU found");
+            }
+
+            var props = VkPhysicalDeviceProperties.malloc(stack);
+            vkGetPhysicalDeviceProperties(best, props);
+            log.debug("Selected GPU: {} (score={})", props.deviceNameString(), bestScore);
+            return best;
+        }
+    }
+
+    private long scoreDevice(VkPhysicalDevice device, long surface, MemoryStack stack) {
+        // Disqualify if required queues or extensions are missing
+        var families = findQueueFamilies(device, surface);
+        if (!families.isComplete()) {
+            return Long.MIN_VALUE;
+        }
+        if (!supportsRequiredExtensions(device, stack)) {
+            return Long.MIN_VALUE;
         }
 
-        vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, presentSupport);
-        if (presentSupport.get(0) == VK_TRUE) {
-          presentFamily = i;
+        // Disqualify if swap chain support is inadequate
+        var count = stack.mallocInt(1);
+        vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, count, null);
+        if (count.get(0) == 0) {
+            return Long.MIN_VALUE;
+        }
+        vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, count.position(0), null);
+        if (count.get(0) == 0) {
+            return Long.MIN_VALUE;
         }
 
-        if (graphicsFamily >= 0 && presentFamily >= 0) {
-          break;
+        var props = VkPhysicalDeviceProperties.malloc(stack);
+        vkGetPhysicalDeviceProperties(device, props);
+
+        // Compute score: discrete GPU preferred, VRAM as tiebreaker
+        var memProps = VkPhysicalDeviceMemoryProperties.malloc(stack);
+        vkGetPhysicalDeviceMemoryProperties(device, memProps);
+        long vramMB = 0;
+        for (int i = 0; i < memProps.memoryHeapCount(); i++) {
+            if ((memProps.memoryHeaps(i).flags() & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) != 0) {
+                vramMB = memProps.memoryHeaps(i).size() / (1024 * 1024);
+                break;
+            }
         }
-      }
 
-      return new QueueFamilyIndices(graphicsFamily, presentFamily);
+        var score = vramMB;
+        if (props.deviceType() == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
+            score += 100_000L;
+        }
+        return score;
     }
-  }
 
-  private VkDevice createLogicalDevice() {
-    try (MemoryStack stack = stackPush()) {
-      // Use a single queue create info if both families are the same
-      var sharedFamily = queueFamilyIndices.graphicsFamily() == queueFamilyIndices.presentFamily();
-      var uniqueFamilies =
-          sharedFamily
-              ? new int[] {queueFamilyIndices.graphicsFamily()}
-              : new int[] {queueFamilyIndices.graphicsFamily(), queueFamilyIndices.presentFamily()};
+    private boolean supportsRequiredExtensions(VkPhysicalDevice device, MemoryStack stack) {
+        var count = stack.mallocInt(1);
+        vkEnumerateDeviceExtensionProperties(device, (String) null, count, null);
+        var available = VkExtensionProperties.malloc(count.get(0), stack);
+        vkEnumerateDeviceExtensionProperties(device, (String) null, count, available);
 
-      var priority = stack.floats(1.0f);
-      var queueInfos = VkDeviceQueueCreateInfo.calloc(uniqueFamilies.length, stack);
-      for (int i = 0; i < uniqueFamilies.length; i++) {
-        queueInfos
-            .get(i)
-            .sType(VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO)
-            .queueFamilyIndex(uniqueFamilies[i])
-            .pQueuePriorities(priority);
-      }
-
-      var extensions = stack.mallocPointer(REQUIRED_DEVICE_EXTENSIONS.size());
-      for (String ext : REQUIRED_DEVICE_EXTENSIONS) {
-        extensions.put(stack.ASCII(ext));
-      }
-      extensions.rewind();
-
-      var createInfo =
-          VkDeviceCreateInfo.calloc(stack)
-              .sType(VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO)
-              .pQueueCreateInfos(queueInfos)
-              .ppEnabledExtensionNames(extensions)
-              .pEnabledFeatures(VkPhysicalDeviceFeatures.calloc(stack));
-
-      var pDevice = stack.mallocPointer(1);
-      if (vkCreateDevice(physicalDevice, createInfo, null, pDevice) != VK_SUCCESS) {
-        throw new RuntimeException("Failed to create VkDevice");
-      }
-
-      log.debug("VkDevice created");
-      return new VkDevice(pDevice.get(0), physicalDevice, createInfo);
+        var remaining = new HashSet<>(REQUIRED_DEVICE_EXTENSIONS);
+        for (VkExtensionProperties ext : available) {
+            remaining.remove(ext.extensionNameString());
+        }
+        return remaining.isEmpty();
     }
-  }
 
-  private VkQueue retrieveQueue(int familyIndex) {
-    try (MemoryStack stack = stackPush()) {
-      var pQueue = stack.mallocPointer(1);
-      vkGetDeviceQueue(logicalDevice, familyIndex, 0, pQueue);
-      return new VkQueue(pQueue.get(0), logicalDevice);
+    static QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device, long surface) {
+        try (MemoryStack stack = stackPush()) {
+            var count = stack.mallocInt(1);
+            vkGetPhysicalDeviceQueueFamilyProperties(device, count, null);
+
+            var families = VkQueueFamilyProperties.malloc(count.get(0), stack);
+            vkGetPhysicalDeviceQueueFamilyProperties(device, count, families);
+
+            int graphicsFamily = -1;
+            int presentFamily = -1;
+            var presentSupport = stack.mallocInt(1);
+
+            for (int i = 0; i < families.capacity(); i++) {
+                if ((families.get(i).queueFlags() & VK_QUEUE_GRAPHICS_BIT) != 0) {
+                    graphicsFamily = i;
+                }
+
+                vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, presentSupport);
+                if (presentSupport.get(0) == VK_TRUE) {
+                    presentFamily = i;
+                }
+
+                if (graphicsFamily >= 0 && presentFamily >= 0) {
+                    break;
+                }
+            }
+
+            return new QueueFamilyIndices(graphicsFamily, presentFamily);
+        }
     }
-  }
 
-  @Override
-  public void dispose() {
-    memoryProperties.free();
-    vkDestroyDevice(logicalDevice, null);
-    log.debug("VkDevice destroyed");
-  }
+    private VkDevice createLogicalDevice() {
+        try (MemoryStack stack = stackPush()) {
+            // Use a single queue create info if both families are the same
+            var sharedFamily = queueFamilyIndices.graphicsFamily() == queueFamilyIndices.presentFamily();
+            var uniqueFamilies = sharedFamily
+                    ? new int[] {queueFamilyIndices.graphicsFamily()}
+                    : new int[] {queueFamilyIndices.graphicsFamily(), queueFamilyIndices.presentFamily()};
+
+            var priority = stack.floats(1.0f);
+            var queueInfos = VkDeviceQueueCreateInfo.calloc(uniqueFamilies.length, stack);
+            for (int i = 0; i < uniqueFamilies.length; i++) {
+                queueInfos
+                        .get(i)
+                        .sType(VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO)
+                        .queueFamilyIndex(uniqueFamilies[i])
+                        .pQueuePriorities(priority);
+            }
+
+            var extensions = stack.mallocPointer(REQUIRED_DEVICE_EXTENSIONS.size());
+            for (String ext : REQUIRED_DEVICE_EXTENSIONS) {
+                extensions.put(stack.ASCII(ext));
+            }
+            extensions.rewind();
+
+            var createInfo = VkDeviceCreateInfo.calloc(stack)
+                    .sType(VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO)
+                    .pQueueCreateInfos(queueInfos)
+                    .ppEnabledExtensionNames(extensions)
+                    .pEnabledFeatures(VkPhysicalDeviceFeatures.calloc(stack));
+
+            var pDevice = stack.mallocPointer(1);
+            if (vkCreateDevice(physicalDevice, createInfo, null, pDevice) != VK_SUCCESS) {
+                throw new RuntimeException("Failed to create VkDevice");
+            }
+
+            log.debug("VkDevice created");
+            return new VkDevice(pDevice.get(0), physicalDevice, createInfo);
+        }
+    }
+
+    private VkQueue retrieveQueue(int familyIndex) {
+        try (MemoryStack stack = stackPush()) {
+            var pQueue = stack.mallocPointer(1);
+            vkGetDeviceQueue(logicalDevice, familyIndex, 0, pQueue);
+            return new VkQueue(pQueue.get(0), logicalDevice);
+        }
+    }
+
+    @Override
+    public void dispose() {
+        memoryProperties.free();
+        vkDestroyDevice(logicalDevice, null);
+        log.debug("VkDevice destroyed");
+    }
 }

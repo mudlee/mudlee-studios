@@ -1,3 +1,3 @@
 module hu.mudlee.sandbox {
-  requires hu.mudlee.core;
+    requires hu.mudlee.core;
 }

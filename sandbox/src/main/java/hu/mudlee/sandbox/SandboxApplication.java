@@ -8,18 +8,18 @@ import hu.mudlee.core.settings.WindowPreferences;
 import hu.mudlee.sandbox.scenes.GameScene;
 
 public class SandboxApplication {
-  public static void main(String[] args) {
-    Renderer.configure(RenderBackend.VULKAN);
+    public static void main(String[] args) {
+        Renderer.configure(RenderBackend.VULKAN);
 
-    Application.start(
-        WindowPreferences.builder()
-            .title("TESTING")
-            .antialiasing(Antialiasing.OFF)
-            .fullscreen(false)
-            .vSync(true)
-            .width(1920)
-            .height(1080)
-            .build(),
-        new GameScene());
-  }
+        Application.start(
+                WindowPreferences.builder()
+                        .title("TESTING")
+                        .antialiasing(Antialiasing.OFF)
+                        .fullscreen(false)
+                        .vSync(true)
+                        .width(1920)
+                        .height(1080)
+                        .build(),
+                new GameScene());
+    }
 }

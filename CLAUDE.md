@@ -96,7 +96,7 @@ These rules are enforced project-wide and must be followed in all new and modifi
 
 ### Formatting
 
-Code is formatted with **google-java-format** via the Spotless Gradle plugin:
+Code is formatted with **palantir-java-format** (120 character line length) via the Spotless Gradle plugin:
 
 ```bash
 ./gradlew spotlessApply   # format in-place

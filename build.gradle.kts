@@ -22,7 +22,7 @@ subprojects {
 	configure<com.diffplug.gradle.spotless.SpotlessExtension> {
 		java {
 			target("src/**/*.java")
-			googleJavaFormat("1.27.0")
+			palantirJavaFormat("2.88.0")
 		}
 	}
 }
