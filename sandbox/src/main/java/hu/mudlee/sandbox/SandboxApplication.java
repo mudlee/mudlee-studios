@@ -5,6 +5,7 @@ import static org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE;
 import hu.mudlee.core.Game;
 import hu.mudlee.core.GameTime;
 import hu.mudlee.core.GraphicsDeviceManager;
+import hu.mudlee.core.content.ContentManager;
 import hu.mudlee.core.ecs.ECS;
 import hu.mudlee.core.ecs.entities.RawRenderableEntity;
 import hu.mudlee.core.input.KeyListener;
@@ -59,7 +60,8 @@ public class SandboxApplication extends Game {
     protected void loadContent() {
         Renderer.setClearColor(new Vector4f(0, 0, 0, 1));
 
-        texture = Texture2D.create("/textures/mario.png");
+        content = new ContentManager("textures");
+        texture = content.load(Texture2D.class, "mario");
 
         camera = new Camera2D();
         camera.position.x -= 100;
@@ -114,7 +116,7 @@ public class SandboxApplication extends Game {
         ECS.removeAllEntities();
         shader.dispose();
         va.dispose();
-        texture.dispose();
+        content.unload();
     }
 
     public static void main(String[] args) {

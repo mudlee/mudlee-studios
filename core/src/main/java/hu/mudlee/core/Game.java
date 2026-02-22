@@ -1,5 +1,6 @@
 package hu.mudlee.core;
 
+import hu.mudlee.core.content.ContentManager;
 import hu.mudlee.core.ecs.ECS;
 import hu.mudlee.core.ecs.systems.RawRenderableSystem;
 import hu.mudlee.core.render.Renderer;
@@ -19,6 +20,7 @@ public abstract class Game implements WindowEventListener {
     private static final float TARGET_ELAPSED_SECONDS = 1f / 60f;
 
     protected GraphicsDeviceManager gdm;
+    protected ContentManager content;
 
     protected Game() {}
 
@@ -44,6 +46,10 @@ public abstract class Game implements WindowEventListener {
 
         Window.create();
         Renderer.setClearColor(new Vector4f(1f, 1f, 1f, 1f));
+
+        if (content == null) {
+            content = new ContentManager("");
+        }
 
         initialize();
         loadContent();
