@@ -1,16 +1,15 @@
 package hu.mudlee.core.render.vulkan;
 
+import static org.lwjgl.system.MemoryStack.stackPush;
+import static org.lwjgl.vulkan.VK12.*;
+
 import hu.mudlee.core.Disposable;
+import java.nio.LongBuffer;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.vulkan.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.nio.LongBuffer;
-
-import static org.lwjgl.system.MemoryStack.stackPush;
-import static org.lwjgl.vulkan.VK12.*;
 
 class VulkanCommandPool implements Disposable {
 
@@ -27,10 +26,11 @@ class VulkanCommandPool implements Disposable {
 
     try (MemoryStack stack = stackPush()) {
       // RESET_COMMAND_BUFFER_BIT allows individual command buffers to be reset
-      VkCommandPoolCreateInfo poolInfo = VkCommandPoolCreateInfo.calloc(stack)
-        .sType(VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO)
-        .queueFamilyIndex(device.queueFamilyIndices().graphicsFamily())
-        .flags(VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
+      VkCommandPoolCreateInfo poolInfo =
+          VkCommandPoolCreateInfo.calloc(stack)
+              .sType(VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO)
+              .queueFamilyIndex(device.queueFamilyIndices().graphicsFamily())
+              .flags(VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
 
       LongBuffer pPool = stack.mallocLong(1);
       if (vkCreateCommandPool(device.device(), poolInfo, null, pPool) != VK_SUCCESS) {
@@ -44,11 +44,12 @@ class VulkanCommandPool implements Disposable {
   }
 
   private void allocateCommandBuffers(MemoryStack stack) {
-    VkCommandBufferAllocateInfo allocInfo = VkCommandBufferAllocateInfo.calloc(stack)
-      .sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO)
-      .commandPool(handle)
-      .level(VK_COMMAND_BUFFER_LEVEL_PRIMARY)
-      .commandBufferCount(FRAMES_IN_FLIGHT);
+    VkCommandBufferAllocateInfo allocInfo =
+        VkCommandBufferAllocateInfo.calloc(stack)
+            .sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO)
+            .commandPool(handle)
+            .level(VK_COMMAND_BUFFER_LEVEL_PRIMARY)
+            .commandBufferCount(FRAMES_IN_FLIGHT);
 
     PointerBuffer pBuffers = stack.mallocPointer(FRAMES_IN_FLIGHT);
     if (vkAllocateCommandBuffers(device.device(), allocInfo, pBuffers) != VK_SUCCESS) {
@@ -69,39 +70,38 @@ class VulkanCommandPool implements Disposable {
   }
 
   /**
-   * Begins a one-time-submit command buffer for short transfer/transition operations.
-   * Must be paired with {@link #endSingleUse(VkCommandBuffer)}.
+   * Begins a one-time-submit command buffer for short transfer/transition operations. Must be
+   * paired with {@link #endSingleUse(VkCommandBuffer)}.
    */
   VkCommandBuffer beginSingleUse(MemoryStack stack) {
-    VkCommandBufferAllocateInfo allocInfo = VkCommandBufferAllocateInfo.calloc(stack)
-      .sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO)
-      .commandPool(handle)
-      .level(VK_COMMAND_BUFFER_LEVEL_PRIMARY)
-      .commandBufferCount(1);
+    VkCommandBufferAllocateInfo allocInfo =
+        VkCommandBufferAllocateInfo.calloc(stack)
+            .sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO)
+            .commandPool(handle)
+            .level(VK_COMMAND_BUFFER_LEVEL_PRIMARY)
+            .commandBufferCount(1);
 
     PointerBuffer pBuffer = stack.mallocPointer(1);
     vkAllocateCommandBuffers(device.device(), allocInfo, pBuffer);
     VkCommandBuffer cmdBuf = new VkCommandBuffer(pBuffer.get(0), device.device());
 
-    VkCommandBufferBeginInfo beginInfo = VkCommandBufferBeginInfo.calloc(stack)
-      .sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO)
-      .flags(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+    VkCommandBufferBeginInfo beginInfo =
+        VkCommandBufferBeginInfo.calloc(stack)
+            .sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO)
+            .flags(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
     vkBeginCommandBuffer(cmdBuf, beginInfo);
     return cmdBuf;
   }
 
-  /**
-   * Ends, submits, waits, and frees a single-use command buffer.
-   */
+  /** Ends, submits, waits, and frees a single-use command buffer. */
   void endSingleUse(VkCommandBuffer cmdBuf) {
     vkEndCommandBuffer(cmdBuf);
 
     try (MemoryStack stack = stackPush()) {
       PointerBuffer pCmdBuf = stack.pointers(cmdBuf);
-      VkSubmitInfo submitInfo = VkSubmitInfo.calloc(stack)
-        .sType(VK_STRUCTURE_TYPE_SUBMIT_INFO)
-        .pCommandBuffers(pCmdBuf);
+      VkSubmitInfo submitInfo =
+          VkSubmitInfo.calloc(stack).sType(VK_STRUCTURE_TYPE_SUBMIT_INFO).pCommandBuffers(pCmdBuf);
 
       vkQueueSubmit(device.graphicsQueue(), submitInfo, VK_NULL_HANDLE);
       vkQueueWaitIdle(device.graphicsQueue());

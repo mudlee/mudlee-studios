@@ -1,25 +1,24 @@
 package hu.mudlee.core.render.vulkan;
 
-import hu.mudlee.core.Disposable;
-import org.lwjgl.system.MemoryStack;
-import org.lwjgl.vulkan.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.nio.IntBuffer;
-import java.nio.LongBuffer;
-
 import static org.lwjgl.glfw.GLFW.glfwGetFramebufferSize;
 import static org.lwjgl.system.MemoryStack.stackPush;
 import static org.lwjgl.vulkan.KHRSurface.*;
 import static org.lwjgl.vulkan.KHRSwapchain.*;
 import static org.lwjgl.vulkan.VK12.*;
 
+import hu.mudlee.core.Disposable;
+import java.nio.IntBuffer;
+import java.nio.LongBuffer;
+import org.lwjgl.system.MemoryStack;
+import org.lwjgl.vulkan.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Manages the VkSwapchainKHR and the per-image VkImageViews + VkFramebuffers.
  *
- * Call {@link #buildFramebuffers(long)} after the render pass is created.
- * Call {@link #recreate(long, long, boolean)} on window resize.
+ * <p>Call {@link #buildFramebuffers(long)} after the render pass is created. Call {@link
+ * #recreate(long, long, boolean)} on window resize.
  */
 class VulkanSwapChain implements Disposable {
 
@@ -62,32 +61,31 @@ class VulkanSwapChain implements Disposable {
         imageCount = Math.min(imageCount, capabilities.maxImageCount());
       }
 
-      VkSwapchainCreateInfoKHR createInfo = VkSwapchainCreateInfoKHR.calloc(stack)
-        .sType(VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR)
-        .surface(surface)
-        .minImageCount(imageCount)
-        .imageFormat(surfaceFormat.format())
-        .imageColorSpace(surfaceFormat.colorSpace())
-        .imageExtent(stackExtent)
-        .imageArrayLayers(1)
-        .imageUsage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
+      VkSwapchainCreateInfoKHR createInfo =
+          VkSwapchainCreateInfoKHR.calloc(stack)
+              .sType(VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR)
+              .surface(surface)
+              .minImageCount(imageCount)
+              .imageFormat(surfaceFormat.format())
+              .imageColorSpace(surfaceFormat.colorSpace())
+              .imageExtent(stackExtent)
+              .imageArrayLayers(1)
+              .imageUsage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
 
       VulkanDevice.QueueFamilyIndices families = device.queueFamilyIndices();
       if (families.graphicsFamily() != families.presentFamily()) {
         IntBuffer familyIndices = stack.ints(families.graphicsFamily(), families.presentFamily());
-        createInfo
-          .imageSharingMode(VK_SHARING_MODE_CONCURRENT)
-          .pQueueFamilyIndices(familyIndices);
+        createInfo.imageSharingMode(VK_SHARING_MODE_CONCURRENT).pQueueFamilyIndices(familyIndices);
       } else {
         createInfo.imageSharingMode(VK_SHARING_MODE_EXCLUSIVE);
       }
 
       createInfo
-        .preTransform(capabilities.currentTransform())
-        .compositeAlpha(VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR)
-        .presentMode(presentMode)
-        .clipped(true)
-        .oldSwapchain(VK_NULL_HANDLE);
+          .preTransform(capabilities.currentTransform())
+          .compositeAlpha(VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR)
+          .presentMode(presentMode)
+          .clipped(true)
+          .oldSwapchain(VK_NULL_HANDLE);
 
       LongBuffer pSwapChain = stack.mallocLong(1);
       if (vkCreateSwapchainKHR(device.device(), createInfo, null, pSwapChain) != VK_SUCCESS) {
@@ -107,7 +105,11 @@ class VulkanSwapChain implements Disposable {
       }
 
       createImageViews();
-      log.debug("VkSwapchainKHR created ({} images, {}x{})", images.length, extent.width(), extent.height());
+      log.debug(
+          "VkSwapchainKHR created ({} images, {}x{})",
+          images.length,
+          extent.width(),
+          extent.height());
     }
   }
 
@@ -116,22 +118,25 @@ class VulkanSwapChain implements Disposable {
     try (MemoryStack stack = stackPush()) {
       LongBuffer pView = stack.mallocLong(1);
       for (int i = 0; i < images.length; i++) {
-        VkImageViewCreateInfo viewInfo = VkImageViewCreateInfo.calloc(stack)
-          .sType(VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO)
-          .image(images[i])
-          .viewType(VK_IMAGE_VIEW_TYPE_2D)
-          .format(imageFormat)
-          .components(c -> c
-            .r(VK_COMPONENT_SWIZZLE_IDENTITY)
-            .g(VK_COMPONENT_SWIZZLE_IDENTITY)
-            .b(VK_COMPONENT_SWIZZLE_IDENTITY)
-            .a(VK_COMPONENT_SWIZZLE_IDENTITY))
-          .subresourceRange(r -> r
-            .aspectMask(VK_IMAGE_ASPECT_COLOR_BIT)
-            .baseMipLevel(0)
-            .levelCount(1)
-            .baseArrayLayer(0)
-            .layerCount(1));
+        VkImageViewCreateInfo viewInfo =
+            VkImageViewCreateInfo.calloc(stack)
+                .sType(VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO)
+                .image(images[i])
+                .viewType(VK_IMAGE_VIEW_TYPE_2D)
+                .format(imageFormat)
+                .components(
+                    c ->
+                        c.r(VK_COMPONENT_SWIZZLE_IDENTITY)
+                            .g(VK_COMPONENT_SWIZZLE_IDENTITY)
+                            .b(VK_COMPONENT_SWIZZLE_IDENTITY)
+                            .a(VK_COMPONENT_SWIZZLE_IDENTITY))
+                .subresourceRange(
+                    r ->
+                        r.aspectMask(VK_IMAGE_ASPECT_COLOR_BIT)
+                            .baseMipLevel(0)
+                            .levelCount(1)
+                            .baseArrayLayer(0)
+                            .layerCount(1));
 
         if (vkCreateImageView(device.device(), viewInfo, null, pView) != VK_SUCCESS) {
           throw new RuntimeException("Failed to create VkImageView[" + i + "]");
@@ -147,15 +152,17 @@ class VulkanSwapChain implements Disposable {
       LongBuffer pFramebuffer = stack.mallocLong(1);
       for (int i = 0; i < imageViews.length; i++) {
         LongBuffer attachments = stack.longs(imageViews[i]);
-        VkFramebufferCreateInfo framebufferInfo = VkFramebufferCreateInfo.calloc(stack)
-          .sType(VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO)
-          .renderPass(renderPass)
-          .pAttachments(attachments)
-          .width(extent.width())
-          .height(extent.height())
-          .layers(1);
+        VkFramebufferCreateInfo framebufferInfo =
+            VkFramebufferCreateInfo.calloc(stack)
+                .sType(VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO)
+                .renderPass(renderPass)
+                .pAttachments(attachments)
+                .width(extent.width())
+                .height(extent.height())
+                .layers(1);
 
-        if (vkCreateFramebuffer(device.device(), framebufferInfo, null, pFramebuffer) != VK_SUCCESS) {
+        if (vkCreateFramebuffer(device.device(), framebufferInfo, null, pFramebuffer)
+            != VK_SUCCESS) {
           throw new RuntimeException("Failed to create VkFramebuffer[" + i + "]");
         }
         framebuffers[i] = pFramebuffer.get(0);
@@ -201,7 +208,7 @@ class VulkanSwapChain implements Disposable {
     // Prefer BGRA8 sRGB — most common, best perceptual quality
     for (VkSurfaceFormatKHR format : formats) {
       if (format.format() == VK_FORMAT_B8G8R8A8_SRGB
-        && format.colorSpace() == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+          && format.colorSpace() == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
         return format;
       }
     }
@@ -240,13 +247,18 @@ class VulkanSwapChain implements Disposable {
     IntBuffer height = stack.mallocInt(1);
     glfwGetFramebufferSize(windowHandle, width, height);
 
-    VkExtent2D actual = VkExtent2D.malloc(stack)
-      .width(Math.clamp(width.get(0),
-        capabilities.minImageExtent().width(),
-        capabilities.maxImageExtent().width()))
-      .height(Math.clamp(height.get(0),
-        capabilities.minImageExtent().height(),
-        capabilities.maxImageExtent().height()));
+    VkExtent2D actual =
+        VkExtent2D.malloc(stack)
+            .width(
+                Math.clamp(
+                    width.get(0),
+                    capabilities.minImageExtent().width(),
+                    capabilities.maxImageExtent().width()))
+            .height(
+                Math.clamp(
+                    height.get(0),
+                    capabilities.minImageExtent().height(),
+                    capabilities.maxImageExtent().height()));
 
     return actual;
   }

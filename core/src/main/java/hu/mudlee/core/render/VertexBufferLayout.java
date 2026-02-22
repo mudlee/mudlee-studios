@@ -1,4 +1,3 @@
 package hu.mudlee.core.render;
 
-public record VertexBufferLayout(VertexLayoutAttribute... attributes) {
-}
+public record VertexBufferLayout(VertexLayoutAttribute... attributes) {}

@@ -16,7 +16,12 @@ public class RawRenderableEntity extends Entity {
   private final VertexArray vao;
   private final Shader shader;
 
-  public RawRenderableEntity(String name, VertexArray vao, Shader shader, RenderMode renderMode, PolygonMode polygoneMode) {
+  public RawRenderableEntity(
+      String name,
+      VertexArray vao,
+      Shader shader,
+      RenderMode renderMode,
+      PolygonMode polygoneMode) {
     this.vao = vao;
     this.shader = shader;
 

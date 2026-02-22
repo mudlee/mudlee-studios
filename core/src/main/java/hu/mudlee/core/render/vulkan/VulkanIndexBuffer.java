@@ -1,19 +1,18 @@
 package hu.mudlee.core.render.vulkan;
 
+import static org.lwjgl.vulkan.VK12.*;
+
 import hu.mudlee.core.render.ElementBuffer;
+import java.nio.IntBuffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.IntBuffer;
-
-import static org.lwjgl.vulkan.VK12.*;
-
 /**
- * Vulkan index buffer backed by device-local GPU memory.
- * Index type is always VK_INDEX_TYPE_UINT32 (matches int[] input).
+ * Vulkan index buffer backed by device-local GPU memory. Index type is always VK_INDEX_TYPE_UINT32
+ * (matches int[] input).
  *
- * bind()/unbind() are no-ops — index buffer binding is done explicitly
- * via vkCmdBindIndexBuffer inside VulkanContext.renderRaw().
+ * <p>bind()/unbind() are no-ops — index buffer binding is done explicitly via vkCmdBindIndexBuffer
+ * inside VulkanContext.renderRaw().
  */
 public class VulkanIndexBuffer extends ElementBuffer {
 
@@ -31,18 +30,25 @@ public class VulkanIndexBuffer extends ElementBuffer {
     this.length = indices.length;
     long sizeBytes = (long) indices.length * Integer.BYTES;
 
-    VulkanBuffer staging = new VulkanBuffer(device, sizeBytes,
-      VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    VulkanBuffer staging =
+        new VulkanBuffer(
+            device,
+            sizeBytes,
+            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-    staging.map(dst -> {
-      IntBuffer intView = dst.asIntBuffer();
-      intView.put(indices).flip();
-    });
+    staging.map(
+        dst -> {
+          IntBuffer intView = dst.asIntBuffer();
+          intView.put(indices).flip();
+        });
 
-    gpuBuffer = new VulkanBuffer(device, sizeBytes,
-      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    gpuBuffer =
+        new VulkanBuffer(
+            device,
+            sizeBytes,
+            VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
     gpuBuffer.copyFrom(staging, commandPool);
     staging.dispose();

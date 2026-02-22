@@ -1,22 +1,20 @@
 package hu.mudlee.core.render.vulkan;
 
-import hu.mudlee.core.render.VertexBuffer;
-import hu.mudlee.core.render.VertexBufferLayout;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.nio.ByteBuffer;
-import java.nio.FloatBuffer;
-
 import static org.lwjgl.system.MemoryUtil.*;
 import static org.lwjgl.vulkan.VK12.*;
 
+import hu.mudlee.core.render.VertexBuffer;
+import hu.mudlee.core.render.VertexBufferLayout;
+import java.nio.FloatBuffer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
- * Vulkan vertex buffer backed by device-local GPU memory.
- * Uses a host-visible staging buffer to upload vertex data.
+ * Vulkan vertex buffer backed by device-local GPU memory. Uses a host-visible staging buffer to
+ * upload vertex data.
  *
- * bind()/unbind() are no-ops — vertex buffer binding is done explicitly
- * via vkCmdBindVertexBuffers inside VulkanContext.renderRaw().
+ * <p>bind()/unbind() are no-ops — vertex buffer binding is done explicitly via
+ * vkCmdBindVertexBuffers inside VulkanContext.renderRaw().
  */
 public class VulkanVertexBuffer extends VertexBuffer {
 
@@ -31,26 +29,37 @@ public class VulkanVertexBuffer extends VertexBuffer {
     this(vertices, layout, VulkanContext.get().device(), VulkanContext.get().commandPool());
   }
 
-  public VulkanVertexBuffer(float[] vertices, VertexBufferLayout layout, VulkanDevice device, VulkanCommandPool commandPool) {
+  public VulkanVertexBuffer(
+      float[] vertices,
+      VertexBufferLayout layout,
+      VulkanDevice device,
+      VulkanCommandPool commandPool) {
     this.layout = layout;
     this.length = vertices.length;
 
     long sizeBytes = (long) vertices.length * Float.BYTES;
 
     // Stage: host-visible buffer for CPU upload
-    VulkanBuffer staging = new VulkanBuffer(device, sizeBytes,
-      VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    VulkanBuffer staging =
+        new VulkanBuffer(
+            device,
+            sizeBytes,
+            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-    staging.map(dst -> {
-      FloatBuffer floatView = dst.asFloatBuffer();
-      floatView.put(vertices).flip();
-    });
+    staging.map(
+        dst -> {
+          FloatBuffer floatView = dst.asFloatBuffer();
+          floatView.put(vertices).flip();
+        });
 
     // Device-local: fast GPU memory, only accessible from the GPU
-    gpuBuffer = new VulkanBuffer(device, sizeBytes,
-      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    gpuBuffer =
+        new VulkanBuffer(
+            device,
+            sizeBytes,
+            VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
     gpuBuffer.copyFrom(staging, commandPool);
     staging.dispose();

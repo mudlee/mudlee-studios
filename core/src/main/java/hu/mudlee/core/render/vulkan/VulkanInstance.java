@@ -1,21 +1,20 @@
 package hu.mudlee.core.render.vulkan;
 
+import static org.lwjgl.glfw.GLFWVulkan.glfwGetRequiredInstanceExtensions;
+import static org.lwjgl.system.MemoryStack.stackPush;
+import static org.lwjgl.vulkan.EXTDebugUtils.*;
+import static org.lwjgl.vulkan.VK12.*;
+
 import hu.mudlee.core.Disposable;
+import java.nio.IntBuffer;
+import java.nio.LongBuffer;
+import java.util.HashSet;
+import java.util.Set;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.vulkan.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.nio.IntBuffer;
-import java.nio.LongBuffer;
-import java.util.HashSet;
-import java.util.Set;
-
-import static org.lwjgl.glfw.GLFWVulkan.glfwGetRequiredInstanceExtensions;
-import static org.lwjgl.system.MemoryStack.stackPush;
-import static org.lwjgl.vulkan.EXTDebugUtils.*;
-import static org.lwjgl.vulkan.VK12.*;
 
 class VulkanInstance implements Disposable {
 
@@ -34,18 +33,20 @@ class VulkanInstance implements Disposable {
     }
 
     try (MemoryStack stack = stackPush()) {
-      VkApplicationInfo appInfo = VkApplicationInfo.calloc(stack)
-        .sType(VK_STRUCTURE_TYPE_APPLICATION_INFO)
-        .pApplicationName(stack.UTF8Safe(appName))
-        .applicationVersion(VK_MAKE_VERSION(1, 0, 0))
-        .pEngineName(stack.UTF8Safe("Mudlee Engine"))
-        .engineVersion(VK_MAKE_VERSION(1, 0, 0))
-        .apiVersion(VK_MAKE_API_VERSION(0, 1, 3, 0));
+      VkApplicationInfo appInfo =
+          VkApplicationInfo.calloc(stack)
+              .sType(VK_STRUCTURE_TYPE_APPLICATION_INFO)
+              .pApplicationName(stack.UTF8Safe(appName))
+              .applicationVersion(VK_MAKE_VERSION(1, 0, 0))
+              .pEngineName(stack.UTF8Safe("Mudlee Engine"))
+              .engineVersion(VK_MAKE_VERSION(1, 0, 0))
+              .apiVersion(VK_MAKE_API_VERSION(0, 1, 3, 0));
 
-      VkInstanceCreateInfo createInfo = VkInstanceCreateInfo.calloc(stack)
-        .sType(VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO)
-        .pApplicationInfo(appInfo)
-        .ppEnabledExtensionNames(buildExtensionList(stack));
+      VkInstanceCreateInfo createInfo =
+          VkInstanceCreateInfo.calloc(stack)
+              .sType(VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO)
+              .pApplicationInfo(appInfo)
+              .ppEnabledExtensionNames(buildExtensionList(stack));
 
       if (debug && isValidationLayerAvailable()) {
         PointerBuffer layers = stack.mallocPointer(1);
@@ -79,7 +80,9 @@ class VulkanInstance implements Disposable {
   private void setupDebugMessenger() {
     try (MemoryStack stack = stackPush()) {
       LongBuffer pMessenger = stack.mallocLong(1);
-      int result = vkCreateDebugUtilsMessengerEXT(handle, buildDebugMessengerCreateInfo(stack), null, pMessenger);
+      int result =
+          vkCreateDebugUtilsMessengerEXT(
+              handle, buildDebugMessengerCreateInfo(stack), null, pMessenger);
       if (result != VK_SUCCESS) {
         log.warn("Failed to set up Vulkan debug messenger");
         return;
@@ -91,27 +94,28 @@ class VulkanInstance implements Disposable {
 
   private VkDebugUtilsMessengerCreateInfoEXT buildDebugMessengerCreateInfo(MemoryStack stack) {
     return VkDebugUtilsMessengerCreateInfoEXT.calloc(stack)
-      .sType(VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT)
-      .messageSeverity(
-        VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
-          VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-          VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
-      .messageType(
-        VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
-          VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-          VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT)
-      .pfnUserCallback((severity, types, callbackData, userData) -> {
-        VkDebugUtilsMessengerCallbackDataEXT data =
-          VkDebugUtilsMessengerCallbackDataEXT.create(callbackData);
-        if ((severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) != 0) {
-          log.error("[Vulkan Validation] {}", data.pMessageString());
-        } else if ((severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) != 0) {
-          log.warn("[Vulkan Validation] {}", data.pMessageString());
-        } else {
-          log.debug("[Vulkan Validation] {}", data.pMessageString());
-        }
-        return VK_FALSE;
-      });
+        .sType(VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT)
+        .messageSeverity(
+            VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT
+                | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT
+                | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
+        .messageType(
+            VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT
+                | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
+                | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT)
+        .pfnUserCallback(
+            (severity, types, callbackData, userData) -> {
+              VkDebugUtilsMessengerCallbackDataEXT data =
+                  VkDebugUtilsMessengerCallbackDataEXT.create(callbackData);
+              if ((severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) != 0) {
+                log.error("[Vulkan Validation] {}", data.pMessageString());
+              } else if ((severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) != 0) {
+                log.warn("[Vulkan Validation] {}", data.pMessageString());
+              } else {
+                log.debug("[Vulkan Validation] {}", data.pMessageString());
+              }
+              return VK_FALSE;
+            });
   }
 
   private PointerBuffer buildExtensionList(MemoryStack stack) {

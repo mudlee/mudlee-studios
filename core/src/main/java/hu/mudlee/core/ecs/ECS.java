@@ -12,8 +12,7 @@ public class ECS {
   private static ECS instance;
   private final Engine engine = new Engine();
 
-  private ECS() {
-  }
+  private ECS() {}
 
   public static ECS get() {
     if (instance == null) {

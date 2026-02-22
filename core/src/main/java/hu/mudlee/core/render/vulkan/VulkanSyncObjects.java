@@ -1,24 +1,23 @@
 package hu.mudlee.core.render.vulkan;
 
+import static hu.mudlee.core.render.vulkan.VulkanCommandPool.FRAMES_IN_FLIGHT;
+import static org.lwjgl.system.MemoryStack.stackPush;
+import static org.lwjgl.vulkan.VK12.*;
+
 import hu.mudlee.core.Disposable;
+import java.nio.LongBuffer;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.vulkan.VkFenceCreateInfo;
 import org.lwjgl.vulkan.VkSemaphoreCreateInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.LongBuffer;
-
-import static hu.mudlee.core.render.vulkan.VulkanCommandPool.FRAMES_IN_FLIGHT;
-import static org.lwjgl.system.MemoryStack.stackPush;
-import static org.lwjgl.vulkan.VK12.*;
-
 /**
  * Per-frame synchronisation primitives.
  *
- * imageAvailableSemaphore: GPU signals when the swap chain image is ready to render into.
- * renderFinishedSemaphore: GPU signals when rendering is complete, safe to present.
- * inFlightFence:           CPU waits on this to avoid overwriting resources of an in-flight frame.
+ * <p>imageAvailableSemaphore: GPU signals when the swap chain image is ready to render into.
+ * renderFinishedSemaphore: GPU signals when rendering is complete, safe to present. inFlightFence:
+ * CPU waits on this to avoid overwriting resources of an in-flight frame.
  */
 class VulkanSyncObjects implements Disposable {
 
@@ -26,7 +25,8 @@ class VulkanSyncObjects implements Disposable {
 
   private final VulkanDevice device;
   private final long[] imageAvailableSemaphores = new long[FRAMES_IN_FLIGHT];
-  // One per swapchain image so the presentation engine and the next submit never race on the same semaphore.
+  // One per swapchain image so the presentation engine and the next submit never race on the same
+  // semaphore.
   private final long[] renderFinishedSemaphores;
   private final long[] inFlightFences = new long[FRAMES_IN_FLIGHT];
 
@@ -35,13 +35,14 @@ class VulkanSyncObjects implements Disposable {
     this.renderFinishedSemaphores = new long[swapChainImageCount];
 
     try (MemoryStack stack = stackPush()) {
-      VkSemaphoreCreateInfo semaphoreInfo = VkSemaphoreCreateInfo.calloc(stack)
-        .sType(VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO);
+      VkSemaphoreCreateInfo semaphoreInfo =
+          VkSemaphoreCreateInfo.calloc(stack).sType(VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO);
 
       // Fences start signalled so the first vkWaitForFences at frame 0 doesn't block forever
-      VkFenceCreateInfo fenceInfo = VkFenceCreateInfo.calloc(stack)
-        .sType(VK_STRUCTURE_TYPE_FENCE_CREATE_INFO)
-        .flags(VK_FENCE_CREATE_SIGNALED_BIT);
+      VkFenceCreateInfo fenceInfo =
+          VkFenceCreateInfo.calloc(stack)
+              .sType(VK_STRUCTURE_TYPE_FENCE_CREATE_INFO)
+              .flags(VK_FENCE_CREATE_SIGNALED_BIT);
 
       LongBuffer pLong = stack.mallocLong(1);
       for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
@@ -63,8 +64,10 @@ class VulkanSyncObjects implements Disposable {
         renderFinishedSemaphores[i] = pLong.get(0);
       }
     }
-    log.debug("Vulkan sync objects created ({} frames in flight, {} render-finished semaphores)",
-      FRAMES_IN_FLIGHT, swapChainImageCount);
+    log.debug(
+        "Vulkan sync objects created ({} frames in flight, {} render-finished semaphores)",
+        FRAMES_IN_FLIGHT,
+        swapChainImageCount);
   }
 
   long imageAvailableSemaphore(int frame) {

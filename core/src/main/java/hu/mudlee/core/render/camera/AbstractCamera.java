@@ -18,7 +18,7 @@ public abstract class AbstractCamera implements Camera {
   private boolean viewMatrixChanged;
   protected int width;
   protected int height;
-  
+
   protected abstract void updateProjectionMatrix(Matrix4f projectionMatrix);
 
   @Override
@@ -33,13 +33,13 @@ public abstract class AbstractCamera implements Camera {
   public boolean update() {
     boolean changed = false;
 
-    if(projectionMatrixChanged) {
+    if (projectionMatrixChanged) {
       updateProjectionMatrix(projectionMatrix);
       projectionMatrixChanged = false;
       changed = true;
     }
 
-    if(viewMatrixChanged) {
+    if (viewMatrixChanged) {
       updateViewMatrix();
       viewMatrixChanged = false;
       changed = true;
@@ -51,9 +51,9 @@ public abstract class AbstractCamera implements Camera {
   @Override
   public void setRotation(Vector3f newRotation) {
     rotation.set(newRotation);
-    //recalculateFrontVector();
+    // recalculateFrontVector();
     viewMatrixChanged = true;
-    //projectionMatrixChanged = true;
+    // projectionMatrixChanged = true;
   }
 
   @Override
@@ -93,9 +93,11 @@ public abstract class AbstractCamera implements Camera {
     // x -> pitch
     // y -> yaw
     // z -> roll
-    camFrontVec.x = (float) (Math.sin(Math.toRadians(rotation.y)) * Math.cos(Math.toRadians(rotation.x)));
+    camFrontVec.x =
+        (float) (Math.sin(Math.toRadians(rotation.y)) * Math.cos(Math.toRadians(rotation.x)));
     camFrontVec.y = (float) (Math.sin(Math.toRadians(rotation.x)));
-    camFrontVec.z = (float) (-Math.cos(Math.toRadians(rotation.y)) * Math.cos(Math.toRadians(rotation.x)));
+    camFrontVec.z =
+        (float) (-Math.cos(Math.toRadians(rotation.y)) * Math.cos(Math.toRadians(rotation.x)));
     camFrontVec.normalize();
   }
 }

@@ -13,4 +13,3 @@ public enum Antialiasing {
     this.value = value;
   }
 }
-

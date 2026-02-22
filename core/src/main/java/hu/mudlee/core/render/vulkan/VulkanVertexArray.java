@@ -3,19 +3,18 @@ package hu.mudlee.core.render.vulkan;
 import hu.mudlee.core.render.ElementBuffer;
 import hu.mudlee.core.render.VertexArray;
 import hu.mudlee.core.render.VertexBuffer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Vulkan equivalent of a VAO: a container grouping vertex buffers and an optional index buffer.
- * There is no GPU state object in Vulkan — vertex/index buffers are bound explicitly in the
- * command buffer via vkCmdBindVertexBuffers / vkCmdBindIndexBuffer inside VulkanContext.renderRaw().
+ * There is no GPU state object in Vulkan — vertex/index buffers are bound explicitly in the command
+ * buffer via vkCmdBindVertexBuffers / vkCmdBindIndexBuffer inside VulkanContext.renderRaw().
  *
- * bind()/unbind() are no-ops.
+ * <p>bind()/unbind() are no-ops.
  */
 public class VulkanVertexArray extends VertexArray {
 
@@ -49,7 +48,8 @@ public class VulkanVertexArray extends VertexArray {
         }
       }
     } else {
-      throw new IllegalArgumentException("VulkanVertexArray only accepts VulkanVertexBuffer instances");
+      throw new IllegalArgumentException(
+          "VulkanVertexArray only accepts VulkanVertexBuffer instances");
     }
     log.debug("VulkanVertexBuffer added to VulkanVertexArray");
   }
@@ -59,7 +59,8 @@ public class VulkanVertexArray extends VertexArray {
     if (elementBuffer instanceof VulkanIndexBuffer) {
       this.indexBuffer = elementBuffer;
     } else {
-      throw new IllegalArgumentException("VulkanVertexArray only accepts VulkanIndexBuffer instances");
+      throw new IllegalArgumentException(
+          "VulkanVertexArray only accepts VulkanIndexBuffer instances");
     }
     log.debug("VulkanIndexBuffer set on VulkanVertexArray");
   }

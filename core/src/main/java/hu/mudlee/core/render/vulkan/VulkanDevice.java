@@ -1,32 +1,31 @@
 package hu.mudlee.core.render.vulkan;
 
+import static org.lwjgl.system.MemoryStack.stackPush;
+import static org.lwjgl.vulkan.KHRSurface.*;
+import static org.lwjgl.vulkan.KHRSwapchain.VK_KHR_SWAPCHAIN_EXTENSION_NAME;
+import static org.lwjgl.vulkan.VK12.*;
+
 import hu.mudlee.core.Disposable;
+import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
+import java.util.HashSet;
+import java.util.Set;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.vulkan.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.FloatBuffer;
-import java.nio.IntBuffer;
-import java.util.HashSet;
-import java.util.Set;
-
-import static org.lwjgl.system.MemoryStack.stackPush;
-import static org.lwjgl.vulkan.KHRSurface.*;
-import static org.lwjgl.vulkan.KHRSwapchain.VK_KHR_SWAPCHAIN_EXTENSION_NAME;
-import static org.lwjgl.vulkan.VK12.*;
-
 class VulkanDevice implements Disposable {
 
   private static final Logger log = LoggerFactory.getLogger(VulkanDevice.class);
-  private static final Set<String> REQUIRED_DEVICE_EXTENSIONS = Set.of(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+  private static final Set<String> REQUIRED_DEVICE_EXTENSIONS =
+      Set.of(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 
   /**
-   * Indices for the queue families needed for rendering and presentation.
-   * graphicsFamily: submits draw commands.
-   * presentFamily: presents rendered images to the surface.
-   * These may or may not be the same family depending on the GPU.
+   * Indices for the queue families needed for rendering and presentation. graphicsFamily: submits
+   * draw commands. presentFamily: presents rendered images to the surface. These may or may not be
+   * the same family depending on the GPU.
    */
   record QueueFamilyIndices(int graphicsFamily, int presentFamily) {
     boolean isComplete() {
@@ -194,18 +193,22 @@ class VulkanDevice implements Disposable {
   private VkDevice createLogicalDevice() {
     try (MemoryStack stack = stackPush()) {
       // Use a single queue create info if both families are the same
-      boolean sharedFamily = queueFamilyIndices.graphicsFamily() == queueFamilyIndices.presentFamily();
-      int[] uniqueFamilies = sharedFamily
-        ? new int[]{queueFamilyIndices.graphicsFamily()}
-        : new int[]{queueFamilyIndices.graphicsFamily(), queueFamilyIndices.presentFamily()};
+      boolean sharedFamily =
+          queueFamilyIndices.graphicsFamily() == queueFamilyIndices.presentFamily();
+      int[] uniqueFamilies =
+          sharedFamily
+              ? new int[] {queueFamilyIndices.graphicsFamily()}
+              : new int[] {queueFamilyIndices.graphicsFamily(), queueFamilyIndices.presentFamily()};
 
       FloatBuffer priority = stack.floats(1.0f);
-      VkDeviceQueueCreateInfo.Buffer queueInfos = VkDeviceQueueCreateInfo.calloc(uniqueFamilies.length, stack);
+      VkDeviceQueueCreateInfo.Buffer queueInfos =
+          VkDeviceQueueCreateInfo.calloc(uniqueFamilies.length, stack);
       for (int i = 0; i < uniqueFamilies.length; i++) {
-        queueInfos.get(i)
-          .sType(VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO)
-          .queueFamilyIndex(uniqueFamilies[i])
-          .pQueuePriorities(priority);
+        queueInfos
+            .get(i)
+            .sType(VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO)
+            .queueFamilyIndex(uniqueFamilies[i])
+            .pQueuePriorities(priority);
       }
 
       PointerBuffer extensions = stack.mallocPointer(REQUIRED_DEVICE_EXTENSIONS.size());
@@ -214,11 +217,12 @@ class VulkanDevice implements Disposable {
       }
       extensions.rewind();
 
-      VkDeviceCreateInfo createInfo = VkDeviceCreateInfo.calloc(stack)
-        .sType(VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO)
-        .pQueueCreateInfos(queueInfos)
-        .ppEnabledExtensionNames(extensions)
-        .pEnabledFeatures(VkPhysicalDeviceFeatures.calloc(stack));
+      VkDeviceCreateInfo createInfo =
+          VkDeviceCreateInfo.calloc(stack)
+              .sType(VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO)
+              .pQueueCreateInfos(queueInfos)
+              .ppEnabledExtensionNames(extensions)
+              .pEnabledFeatures(VkPhysicalDeviceFeatures.calloc(stack));
 
       PointerBuffer pDevice = stack.mallocPointer(1);
       if (vkCreateDevice(physicalDevice, createInfo, null, pDevice) != VK_SUCCESS) {
