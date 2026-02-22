@@ -1,13 +1,9 @@
 package hu.mudlee.sandbox;
 
-import static org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE;
-
-import hu.mudlee.core.Color;
-import hu.mudlee.core.Game;
-import hu.mudlee.core.GameTime;
-import hu.mudlee.core.GraphicsDeviceManager;
+import hu.mudlee.core.*;
 import hu.mudlee.core.content.ContentManager;
-import hu.mudlee.core.input.KeyListener;
+import hu.mudlee.core.input.InputActionMap;
+import hu.mudlee.core.input.Keys;
 import hu.mudlee.core.render.RenderBackend;
 import hu.mudlee.core.render.Renderer;
 import hu.mudlee.core.render.SpriteBatch;
@@ -21,6 +17,7 @@ public class SandboxApplication extends Game {
     private SpriteBatch spriteBatch;
     private Texture2D marioTexture;
     private Camera2D camera;
+    private InputActionMap actions;
 
     public SandboxApplication() {
         gdm = new GraphicsDeviceManager()
@@ -44,14 +41,14 @@ public class SandboxApplication extends Game {
         camera = new Camera2D();
         camera.position.x -= 100;
         camera.position.y -= 100;
+
+        actions = new InputActionMap("Game");
+        actions.addAction("Exit").addBinding(Keys.ESCAPE).onPerformed(ctx -> exit());
+        actions.enable();
     }
 
     @Override
     protected void update(GameTime gameTime) {
-        if (KeyListener.isKeyPressed(GLFW_KEY_ESCAPE)) {
-            exit();
-        }
-
         camera.position.x -= gameTime.elapsedSeconds() * 50f;
         camera.position.y -= gameTime.elapsedSeconds() * 20f;
     }
@@ -65,6 +62,7 @@ public class SandboxApplication extends Game {
 
     @Override
     protected void unloadContent() {
+        actions.disable();
         spriteBatch.dispose();
         content.unload();
     }

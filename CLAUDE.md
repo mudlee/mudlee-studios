@@ -100,6 +100,11 @@ Code is formatted with **palantir-java-format** (120 character line length) via 
 ./gradlew spotlessCheck   # verify without modifying
 ```
 
+### Comments
+
+- Do **not** add section-divider banner comments (e.g. `// --- Whatever comes ---`)
+- Only add comments to methods when the method itself is not self explanatory
+
 ### Mandatory Curly Braces
 
 Every `if`, `else`, `for`, `while`, and `do` body **must** use curly braces, even for single-line bodies.
@@ -168,6 +173,7 @@ Do **not** use `var` for: fields, method parameters, return types, or cases wher
 ## Git Conventions
 
 - **No co-author attribution** — never add `Co-Authored-By:` lines to commit messages.
+- **Always ask before committing** — never create a git commit without explicit user approval.
 
 ## Dependencies
 

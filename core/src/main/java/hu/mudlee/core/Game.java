@@ -3,6 +3,7 @@ package hu.mudlee.core;
 import hu.mudlee.core.content.ContentManager;
 import hu.mudlee.core.ecs.ECS;
 import hu.mudlee.core.ecs.systems.RawRenderableSystem;
+import hu.mudlee.core.input.InputSystem;
 import hu.mudlee.core.render.Renderer;
 import hu.mudlee.core.render.types.BufferBitTypes;
 import hu.mudlee.core.scene.SceneManager;
@@ -94,6 +95,7 @@ public abstract class Game implements WindowEventListener {
         var gameTime = new GameTime(0f, 0f, false);
 
         while (!Window.shouldClose()) {
+            InputSystem.update();
             Window.pollEvents();
             Renderer.clear();
 

@@ -90,13 +90,21 @@ public class SpriteBatch implements Disposable {
     }
 
     public void draw(Texture2D texture, Vector2f position, Color color) {
-        draw(texture, position.x, position.y, texture.getWidth(), texture.getHeight(), color);
+        draw(texture, position.x, position.y, texture.getWidth(), texture.getHeight(), color, 0f, 0f, 1f, 1f);
     }
 
-    // TODO: shouldn't the Rectangle's x and y be float here? Or in the other draw method the position not to be a
-    // Vector2f but a Vector2i?
     public void draw(Texture2D texture, Rectangle destinationRect, Color color) {
-        draw(texture, destinationRect.x, destinationRect.y, destinationRect.width, destinationRect.height, color);
+        draw(texture, destinationRect.x, destinationRect.y, destinationRect.width, destinationRect.height, color, 0f, 0f, 1f, 1f);
+    }
+
+    public void draw(Texture2D texture, Vector2f position, Rectangle sourceRect, Color color) {
+        var tw = texture.getWidth();
+        var th = texture.getHeight();
+        var u0 = (float) sourceRect.x / tw;
+        var v0 = (float) sourceRect.y / th;
+        var u1 = (float) (sourceRect.x + sourceRect.width) / tw;
+        var v1 = (float) (sourceRect.y + sourceRect.height) / th;
+        draw(texture, position.x, position.y, sourceRect.width, sourceRect.height, color, u0, v0, u1, v1);
     }
 
     public void draw(
@@ -110,7 +118,7 @@ public class SpriteBatch implements Disposable {
             boolean flipY) {
         var w = texture.getWidth() * scale;
         var h = texture.getHeight() * scale;
-        draw(texture, position.x, position.y, w, h, color);
+        draw(texture, position.x, position.y, w, h, color, 0f, 0f, 1f, 1f);
     }
 
     public void end() {
@@ -127,7 +135,7 @@ public class SpriteBatch implements Disposable {
         vertexArray.dispose();
     }
 
-    private void draw(Texture2D texture, float x, float y, float w, float h, Color color) {
+    private void draw(Texture2D texture, float x, float y, float w, float h, Color color, float u0, float v0, float u1, float v1) {
         if (!begun) {
             throw new IllegalStateException("SpriteBatch.draw() called outside begin()/end()");
         }
@@ -137,7 +145,7 @@ public class SpriteBatch implements Disposable {
         if (currentTexture == null) {
             currentTexture = texture;
         }
-        writeQuad(x, y, w, h, color);
+        writeQuad(x, y, w, h, color, u0, v0, u1, v1);
         spriteCount++;
     }
 
@@ -153,7 +161,7 @@ public class SpriteBatch implements Disposable {
         currentTexture = null;
     }
 
-    private void writeQuad(float x, float y, float w, float h, Color color) {
+    private void writeQuad(float x, float y, float w, float h, Color color, float u0, float v0, float u1, float v1) {
         var base = spriteCount * FLOATS_PER_SPRITE;
         var r = color.r;
         var g = color.g;
@@ -161,14 +169,14 @@ public class SpriteBatch implements Disposable {
         var a = color.a;
 
         // Triangle 1: BL, BR, TR
-        writeVertex(base, x, y, r, g, b, a, 0f, 1f);
-        writeVertex(base + FLOATS_PER_VERTEX, x + w, y, r, g, b, a, 1f, 1f);
-        writeVertex(base + FLOATS_PER_VERTEX * 2, x + w, y + h, r, g, b, a, 1f, 0f);
+        writeVertex(base, x, y, r, g, b, a, u0, v1);
+        writeVertex(base + FLOATS_PER_VERTEX, x + w, y, r, g, b, a, u1, v1);
+        writeVertex(base + FLOATS_PER_VERTEX * 2, x + w, y + h, r, g, b, a, u1, v0);
 
         // Triangle 2: BL, TR, TL
-        writeVertex(base + FLOATS_PER_VERTEX * 3, x, y, r, g, b, a, 0f, 1f);
-        writeVertex(base + FLOATS_PER_VERTEX * 4, x + w, y + h, r, g, b, a, 1f, 0f);
-        writeVertex(base + FLOATS_PER_VERTEX * 5, x, y + h, r, g, b, a, 0f, 0f);
+        writeVertex(base + FLOATS_PER_VERTEX * 3, x, y, r, g, b, a, u0, v1);
+        writeVertex(base + FLOATS_PER_VERTEX * 4, x + w, y + h, r, g, b, a, u1, v0);
+        writeVertex(base + FLOATS_PER_VERTEX * 5, x, y + h, r, g, b, a, u0, v0);
     }
 
     private void writeVertex(int offset, float x, float y, float r, float g, float b, float a, float u, float v) {

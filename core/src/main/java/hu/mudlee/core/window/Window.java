@@ -5,8 +5,7 @@ import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.system.MemoryUtil.NULL;
 
 import hu.mudlee.core.Disposable;
-import hu.mudlee.core.input.KeyListener;
-import hu.mudlee.core.input.MouseListener;
+import hu.mudlee.core.input.InputSystem;
 import hu.mudlee.core.settings.Antialiasing;
 import hu.mudlee.core.settings.WindowPreferences;
 import java.util.ArrayList;
@@ -114,10 +113,10 @@ public class Window implements Disposable {
         ScreenPixelRatioHandler.set(window.id, window.glfwVidMode);
 
         log.debug("Setting up input callbacks");
-        glfwSetCursorPosCallback(window.id, MouseListener::mousePosCallback);
-        glfwSetMouseButtonCallback(window.id, MouseListener::mouseButtonCallback);
-        glfwSetScrollCallback(window.id, MouseListener::mouseScrollCallback);
-        glfwSetKeyCallback(window.id, KeyListener::keyCallback);
+        glfwSetCursorPosCallback(window.id, (w, x, y) -> InputSystem.processMouseMove(x, y));
+        glfwSetMouseButtonCallback(window.id, (w, button, action, mods) -> InputSystem.processMouseButton(button, action));
+        glfwSetScrollCallback(window.id, (w, xOffset, yOffset) -> InputSystem.processMouseScroll(xOffset, yOffset));
+        glfwSetKeyCallback(window.id, (w, key, scancode, action, mods) -> InputSystem.processKey(key, action));
 
         if (!window.preferences.isFullscreen()) {
             glfwSetWindowPos(
