@@ -9,6 +9,7 @@ module hu.mudlee.core {
 	requires org.slf4j.simple;
 	requires org.lwjgl.stb;
 	requires org.lwjgl.stb.natives;
+	requires org.lwjgl.vulkan;
 	requires transitive org.joml;
 	requires transitive ashley;
 
@@ -23,4 +24,5 @@ module hu.mudlee.core {
 	exports hu.mudlee.core.scene;
 	exports hu.mudlee.core.settings;
 	exports hu.mudlee.core.window;
+	exports hu.mudlee.core.render.vulkan;
 }

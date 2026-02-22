@@ -33,7 +33,7 @@ public class GameScene implements Scene {
 		camera.position.y -= 100;
 		texture.bind();
 
-		shader = Shader.create("2d/vert.glsl", "2d/frag.glsl");
+		shader = Shader.create("vulkan/2d/vert.glsl", "vulkan/2d/frag.glsl");
 		shader.createUniform(shader.getVertexProgramId(), ShaderProps.UNIFORM_PROJECTION_MATRIX.glslName);
 		shader.setUniform(shader.getVertexProgramId(), ShaderProps.UNIFORM_PROJECTION_MATRIX.glslName, camera.getProjectionMatrix());
 
@@ -92,6 +92,7 @@ public class GameScene implements Scene {
 		ECS.removeAllEntities();
 		shader.dispose();
 		va.dispose();
+		texture.dispose();
 	}
 
 	private static final float[] squareVertices = {

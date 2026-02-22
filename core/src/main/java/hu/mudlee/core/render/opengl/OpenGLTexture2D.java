@@ -47,6 +47,11 @@ public class OpenGLTexture2D extends Texture2D {
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 
+	@Override
+	public void dispose() {
+		glDeleteTextures(textureId);
+	}
+
 	private int mapChannelsToColorFormat(int channels) {
 		switch (channels) {
 			case 3:

@@ -21,4 +21,7 @@ public interface GraphicsContext extends Disposable {
   void swapBuffers(float frameTime);
 
   void windowResized(int newWidth, int newHeight);
+
+  /** Block until the GPU has finished all in-flight work. No-op for stateless backends. */
+  default void waitIdle() {}
 }

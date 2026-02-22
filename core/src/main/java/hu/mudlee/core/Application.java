@@ -48,6 +48,7 @@ public class Application implements WindowEventListener {
 		get().loop();
 
 		log.info("Application is shutting down");
+		Renderer.waitForGPU();
 		SceneManager.onDispose();
 		Renderer.dispose();
 		Window.remove();

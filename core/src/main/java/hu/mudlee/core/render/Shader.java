@@ -1,12 +1,16 @@
 package hu.mudlee.core.render;
 
 import hu.mudlee.core.render.opengl.OpenGLShader;
+import hu.mudlee.core.render.vulkan.VulkanShader;
 import org.joml.Matrix4f;
 import org.joml.Vector4f;
 
 public abstract class Shader {
 	public static Shader create(String vertexShaderName, String fragmentShaderName) {
-		return new OpenGLShader(vertexShaderName, fragmentShaderName);
+		return switch (Renderer.activeBackend()) {
+			case OPENGL -> new OpenGLShader(vertexShaderName, fragmentShaderName);
+			case VULKAN -> new VulkanShader(vertexShaderName, fragmentShaderName);
+		};
 	}
 
 	public abstract int getPipelineId();

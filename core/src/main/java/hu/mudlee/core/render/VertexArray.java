@@ -1,13 +1,17 @@
 package hu.mudlee.core.render;
 
 import hu.mudlee.core.render.opengl.OpenGLVertexArray;
+import hu.mudlee.core.render.vulkan.VulkanVertexArray;
 
 import java.util.List;
 import java.util.Optional;
 
 public abstract class VertexArray {
-	public static VertexArray create(){
-		return new OpenGLVertexArray();
+	public static VertexArray create() {
+		return switch (Renderer.activeBackend()) {
+			case OPENGL -> new OpenGLVertexArray();
+			case VULKAN -> new VulkanVertexArray();
+		};
 	}
 
 	public abstract void bind();

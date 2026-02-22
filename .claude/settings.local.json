@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd /c/Users/Sandor/Gamedev/mudlee-studios && ./gradlew :core:compileJava 2>&1)",
+      "Bash(grep:*)",
+      "Bash(glslc:*)",
+      "Bash(head:*)",
+      "Bash(\"/c/VulkanSDK/1.4.341.1/Bin/glslc.exe\":*)",
+      "Bash(tail:*)",
+      "Bash(cd:*)"
+    ]
+  }
+}
