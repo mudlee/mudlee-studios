@@ -35,8 +35,8 @@ public class PlayerScreen implements Screen {
         DIE
     }
 
-    private static final float SCALE = 4f;
-    private static final float MOVE_SPEED = 150f;
+    private static final float SCALE = 8f;
+    private static final float MOVE_SPEED = 300f;
 
     private final Game game;
     private final GraphicsDevice graphicsDevice;
@@ -44,7 +44,7 @@ public class PlayerScreen implements Screen {
     private ContentManager content;
     private SpriteBatch spriteBatch;
     private Camera2D camera;
-    private AnimationPlayer player;
+    private AnimationPlayer playerAnimation;
     private InputActionMap actions;
 
     // All animations from the sprite sheet
@@ -83,8 +83,8 @@ public class PlayerScreen implements Screen {
 
         die = sheet.createAnimation("Die", 9, 0, 3, 0.20f, PlayMode.ONCE);
 
-        player = new AnimationPlayer();
-        player.play(idleRight);
+        playerAnimation = new AnimationPlayer();
+        playerAnimation.play(idleRight);
 
         spriteBatch = new SpriteBatch();
         camera = new OrthographicCamera();
@@ -92,6 +92,8 @@ public class PlayerScreen implements Screen {
         actions = new InputActionMap("Player");
         actions.addAction("Exit").addBinding(Keys.ESCAPE).onPerformed(ctx -> game.exit());
         actions.enable();
+
+        camera.position.set(position);
     }
 
     @Override
@@ -99,31 +101,24 @@ public class PlayerScreen implements Screen {
         var ks = Keyboard.getState();
         var dt = gameTime.elapsedSeconds();
 
+        // TODO: state machine
         if (state == State.DIE) {
-            player.update(gameTime);
+            playerAnimation.update(gameTime);
             return;
-        }
-
-        if (state == State.ATTACK) {
-            player.update(gameTime);
-            if (player.isFinished()) {
+        } else if (state == State.ATTACK) {
+            playerAnimation.update(gameTime);
+            if (playerAnimation.isFinished()) {
                 state = State.IDLE;
             }
             return;
-        }
-
-        // Trigger one-shot states
-        if (ks.isKeyDown(Keys.X)) {
+        } else if (ks.isKeyDown(Keys.X)) {
             state = State.DIE;
-            player.play(die);
-            player.update(gameTime);
-            return;
-        }
-
-        if (ks.isKeyDown(Keys.SPACE)) {
+            playerAnimation.play(die);
+            playerAnimation.update(gameTime);
+        } else if (ks.isKeyDown(Keys.SPACE)) {
             state = State.ATTACK;
-            player.play(attackFor(direction));
-            player.update(gameTime);
+            playerAnimation.play(attackFor(direction));
+            playerAnimation.update(gameTime);
             return;
         }
 
@@ -138,6 +133,7 @@ public class PlayerScreen implements Screen {
             position.x -= MOVE_SPEED * dt;
             direction = Direction.LEFT;
             moving = true;
+
         }
         if (ks.isKeyDown(Keys.DOWN)) {
             position.y -= MOVE_SPEED * dt;
@@ -151,9 +147,9 @@ public class PlayerScreen implements Screen {
         }
 
         state = moving ? State.WALK : State.IDLE;
-        player.play(animationFor(state, direction));
-        player.update(gameTime);
-        camera.position.set(position);
+        playerAnimation.play(animationFor(state, direction));
+        playerAnimation.update(gameTime);
+        //camera.position.set(position);
     }
 
     @Override
@@ -161,7 +157,7 @@ public class PlayerScreen implements Screen {
         graphicsDevice.clear(Color.BLACK);
         spriteBatch.begin(camera.getTransformMatrix());
         spriteBatch.draw(
-                player.getCurrentFrame(), position, Color.WHITE, 0f, origin, SCALE, direction == Direction.LEFT, false);
+                playerAnimation.getCurrentFrame(), position, Color.WHITE, 0f, origin, SCALE, direction == Direction.LEFT, false);
         spriteBatch.end();
     }
 
@@ -174,18 +170,16 @@ public class PlayerScreen implements Screen {
 
     private Animation animationFor(State s, Direction d) {
         return switch (s) {
-            case IDLE ->
-                switch (d) {
-                    case DOWN -> idleDown;
-                    case UP -> idleUp;
-                    default -> idleRight;
-                };
-            case WALK ->
-                switch (d) {
-                    case DOWN -> walkDown;
-                    case UP -> walkUp;
-                    default -> walkRight;
-                };
+            case IDLE -> switch (d) {
+                case DOWN -> idleDown;
+                case UP -> idleUp;
+                default -> idleRight;
+            };
+            case WALK -> switch (d) {
+                case DOWN -> walkDown;
+                case UP -> walkUp;
+                default -> walkRight;
+            };
             case ATTACK -> attackFor(d);
             case DIE -> die;
         };

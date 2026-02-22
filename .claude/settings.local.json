@@ -10,7 +10,14 @@
       "Bash(cd:*)",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:docs.monogame.net)",
-      "WebFetch(domain:raw.githubusercontent.com)"
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(cd /c/Users/Sandor/Gamedev/mudlee-studios && ./gradlew :core:compileJava :sandbox:compileJava 2>&1)",
+      "Bash(true:*)",
+      "WebFetch(domain:libgdx.com)",
+      "WebSearch",
+      "WebFetch(domain:docs.monogameextended.net)",
+      "WebFetch(domain:docs.unity3d.com)",
+      "Bash(grep BUILD:*)"
     ]
   }
 }

@@ -2,6 +2,11 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## MOST IMPORTANT THINGS
+
+- **No co-author attribution** — never add `Co-Authored-By:` lines to commit messages.
+- **Always ask before committing** — never create a git commit without explicit user approval.
+
 ## Agent Role & Expertise
 
 - Lead Java Architect: You are a senior Java developer specializing in high-performance systems. You adhere strictly to Clean Code principles, SOLID design, and modern Java best practices (Java 17/21+).
@@ -169,11 +174,6 @@ var pImage = stack.mallocLong(1);
 ```
 
 Do **not** use `var` for: fields, method parameters, return types, or cases where the inferred type would be ambiguous (e.g. a bare numeric literal like `var x = 0` when the intent is `long`).
-
-## Git Conventions
-
-- **No co-author attribution** — never add `Co-Authored-By:` lines to commit messages.
-- **Always ask before committing** — never create a git commit without explicit user approval.
 
 ## Dependencies
 
