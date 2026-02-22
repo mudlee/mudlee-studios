@@ -21,7 +21,8 @@ public class VulkanVertexBuffer extends VertexBuffer {
 
     private final VulkanBuffer gpuBuffer;
     private final VertexBufferLayout layout;
-    private final int length;
+    private final boolean dynamic;
+    private int length;
 
     /** Convenience constructor — resolves device and command pool from the active VulkanContext. */
     public VulkanVertexBuffer(float[] vertices, VertexBufferLayout layout) {
@@ -32,6 +33,7 @@ public class VulkanVertexBuffer extends VertexBuffer {
             float[] vertices, VertexBufferLayout layout, VulkanDevice device, VulkanCommandPool commandPool) {
         this.layout = layout;
         this.length = vertices.length;
+        this.dynamic = false;
 
         var sizeBytes = (long) vertices.length * Float.BYTES;
 
@@ -58,6 +60,33 @@ public class VulkanVertexBuffer extends VertexBuffer {
         staging.dispose();
 
         log.debug("VulkanVertexBuffer created ({} floats)", vertices.length);
+    }
+
+    /**
+     * Dynamic constructor: host-visible memory updated every frame (e.g. SpriteBatch).
+     * No staging buffer — CPU writes directly to GPU-visible memory.
+     */
+    public VulkanVertexBuffer(VertexBufferLayout layout, int maxFloats) {
+        this.layout = layout;
+        this.length = 0;
+        this.dynamic = true;
+
+        gpuBuffer = new VulkanBuffer(
+                VulkanContext.get().device(),
+                (long) maxFloats * Float.BYTES,
+                VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+        log.debug("VulkanVertexBuffer (dynamic) created (capacity {} floats)", maxFloats);
+    }
+
+    @Override
+    public void update(float[] data, int floatCount) {
+        if (!dynamic) {
+            throw new UnsupportedOperationException("Cannot update a static VulkanVertexBuffer");
+        }
+        this.length = floatCount;
+        gpuBuffer.map(dst -> dst.asFloatBuffer().put(data, 0, floatCount));
     }
 
     /** Returns the raw VkBuffer handle for use in vkCmdBindVertexBuffers. */

@@ -11,6 +11,17 @@ public abstract class VertexBuffer {
         };
     }
 
+    public static VertexBuffer createDynamic(VertexBufferLayout layout, int maxFloats) {
+        return switch (Renderer.activeBackend()) {
+            case OPENGL -> new OpenGLVertexBuffer(layout, maxFloats);
+            case VULKAN -> new VulkanVertexBuffer(layout, maxFloats);
+        };
+    }
+
+    public void update(float[] data, int floatCount) {
+        throw new UnsupportedOperationException("This VertexBuffer does not support dynamic updates");
+    }
+
     public abstract int getId();
 
     public abstract int getLength();

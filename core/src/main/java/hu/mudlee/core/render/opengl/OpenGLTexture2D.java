@@ -12,11 +12,15 @@ public class OpenGLTexture2D extends Texture2D {
     private static final Logger LOG = LoggerFactory.getLogger(OpenGLTexture2D.class);
     private final String path;
     private final int textureId;
+    private final int width;
+    private final int height;
 
     public OpenGLTexture2D(String path) {
         this.path = path;
 
         final var data = TextureLoader.loadFromResources(path);
+        this.width = data.width();
+        this.height = data.height();
 
         textureId = glGenTextures();
         glBindTexture(GL_TEXTURE_2D, textureId);
@@ -43,6 +47,16 @@ public class OpenGLTexture2D extends Texture2D {
         // Free memory
         stbi_image_free(data.image());
         unBind();
+    }
+
+    @Override
+    public int getWidth() {
+        return width;
+    }
+
+    @Override
+    public int getHeight() {
+        return height;
     }
 
     @Override

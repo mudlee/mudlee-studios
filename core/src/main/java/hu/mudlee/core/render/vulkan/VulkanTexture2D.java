@@ -29,6 +29,9 @@ public class VulkanTexture2D extends Texture2D {
     private final VulkanDevice device;
     private final String path;
 
+    private int width;
+    private int height;
+
     private long image = VK_NULL_HANDLE;
     private long imageMemory = VK_NULL_HANDLE;
     private long imageView = VK_NULL_HANDLE;
@@ -46,6 +49,16 @@ public class VulkanTexture2D extends Texture2D {
         allocateAndWriteDescriptorSet(ctx);
 
         log.debug("VulkanTexture2D created: {}", path);
+    }
+
+    @Override
+    public int getWidth() {
+        return width;
+    }
+
+    @Override
+    public int getHeight() {
+        return height;
     }
 
     /** Informs VulkanContext that this is the texture to bind for the next draw call(s). */
@@ -96,8 +109,8 @@ public class VulkanTexture2D extends Texture2D {
                 throw new RuntimeException("Failed to load texture '" + path + "': " + stbi_failure_reason());
             }
 
-            var width = w.get(0);
-            var height = h.get(0);
+            width = w.get(0);
+            height = h.get(0);
             var imageSizeBytes = (long) width * height * 4; // RGBA = 4 bytes per pixel
 
             // Staging buffer: CPU-writable

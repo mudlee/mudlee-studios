@@ -2,49 +2,25 @@ package hu.mudlee.sandbox;
 
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE;
 
+import hu.mudlee.core.Color;
 import hu.mudlee.core.Game;
 import hu.mudlee.core.GameTime;
 import hu.mudlee.core.GraphicsDeviceManager;
 import hu.mudlee.core.content.ContentManager;
-import hu.mudlee.core.ecs.ECS;
-import hu.mudlee.core.ecs.entities.RawRenderableEntity;
 import hu.mudlee.core.input.KeyListener;
-import hu.mudlee.core.render.ElementBuffer;
 import hu.mudlee.core.render.RenderBackend;
 import hu.mudlee.core.render.Renderer;
-import hu.mudlee.core.render.Shader;
-import hu.mudlee.core.render.VertexArray;
-import hu.mudlee.core.render.VertexBuffer;
-import hu.mudlee.core.render.VertexBufferLayout;
-import hu.mudlee.core.render.VertexLayoutAttribute;
+import hu.mudlee.core.render.SpriteBatch;
 import hu.mudlee.core.render.camera.Camera2D;
 import hu.mudlee.core.render.texture.Texture2D;
-import hu.mudlee.core.render.types.BufferUsage;
-import hu.mudlee.core.render.types.PolygonMode;
-import hu.mudlee.core.render.types.RenderMode;
-import hu.mudlee.core.render.types.ShaderProps;
-import hu.mudlee.core.render.types.ShaderTypes;
+import org.joml.Vector2f;
 import org.joml.Vector4f;
 
 public class SandboxApplication extends Game {
 
-    private Shader shader;
-    private VertexArray va;
+    private SpriteBatch spriteBatch;
+    private Texture2D marioTexture;
     private Camera2D camera;
-    private Texture2D texture;
-
-    private static final float[] SQUARE_VERTICES = {
-        // pos | color | texture uv
-        100.5f, 0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1, 1, // bottom right
-        0.5f, 100.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0, 0, // top left
-        100.5f, 100.5f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1, 0, // top right
-        0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, 0, 1, // bottom left
-    };
-
-    private static final int[] SQUARE_INDICES = {
-        2, 1, 0,
-        0, 1, 3
-    };
 
     public SandboxApplication() {
         gdm = new GraphicsDeviceManager()
@@ -61,38 +37,13 @@ public class SandboxApplication extends Game {
         Renderer.setClearColor(new Vector4f(0, 0, 0, 1));
 
         content = new ContentManager("textures");
-        texture = content.load(Texture2D.class, "mario");
+        marioTexture = content.load(Texture2D.class, "mario");
+
+        spriteBatch = new SpriteBatch();
 
         camera = new Camera2D();
         camera.position.x -= 100;
         camera.position.y -= 100;
-        texture.bind();
-
-        shader = Shader.create("vulkan/2d/vert.glsl", "vulkan/2d/frag.glsl");
-        shader.createUniform(shader.getVertexProgramId(), ShaderProps.UNIFORM_PROJECTION_MATRIX.glslName);
-        shader.setUniform(
-                shader.getVertexProgramId(),
-                ShaderProps.UNIFORM_PROJECTION_MATRIX.glslName,
-                camera.getProjectionMatrix());
-
-        shader.createUniform(shader.getVertexProgramId(), ShaderProps.UNIFORM_VIEW_MATRIX.glslName);
-        shader.setUniform(
-                shader.getVertexProgramId(), ShaderProps.UNIFORM_VIEW_MATRIX.glslName, camera.getViewMatrix());
-
-        shader.createUniform(shader.getFragmentProgramId(), "TEX_SAMPLER");
-        shader.setUniform(shader.getFragmentProgramId(), "TEX_SAMPLER", 0);
-
-        var stride = (3 + 4 + 2) * Float.BYTES;
-        var layout = new VertexBufferLayout(
-                new VertexLayoutAttribute(0, 3, ShaderTypes.FLOAT, false, stride, 0),
-                new VertexLayoutAttribute(1, 4, ShaderTypes.FLOAT, false, stride, 3 * Float.BYTES),
-                new VertexLayoutAttribute(2, 2, ShaderTypes.FLOAT, false, stride, 7 * Float.BYTES));
-
-        va = VertexArray.create();
-        va.addVBO(VertexBuffer.create(SQUARE_VERTICES, layout, BufferUsage.STATIC_DRAW));
-        va.setEBO(ElementBuffer.create(SQUARE_INDICES, BufferUsage.STATIC_DRAW));
-
-        ECS.addEntity(new RawRenderableEntity("Square", va, shader, RenderMode.TRIANGLES, PolygonMode.FILL));
     }
 
     @Override
@@ -103,19 +54,18 @@ public class SandboxApplication extends Game {
 
         camera.position.x -= gameTime.elapsedSeconds() * 50f;
         camera.position.y -= gameTime.elapsedSeconds() * 20f;
-        shader.setUniform(
-                shader.getVertexProgramId(),
-                ShaderProps.UNIFORM_PROJECTION_MATRIX.glslName,
-                camera.getProjectionMatrix());
-        shader.setUniform(
-                shader.getVertexProgramId(), ShaderProps.UNIFORM_VIEW_MATRIX.glslName, camera.getViewMatrix());
+    }
+
+    @Override
+    protected void draw(GameTime gameTime) {
+        spriteBatch.begin(camera.getProjectionMatrix(), camera.getViewMatrix());
+        spriteBatch.draw(marioTexture, new Vector2f(0.5f, 0.5f), Color.WHITE);
+        spriteBatch.end();
     }
 
     @Override
     protected void unloadContent() {
-        ECS.removeAllEntities();
-        shader.dispose();
-        va.dispose();
+        spriteBatch.dispose();
         content.unload();
     }
 

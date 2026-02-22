@@ -13,6 +13,10 @@ public abstract class Texture2D implements Disposable {
         };
     }
 
+    public abstract int getWidth();
+
+    public abstract int getHeight();
+
     public abstract void bind();
 
     public abstract void unBind();
