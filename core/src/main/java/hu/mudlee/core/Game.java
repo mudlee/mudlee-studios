@@ -10,6 +10,8 @@ import hu.mudlee.core.settings.Antialiasing;
 import hu.mudlee.core.settings.WindowPreferences;
 import hu.mudlee.core.window.Window;
 import hu.mudlee.core.window.WindowEventListener;
+import java.util.ArrayList;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,6 +23,7 @@ public abstract class Game implements WindowEventListener {
     protected GraphicsDeviceManager gdm;
     protected GraphicsDevice graphicsDevice;
     protected ContentManager content;
+    public final List<GameComponent> components = new ArrayList<>();
 
     protected Game() {}
 
@@ -59,6 +62,9 @@ public abstract class Game implements WindowEventListener {
         log.info("Game is shutting down");
         Renderer.waitForGPU();
         unloadContent();
+        for (var component : components) {
+            component.dispose();
+        }
         SceneManager.onDispose();
         Renderer.dispose();
         Window.remove();
@@ -72,6 +78,9 @@ public abstract class Game implements WindowEventListener {
     @Override
     public void onWindowResized(int width, int height) {
         SceneManager.onWindowResized(width, height);
+        for (var component : components) {
+            component.resize(width, height);
+        }
     }
 
     protected void initialize() {}
@@ -100,8 +109,14 @@ public abstract class Game implements WindowEventListener {
                 gameTime.set(deltaTime, totalTime, deltaTime > TARGET_ELAPSED_SECONDS);
                 SceneManager.onUpdate(gameTime);
                 update(gameTime);
+                for (var component : components) {
+                    component.update(gameTime);
+                }
                 ECS.update(deltaTime);
                 draw(gameTime);
+                for (var component : components) {
+                    component.draw(gameTime);
+                }
             }
 
             Renderer.swapBuffers(deltaTime);
