@@ -17,6 +17,7 @@ module hu.mudlee.core {
     exports hu.mudlee.core.input;
     exports hu.mudlee.core.render;
     exports hu.mudlee.core.render.camera;
+    exports hu.mudlee.core.render.animation;
     exports hu.mudlee.core.render.texture;
     exports hu.mudlee.core.render.types;
     exports hu.mudlee.core.scene;
