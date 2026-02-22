@@ -4,6 +4,7 @@ import static org.lwjgl.glfw.GLFW.GLFW_KEY_A;
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE;
 
 import hu.mudlee.core.Application;
+import hu.mudlee.core.GameTime;
 import hu.mudlee.core.ecs.ECS;
 import hu.mudlee.core.ecs.entities.RawRenderableEntity;
 import hu.mudlee.core.input.KeyListener;
@@ -66,7 +67,7 @@ public class GameScene implements Scene {
     }
 
     @Override
-    public void update(float deltaTime) {
+    public void update(GameTime gameTime) {
         if (KeyListener.isKeyPressed(GLFW_KEY_ESCAPE)) {
             Application.stop();
         }
@@ -76,11 +77,8 @@ public class GameScene implements Scene {
             SceneManager.setScreen(new OtherScene());
         }
 
-        // if(camera.update()) {
-
-        // }
-        camera.position.x -= deltaTime * 50f;
-        camera.position.y -= deltaTime * 20f;
+        camera.position.x -= gameTime.elapsedSeconds() * 50f;
+        camera.position.y -= gameTime.elapsedSeconds() * 20f;
         shader.setUniform(
                 shader.getVertexProgramId(),
                 ShaderProps.UNIFORM_PROJECTION_MATRIX.glslName,

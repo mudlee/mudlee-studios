@@ -8,7 +8,9 @@
       "Bash(\"/c/VulkanSDK/1.4.341.1/Bin/glslc.exe\":*)",
       "Bash(tail:*)",
       "Bash(cd:*)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:docs.monogame.net)",
+      "WebFetch(domain:raw.githubusercontent.com)"
     ]
   }
 }

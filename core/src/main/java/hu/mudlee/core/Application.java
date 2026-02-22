@@ -14,7 +14,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class Application implements WindowEventListener {
+
     private static final Logger log = LoggerFactory.getLogger(Application.class);
+    private static final float TARGET_ELAPSED_SECONDS = 1f / 60f;
     private static Application instance;
 
     public static Application get() {
@@ -60,6 +62,7 @@ public class Application implements WindowEventListener {
         Renderer.setClearFlags(BufferBitTypes.COLOR);
 
         var beginTime = Time.getTime();
+        var totalTime = 0f;
         float endTime;
         var deltaTime = -1.0f;
 
@@ -69,7 +72,9 @@ public class Application implements WindowEventListener {
             Renderer.clear();
 
             if (deltaTime >= 0) {
-                SceneManager.onUpdate(deltaTime);
+                totalTime += deltaTime;
+                var gameTime = new GameTime(deltaTime, totalTime, deltaTime > TARGET_ELAPSED_SECONDS);
+                SceneManager.onUpdate(gameTime);
                 ECS.update(deltaTime);
             }
 

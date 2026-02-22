@@ -1,5 +1,7 @@
 package hu.mudlee.core.scene;
 
+import hu.mudlee.core.GameTime;
+
 public class SceneManager {
     private static SceneManager instance;
     private Scene current;
@@ -35,7 +37,7 @@ public class SceneManager {
         get().current.dispose();
     }
 
-    public static void onUpdate(float deltaTime) {
-        get().current.update(deltaTime);
+    public static void onUpdate(GameTime gameTime) {
+        get().current.update(gameTime);
     }
 }

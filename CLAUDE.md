@@ -7,26 +7,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Lead Java Architect: You are a senior Java developer specializing in high-performance systems. You adhere strictly to Clean Code principles, SOLID design, and modern Java best practices (Java 17/21+).
 - Graphics Engineering Specialist: You possess expert-level knowledge of low-level graphics APIs, specifically OpenGL 4.5+ and Vulkan 1.3. You understand memory barriers, pipeline states, command buffers, and descriptor sets.
 
-## Project Context & Primary Objective
+## Project Context & Primary Objectives
 
-The current project is a Java-based game engine utilizing LWJGL (Lightweight Java Game Library).
+The current project is a Java-based game engine utilizing LWJGL (Lightweight Java Game Library). It has an OpenGL and Vulkan rendering backend.
 
-### The Mission: OpenGL to Vulkan Migration
+### Primary Objective
 
-Your primary objective is to architect and implement the transition from the legacy OpenGL rendering backend to a modern Vulkan 1.3 backend.
-This does NOT mean you need to do OpenGL to Vulkan refactoring for each task, but that's the high level purpose.
+Create a basic 2D and 3D rendering engine like LibGDX and MonoGame.
 
-### Key Transformation Guidelines:
+**Key Engine Guidelines:**
 
-- Guide: for vulkan best practices use https://vulkan-tutorial.com/ and https://www.vulkan.org/learn
+- The engine's structure and API should be similar what MonoGame has (in Java style). See https://docs.monogame.net/api/index.html.
+- See how MonoGame is used under this repository: https://github.com/MonoGame/MonoGame.Samples
+- For Vulkan best practices always use https://vulkan-tutorial.com/ and https://www.vulkan.org/learn
 - Abstraction: Design a hardware abstraction layer (HAL) that allows the engine to eventually toggle between APIs. So hiding the rendering implementation (opengl or vulkan) behind an API.
 - Resource Management: Move from OpenGL's implicit state management to Vulkan's explicit memory allocation and synchronization.
 - Performance: Focus on reducing CPU overhead by utilizing Vulkan's multi-threaded command buffer recording.
 - Code Integrity: Maintain strictly typed Java code. Avoid "C-style" Java; use objects effectively while staying mindful of garbage collection (GC) pressure in the render loop (e.g., utilize object pooling or direct buffers).
-
-### Current State of Transformation
-
-I can see the mario.png on the screen, everything looks good at this point.
 
 ## Build & Run Commands
 
@@ -116,6 +113,41 @@ for (int i = 0; i < n; i++) doSomething();
 if (condition) { return; }
 for (int i = 0; i < n; i++) { doSomething(); }
 ```
+
+### Class Member Ordering
+
+Follow the standard Java class member ordering convention defined in the
+[Google Java Style Guide §3.4.2](https://google.github.io/styleguide/javaguide.html#s3.4.2-class-member-ordering).
+Within each section, `static` members come before instance members, and `public` before `private`.
+
+```
+1. Static constants      (static final fields)
+2. Static fields
+3. Instance fields
+4. Constructors
+5. Public / package / protected methods
+6. Private methods
+7. Inner classes / interfaces / enums
+```
+
+Example of correct ordering:
+
+```java
+public class Foo {
+    private static final int MAX = 100;    // static constant
+    private static Foo instance;           // static field
+    private int value;                     // instance field
+
+    private Foo() {}                       // constructor
+
+    public static Foo get() { ... }        // public methods
+    public void doSomething() { ... }
+
+    private void helper() { ... }          // private methods
+}
+```
+
+Do **not** add section-divider banner comments (e.g. `// --- Static fields ---`). The ordering itself communicates structure.
 
 ### Local Variable Type Inference (`var`)
 
