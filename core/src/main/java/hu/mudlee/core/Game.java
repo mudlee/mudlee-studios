@@ -4,7 +4,6 @@ import hu.mudlee.core.ecs.ECS;
 import hu.mudlee.core.ecs.systems.RawRenderableSystem;
 import hu.mudlee.core.render.Renderer;
 import hu.mudlee.core.render.types.BufferBitTypes;
-import hu.mudlee.core.scene.Scene;
 import hu.mudlee.core.scene.SceneManager;
 import hu.mudlee.core.settings.WindowPreferences;
 import hu.mudlee.core.window.Window;
@@ -13,50 +12,58 @@ import org.joml.Vector4f;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Application implements WindowEventListener {
+public abstract class Game implements WindowEventListener {
 
-    private static final Logger log = LoggerFactory.getLogger(Application.class);
+    private static final Logger log = LoggerFactory.getLogger(Game.class);
     private static final float TARGET_ELAPSED_SECONDS = 1f / 60f;
-    private static Application instance;
 
-    public static Application get() {
-        if (instance == null) {
-            instance = new Application();
-        }
+    private final WindowPreferences preferences;
 
-        return instance;
+    protected Game(WindowPreferences preferences) {
+        this.preferences = preferences;
     }
 
-    private Application() {}
-
-    @Override
-    public void onWindowResized(int width, int height) {
-        SceneManager.onWindowResized(width, height);
-    }
-
-    public static void start(WindowPreferences windowPreferences, Scene startingScene) {
-        Window.setPreferences(windowPreferences);
+    public final void run() {
+        Window.setPreferences(preferences);
         Window.addListener(Renderer.get());
-        Window.addListener(get());
+        Window.addListener(this);
         ECS.addSystem(new RawRenderableSystem());
 
         Window.create();
         Renderer.setClearColor(new Vector4f(1f, 1f, 1f, 1f));
-        SceneManager.setScreen(startingScene);
 
-        get().loop();
+        initialize();
+        loadContent();
 
-        log.info("Application is shutting down");
+        loop();
+
+        log.info("Game is shutting down");
         Renderer.waitForGPU();
+        unloadContent();
         SceneManager.onDispose();
         Renderer.dispose();
         Window.remove();
         log.info("Terminated");
     }
 
-    public static void stop() {
+    public final void exit() {
         Window.close();
     }
+
+    @Override
+    public void onWindowResized(int width, int height) {
+        SceneManager.onWindowResized(width, height);
+    }
+
+    protected void initialize() {}
+
+    protected void loadContent() {}
+
+    protected void update(GameTime gameTime) {}
+
+    protected void draw(GameTime gameTime) {}
+
+    protected void unloadContent() {}
 
     private void loop() {
         Renderer.setClearFlags(BufferBitTypes.COLOR);
@@ -68,14 +75,15 @@ public class Application implements WindowEventListener {
 
         while (!Window.shouldClose()) {
             Window.pollEvents();
-
             Renderer.clear();
 
             if (deltaTime >= 0) {
                 totalTime += deltaTime;
                 var gameTime = new GameTime(deltaTime, totalTime, deltaTime > TARGET_ELAPSED_SECONDS);
                 SceneManager.onUpdate(gameTime);
+                update(gameTime);
                 ECS.update(deltaTime);
+                draw(gameTime);
             }
 
             Renderer.swapBuffers(deltaTime);

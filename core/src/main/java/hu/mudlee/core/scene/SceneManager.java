@@ -26,18 +26,26 @@ public class SceneManager {
     }
 
     public static void onWindowResized(int width, int height) {
-        get().current.resize(width, height);
+        if (get().current != null) {
+            get().current.resize(width, height);
+        }
     }
 
     public static void onStarted() {
-        get().current.start();
+        if (get().current != null) {
+            get().current.start();
+        }
     }
 
     public static void onDispose() {
-        get().current.dispose();
+        if (get().current != null) {
+            get().current.dispose();
+        }
     }
 
     public static void onUpdate(GameTime gameTime) {
-        get().current.update(gameTime);
+        if (get().current != null) {
+            get().current.update(gameTime);
+        }
     }
 }

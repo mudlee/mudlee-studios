@@ -165,6 +165,10 @@ var pImage = stack.mallocLong(1);
 
 Do **not** use `var` for: fields, method parameters, return types, or cases where the inferred type would be ambiguous (e.g. a bare numeric literal like `var x = 0` when the intent is `long`).
 
+## Git Conventions
+
+- **No co-author attribution** — never add `Co-Authored-By:` lines to commit messages.
+
 ## Dependencies
 
 | Library | Version | Purpose |
