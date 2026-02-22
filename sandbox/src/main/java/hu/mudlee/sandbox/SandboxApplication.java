@@ -4,6 +4,7 @@ import static org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE;
 
 import hu.mudlee.core.Game;
 import hu.mudlee.core.GameTime;
+import hu.mudlee.core.GraphicsDeviceManager;
 import hu.mudlee.core.ecs.ECS;
 import hu.mudlee.core.ecs.entities.RawRenderableEntity;
 import hu.mudlee.core.input.KeyListener;
@@ -22,8 +23,6 @@ import hu.mudlee.core.render.types.PolygonMode;
 import hu.mudlee.core.render.types.RenderMode;
 import hu.mudlee.core.render.types.ShaderProps;
 import hu.mudlee.core.render.types.ShaderTypes;
-import hu.mudlee.core.settings.Antialiasing;
-import hu.mudlee.core.settings.WindowPreferences;
 import org.joml.Vector4f;
 
 public class SandboxApplication extends Game {
@@ -47,14 +46,13 @@ public class SandboxApplication extends Game {
     };
 
     public SandboxApplication() {
-        super(WindowPreferences.builder()
-                .title("TESTING")
-                .antialiasing(Antialiasing.OFF)
-                .fullscreen(false)
-                .vSync(true)
-                .width(1920)
-                .height(1080)
-                .build());
+        gdm = new GraphicsDeviceManager()
+                .setTitle("TESTING")
+                .setPreferredBackBufferWidth(1920)
+                .setPreferredBackBufferHeight(1080)
+                .setVSync(true)
+                .setFullscreen(false)
+                .setPreferredBackend(RenderBackend.VULKAN);
     }
 
     @Override
@@ -120,7 +118,6 @@ public class SandboxApplication extends Game {
     }
 
     public static void main(String[] args) {
-        Renderer.configure(RenderBackend.VULKAN);
         new SandboxApplication().run();
     }
 }

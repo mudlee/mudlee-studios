@@ -5,6 +5,7 @@ import hu.mudlee.core.ecs.systems.RawRenderableSystem;
 import hu.mudlee.core.render.Renderer;
 import hu.mudlee.core.render.types.BufferBitTypes;
 import hu.mudlee.core.scene.SceneManager;
+import hu.mudlee.core.settings.Antialiasing;
 import hu.mudlee.core.settings.WindowPreferences;
 import hu.mudlee.core.window.Window;
 import hu.mudlee.core.window.WindowEventListener;
@@ -17,14 +18,26 @@ public abstract class Game implements WindowEventListener {
     private static final Logger log = LoggerFactory.getLogger(Game.class);
     private static final float TARGET_ELAPSED_SECONDS = 1f / 60f;
 
-    private final WindowPreferences preferences;
+    protected GraphicsDeviceManager gdm;
 
-    protected Game(WindowPreferences preferences) {
-        this.preferences = preferences;
-    }
+    protected Game() {}
 
     public final void run() {
-        Window.setPreferences(preferences);
+        if (gdm == null) {
+            gdm = new GraphicsDeviceManager();
+        }
+
+        Renderer.configure(gdm.getPreferredBackend());
+
+        Window.setPreferences(WindowPreferences.builder()
+                .title(gdm.getTitle())
+                .width(gdm.getPreferredBackBufferWidth())
+                .height(gdm.getPreferredBackBufferHeight())
+                .vSync(gdm.isVSync())
+                .fullscreen(gdm.isFullscreen())
+                .antialiasing(Antialiasing.OFF)
+                .build());
+
         Window.addListener(Renderer.get());
         Window.addListener(this);
         ECS.addSystem(new RawRenderableSystem());
