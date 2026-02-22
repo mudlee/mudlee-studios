@@ -1,8 +1,6 @@
 package hu.mudlee.core;
 
 import hu.mudlee.core.content.ContentManager;
-import hu.mudlee.core.ecs.ECS;
-import hu.mudlee.core.ecs.systems.RawRenderableSystem;
 import hu.mudlee.core.input.InputSystem;
 import hu.mudlee.core.render.Renderer;
 import hu.mudlee.core.scene.SceneManager;
@@ -45,7 +43,6 @@ public abstract class Game implements WindowEventListener {
 
         Window.addListener(Renderer.get());
         Window.addListener(this);
-        ECS.addSystem(new RawRenderableSystem());
 
         Window.create();
         graphicsDevice = new GraphicsDevice();
@@ -112,7 +109,6 @@ public abstract class Game implements WindowEventListener {
                 for (var component : components) {
                     component.update(gameTime);
                 }
-                ECS.update(deltaTime);
                 draw(gameTime);
                 for (var component : components) {
                     component.draw(gameTime);

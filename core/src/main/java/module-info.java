@@ -11,12 +11,9 @@ module hu.mudlee.core {
     requires org.lwjgl.stb.natives;
     requires org.lwjgl.vulkan;
     requires transitive org.joml;
-    requires transitive ashley;
 
     exports hu.mudlee.core;
     exports hu.mudlee.core.content;
-    exports hu.mudlee.core.ecs;
-    exports hu.mudlee.core.ecs.entities;
     exports hu.mudlee.core.input;
     exports hu.mudlee.core.render;
     exports hu.mudlee.core.render.camera;

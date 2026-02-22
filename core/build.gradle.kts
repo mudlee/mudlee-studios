@@ -6,7 +6,6 @@ val lwjglVersion = "3.4.0"
 val jomlVersion = "1.10.8"
 val slf4jVersion = "2.0.17"
 val resourcesPath = "../resources"
-val ashleyVersion = "1.7.3"
 
 val lwjglNatives = Pair(
 	System.getProperty("os.name")!!,
@@ -63,5 +62,4 @@ dependencies {
 	implementation("org.slf4j", "slf4j-api", slf4jVersion)
 	implementation("org.slf4j", "slf4j-simple", slf4jVersion)
 	api("org.joml", "joml", jomlVersion)
-	api("com.badlogicgames.ashley","ashley", ashleyVersion)
 }
