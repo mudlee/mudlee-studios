@@ -55,7 +55,12 @@ public class SpriteBatch implements Disposable {
         vertexArray = VertexArray.create();
         vertexArray.addVBO(dynamicVbo);
 
-        shader = Shader.create("vulkan/2d/vert.glsl", "vulkan/2d/frag.glsl");
+        var shaderDir =
+                switch (Renderer.activeBackend()) {
+                    case OPENGL -> "opengl/2d";
+                    case VULKAN -> "vulkan/2d";
+                };
+        shader = Shader.create(shaderDir + "/vert.glsl", shaderDir + "/frag.glsl");
         shader.createUniform(shader.getVertexProgramId(), ShaderProps.UNIFORM_PROJECTION_MATRIX.glslName);
         shader.createUniform(shader.getVertexProgramId(), ShaderProps.UNIFORM_VIEW_MATRIX.glslName);
         shader.createUniform(shader.getFragmentProgramId(), "TEX_SAMPLER");
@@ -88,6 +93,8 @@ public class SpriteBatch implements Disposable {
         draw(texture, position.x, position.y, texture.getWidth(), texture.getHeight(), color);
     }
 
+    // TODO: shouldn't the Rectangle's x and y be float here? Or in the other draw method the position not to be a
+    // Vector2f but a Vector2i?
     public void draw(Texture2D texture, Rectangle destinationRect, Color color) {
         draw(texture, destinationRect.x, destinationRect.y, destinationRect.width, destinationRect.height, color);
     }
