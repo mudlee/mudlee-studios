@@ -8,18 +8,24 @@ package hu.mudlee.core;
 public final class GameTime {
 
     /** Seconds elapsed since the previous frame. */
-    private final float elapsedSeconds;
+    private float elapsedSeconds;
 
     /** Total seconds elapsed since the game loop started. */
-    private final float totalSeconds;
+    private float totalSeconds;
 
     /**
      * {@code true} when the previous frame took longer than the target frame time (1/60 s),
      * indicating the game is struggling to maintain the desired update rate.
      */
-    private final boolean runningSlowly;
+    private boolean runningSlowly;
 
     public GameTime(float elapsedSeconds, float totalSeconds, boolean runningSlowly) {
+        this.elapsedSeconds = elapsedSeconds;
+        this.totalSeconds = totalSeconds;
+        this.runningSlowly = runningSlowly;
+    }
+
+    void set(float elapsedSeconds, float totalSeconds, boolean runningSlowly) {
         this.elapsedSeconds = elapsedSeconds;
         this.totalSeconds = totalSeconds;
         this.runningSlowly = runningSlowly;

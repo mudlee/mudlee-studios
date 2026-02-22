@@ -91,6 +91,7 @@ public abstract class Game implements WindowEventListener {
         var totalTime = 0f;
         float endTime;
         var deltaTime = -1.0f;
+        var gameTime = new GameTime(0f, 0f, false);
 
         while (!Window.shouldClose()) {
             Window.pollEvents();
@@ -98,7 +99,7 @@ public abstract class Game implements WindowEventListener {
 
             if (deltaTime >= 0) {
                 totalTime += deltaTime;
-                var gameTime = new GameTime(deltaTime, totalTime, deltaTime > TARGET_ELAPSED_SECONDS);
+                gameTime.set(deltaTime, totalTime, deltaTime > TARGET_ELAPSED_SECONDS);
                 SceneManager.onUpdate(gameTime);
                 update(gameTime);
                 ECS.update(deltaTime);
