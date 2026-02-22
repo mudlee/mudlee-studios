@@ -31,7 +31,7 @@ public abstract class AbstractCamera implements Camera {
 
   @Override
   public boolean update() {
-    boolean changed = false;
+    var changed = false;
 
     if (projectionMatrixChanged) {
       updateProjectionMatrix(projectionMatrix);

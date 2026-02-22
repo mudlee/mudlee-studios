@@ -13,8 +13,6 @@ import hu.mudlee.core.render.VertexArray;
 import hu.mudlee.core.render.VertexBuffer;
 import hu.mudlee.core.render.types.PolygonMode;
 import hu.mudlee.core.render.types.RenderMode;
-import java.nio.IntBuffer;
-import java.nio.LongBuffer;
 import org.joml.Vector4f;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.vulkan.*;
@@ -125,15 +123,15 @@ public class VulkanContext implements GraphicsContext {
    */
   long allocateTextureDescriptorSet() {
     try (MemoryStack stack = stackPush()) {
-      LongBuffer pLayout = stack.longs(textureDescriptorSetLayout);
+      var pLayout = stack.longs(textureDescriptorSetLayout);
 
-      VkDescriptorSetAllocateInfo allocInfo =
+      var allocInfo =
           VkDescriptorSetAllocateInfo.calloc(stack)
               .sType(VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO)
               .descriptorPool(descriptorPool)
               .pSetLayouts(pLayout);
 
-      LongBuffer pDescriptorSet = stack.mallocLong(1);
+      var pDescriptorSet = stack.mallocLong(1);
       if (vkAllocateDescriptorSets(device.device(), allocInfo, pDescriptorSet) != VK_SUCCESS) {
         throw new RuntimeException("Failed to allocate texture descriptor set");
       }
@@ -161,8 +159,8 @@ public class VulkanContext implements GraphicsContext {
     vkInstance = new VulkanInstance("MudleeEngine", debug);
 
     try (MemoryStack stack = stackPush()) {
-      LongBuffer pSurface = stack.mallocLong(1);
-      int result = glfwCreateWindowSurface(vkInstance.handle(), windowId, null, pSurface);
+      var pSurface = stack.mallocLong(1);
+      var result = glfwCreateWindowSurface(vkInstance.handle(), windowId, null, pSurface);
       if (result != VK_SUCCESS) {
         throw new RuntimeException("Failed to create Vulkan window surface: " + result);
       }
@@ -207,11 +205,11 @@ public class VulkanContext implements GraphicsContext {
     }
 
     try (MemoryStack stack = stackPush()) {
-      long fence = syncObjects.inFlightFence(currentFrame);
+      var fence = syncObjects.inFlightFence(currentFrame);
       vkWaitForFences(device.device(), fence, true, Long.MAX_VALUE);
 
-      IntBuffer pImageIndex = stack.mallocInt(1);
-      int result =
+      var pImageIndex = stack.mallocInt(1);
+      var result =
           vkAcquireNextImageKHR(
               device.device(),
               swapChain.swapChainHandle(),
@@ -232,16 +230,16 @@ public class VulkanContext implements GraphicsContext {
       // Reset fence only after a successful acquisition to avoid deadlocks on resize
       vkResetFences(device.device(), fence);
 
-      VkCommandBuffer cmdBuf = commandPool.commandBuffer(currentFrame);
+      var cmdBuf = commandPool.commandBuffer(currentFrame);
       vkResetCommandBuffer(cmdBuf, 0);
 
-      VkCommandBufferBeginInfo beginInfo =
+      var beginInfo =
           VkCommandBufferBeginInfo.calloc(stack).sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO);
       if (vkBeginCommandBuffer(cmdBuf, beginInfo) != VK_SUCCESS) {
         throw new RuntimeException("Failed to begin command buffer");
       }
 
-      VkClearValue.Buffer clearValues = VkClearValue.calloc(1, stack);
+      var clearValues = VkClearValue.calloc(1, stack);
       clearValues
           .get(0)
           .color()
@@ -250,7 +248,7 @@ public class VulkanContext implements GraphicsContext {
           .float32(2, clearColor[2])
           .float32(3, clearColor[3]);
 
-      VkRenderPassBeginInfo rpBeginInfo =
+      var rpBeginInfo =
           VkRenderPassBeginInfo.calloc(stack)
               .sType(VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO)
               .renderPass(renderPass.handle())
@@ -267,7 +265,7 @@ public class VulkanContext implements GraphicsContext {
 
       // Negative height + y=height flips the Vulkan Y-axis to match OpenGL conventions.
       // JOML's setOrtho produces matrices expecting Y-up (OpenGL), so we compensate here.
-      VkViewport.Buffer viewport =
+      var viewport =
           VkViewport.calloc(1, stack)
               .x(0f)
               .y((float) swapChain.extent().height())
@@ -277,7 +275,7 @@ public class VulkanContext implements GraphicsContext {
               .maxDepth(1f);
       vkCmdSetViewport(cmdBuf, 0, viewport);
 
-      VkRect2D.Buffer scissor = VkRect2D.calloc(1, stack);
+      var scissor = VkRect2D.calloc(1, stack);
       scissor.offset().x(0).y(0);
       scissor.extent().width(swapChain.extent().width()).height(swapChain.extent().height());
       vkCmdSetScissor(cmdBuf, 0, scissor);
@@ -300,13 +298,15 @@ public class VulkanContext implements GraphicsContext {
     if (!(vertexArray instanceof VulkanVertexArray va)) {
       throw new IllegalArgumentException("VulkanContext requires a VulkanVertexArray");
     }
-    if (va.getVBOs().isEmpty()) return;
+    if (va.getVBOs().isEmpty()) {
+      return;
+    }
 
-    VkCommandBuffer cmdBuf = commandPool.commandBuffer(currentFrame);
+    var cmdBuf = commandPool.commandBuffer(currentFrame);
 
     // Create the VkPipeline lazily with the actual vertex layout (now known)
-    VertexBuffer firstVbo = va.getVBOs().get(0);
-    long pipeline =
+    var firstVbo = va.getVBOs().get(0);
+    var pipeline =
         vs.getOrCreatePipeline(firstVbo.getLayout(), renderPass.handle(), swapChain.extent());
 
     vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
@@ -319,15 +319,15 @@ public class VulkanContext implements GraphicsContext {
 
       // Bind texture descriptor set (set=0)
       if (activeTexture != null) {
-        LongBuffer pSet = stack.longs(activeTexture.descriptorSet());
+        var pSet = stack.longs(activeTexture.descriptorSet());
         vkCmdBindDescriptorSets(
             cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, vs.pipelineLayout(), 0, pSet, null);
       }
 
       // Bind vertex buffers
-      int vboCount = va.getVBOs().size();
-      LongBuffer pBuffers = stack.mallocLong(vboCount);
-      LongBuffer pOffsets = stack.callocLong(vboCount);
+      var vboCount = va.getVBOs().size();
+      var pBuffers = stack.mallocLong(vboCount);
+      var pOffsets = stack.callocLong(vboCount);
       for (VertexBuffer vb : va.getVBOs()) {
         pBuffers.put(((VulkanVertexBuffer) vb).bufferHandle());
       }
@@ -337,16 +337,16 @@ public class VulkanContext implements GraphicsContext {
       // Draw indexed or non-indexed
       if (va.getEBO().isPresent() && va.getEBO().get() instanceof VulkanIndexBuffer ib) {
         vkCmdBindIndexBuffer(cmdBuf, ib.bufferHandle(), 0, VK_INDEX_TYPE_UINT32);
-        int instanceCount = va.isInstanced() ? va.getInstanceCount() : 1;
+        var instanceCount = va.isInstanced() ? va.getInstanceCount() : 1;
         vkCmdDrawIndexed(cmdBuf, ib.getLength(), instanceCount, 0, 0, 0);
       } else {
         // Derive vertex count from buffer length and stride
-        int stride =
+        var stride =
             (firstVbo.getLayout().attributes().length > 0)
                 ? firstVbo.getLayout().attributes()[0].getStride()
                 : Float.BYTES;
-        int vertexCount = (firstVbo.getLength() * Float.BYTES) / stride;
-        int instanceCount = va.isInstanced() ? va.getInstanceCount() : 1;
+        var vertexCount = (firstVbo.getLength() * Float.BYTES) / stride;
+        var instanceCount = va.isInstanced() ? va.getInstanceCount() : 1;
         vkCmdDraw(cmdBuf, vertexCount, instanceCount, 0, 0);
       }
     }
@@ -356,14 +356,14 @@ public class VulkanContext implements GraphicsContext {
   @Override
   public void swapBuffers(float frameTime) {
     try (MemoryStack stack = stackPush()) {
-      VkCommandBuffer cmdBuf = commandPool.commandBuffer(currentFrame);
+      var cmdBuf = commandPool.commandBuffer(currentFrame);
 
       vkCmdEndRenderPass(cmdBuf);
       if (vkEndCommandBuffer(cmdBuf) != VK_SUCCESS) {
         throw new RuntimeException("Failed to end command buffer");
       }
 
-      VkSubmitInfo submitInfo =
+      var submitInfo =
           VkSubmitInfo.calloc(stack)
               .sType(VK_STRUCTURE_TYPE_SUBMIT_INFO)
               .waitSemaphoreCount(1)
@@ -373,14 +373,14 @@ public class VulkanContext implements GraphicsContext {
               .pSignalSemaphores(
                   stack.longs(syncObjects.renderFinishedSemaphore(currentImageIndex)));
 
-      int result =
+      var result =
           vkQueueSubmit(
               device.graphicsQueue(), submitInfo, syncObjects.inFlightFence(currentFrame));
       if (result != VK_SUCCESS) {
         throw new RuntimeException("Failed to submit command buffer: " + result);
       }
 
-      VkPresentInfoKHR presentInfo =
+      var presentInfo =
           VkPresentInfoKHR.calloc(stack)
               .sType(VK_STRUCTURE_TYPE_PRESENT_INFO_KHR)
               .pWaitSemaphores(stack.longs(syncObjects.renderFinishedSemaphore(currentImageIndex)))
@@ -453,19 +453,19 @@ public class VulkanContext implements GraphicsContext {
    */
   private void createTextureDescriptorSetLayout() {
     try (MemoryStack stack = stackPush()) {
-      VkDescriptorSetLayoutBinding.Buffer binding =
+      var binding =
           VkDescriptorSetLayoutBinding.calloc(1, stack)
               .binding(0)
               .descriptorType(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
               .descriptorCount(1)
               .stageFlags(VK_SHADER_STAGE_FRAGMENT_BIT);
 
-      VkDescriptorSetLayoutCreateInfo layoutInfo =
+      var layoutInfo =
           VkDescriptorSetLayoutCreateInfo.calloc(stack)
               .sType(VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO)
               .pBindings(binding);
 
-      LongBuffer pLayout = stack.mallocLong(1);
+      var pLayout = stack.mallocLong(1);
       if (vkCreateDescriptorSetLayout(device.device(), layoutInfo, null, pLayout) != VK_SUCCESS) {
         throw new RuntimeException("Failed to create texture descriptor set layout");
       }
@@ -476,18 +476,18 @@ public class VulkanContext implements GraphicsContext {
 
   private void createDescriptorPool() {
     try (MemoryStack stack = stackPush()) {
-      VkDescriptorPoolSize.Buffer poolSizes =
+      var poolSizes =
           VkDescriptorPoolSize.calloc(1, stack)
               .type(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
               .descriptorCount(MAX_TEXTURE_DESCRIPTORS);
 
-      VkDescriptorPoolCreateInfo poolInfo =
+      var poolInfo =
           VkDescriptorPoolCreateInfo.calloc(stack)
               .sType(VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO)
               .pPoolSizes(poolSizes)
               .maxSets(MAX_TEXTURE_DESCRIPTORS);
 
-      LongBuffer pPool = stack.mallocLong(1);
+      var pPool = stack.mallocLong(1);
       if (vkCreateDescriptorPool(device.device(), poolInfo, null, pPool) != VK_SUCCESS) {
         throw new RuntimeException("Failed to create descriptor pool");
       }
@@ -498,7 +498,7 @@ public class VulkanContext implements GraphicsContext {
 
   private void logDeviceInfo() {
     try (MemoryStack stack = stackPush()) {
-      VkPhysicalDeviceProperties props = VkPhysicalDeviceProperties.malloc(stack);
+      var props = VkPhysicalDeviceProperties.malloc(stack);
       vkGetPhysicalDeviceProperties(device.physicalDevice(), props);
       log.debug("GPU: {}", props.deviceNameString());
       log.debug(

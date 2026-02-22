@@ -50,7 +50,7 @@ public class GameScene implements Scene {
     shader.createUniform(shader.getFragmentProgramId(), "TEX_SAMPLER");
     shader.setUniform(shader.getFragmentProgramId(), "TEX_SAMPLER", 0);
 
-    int stride = (3 + 4 + 2) * Float.BYTES; // 3 for positions, 4 for colors
+    var stride = (3 + 4 + 2) * Float.BYTES; // 3 for positions, 4 for colors
     final var layout =
         new VertexBufferLayout(
             new VertexLayoutAttribute(0, 3, ShaderTypes.FLOAT, false, stride, 0),

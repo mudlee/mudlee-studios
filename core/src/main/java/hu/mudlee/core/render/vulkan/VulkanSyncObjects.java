@@ -5,7 +5,6 @@ import static org.lwjgl.system.MemoryStack.stackPush;
 import static org.lwjgl.vulkan.VK12.*;
 
 import hu.mudlee.core.Disposable;
-import java.nio.LongBuffer;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.vulkan.VkFenceCreateInfo;
 import org.lwjgl.vulkan.VkSemaphoreCreateInfo;
@@ -35,16 +34,16 @@ class VulkanSyncObjects implements Disposable {
     this.renderFinishedSemaphores = new long[swapChainImageCount];
 
     try (MemoryStack stack = stackPush()) {
-      VkSemaphoreCreateInfo semaphoreInfo =
+      var semaphoreInfo =
           VkSemaphoreCreateInfo.calloc(stack).sType(VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO);
 
       // Fences start signalled so the first vkWaitForFences at frame 0 doesn't block forever
-      VkFenceCreateInfo fenceInfo =
+      var fenceInfo =
           VkFenceCreateInfo.calloc(stack)
               .sType(VK_STRUCTURE_TYPE_FENCE_CREATE_INFO)
               .flags(VK_FENCE_CREATE_SIGNALED_BIT);
 
-      LongBuffer pLong = stack.mallocLong(1);
+      var pLong = stack.mallocLong(1);
       for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
         if (vkCreateSemaphore(device.device(), semaphoreInfo, null, pLong) != VK_SUCCESS) {
           throw new RuntimeException("Failed to create imageAvailableSemaphore[" + i + "]");

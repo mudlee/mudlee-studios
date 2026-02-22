@@ -9,8 +9,8 @@ final class VulkanMemoryUtil {
   static int findMemoryType(
       VkPhysicalDeviceMemoryProperties memProperties, int typeFilter, int requiredProperties) {
     for (int i = 0; i < memProperties.memoryTypeCount(); i++) {
-      boolean typeMatch = (typeFilter & (1 << i)) != 0;
-      boolean propertyMatch =
+      var typeMatch = (typeFilter & (1 << i)) != 0;
+      var propertyMatch =
           (memProperties.memoryTypes(i).propertyFlags() & requiredProperties) == requiredProperties;
       if (typeMatch && propertyMatch) {
         return i;

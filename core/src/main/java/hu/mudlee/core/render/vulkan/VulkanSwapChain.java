@@ -7,8 +7,6 @@ import static org.lwjgl.vulkan.KHRSwapchain.*;
 import static org.lwjgl.vulkan.VK12.*;
 
 import hu.mudlee.core.Disposable;
-import java.nio.IntBuffer;
-import java.nio.LongBuffer;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.vulkan.*;
 import org.slf4j.Logger;
@@ -44,24 +42,26 @@ class VulkanSwapChain implements Disposable {
 
   private void create(boolean vSync) {
     try (MemoryStack stack = stackPush()) {
-      VkSurfaceCapabilitiesKHR capabilities = VkSurfaceCapabilitiesKHR.malloc(stack);
+      var capabilities = VkSurfaceCapabilitiesKHR.malloc(stack);
       vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device.physicalDevice(), surface, capabilities);
 
-      VkSurfaceFormatKHR surfaceFormat = chooseSurfaceFormat(stack);
-      int presentMode = choosePresentMode(stack, vSync);
+      var surfaceFormat = chooseSurfaceFormat(stack);
+      var presentMode = choosePresentMode(stack, vSync);
       // chooseExtent() returns a stack-allocated struct — copy to heap before the frame closes
-      VkExtent2D stackExtent = chooseExtent(capabilities, stack);
-      if (extent == null) extent = VkExtent2D.malloc();
+      var stackExtent = chooseExtent(capabilities, stack);
+      if (extent == null) {
+        extent = VkExtent2D.malloc();
+      }
       extent.width(stackExtent.width()).height(stackExtent.height());
       imageFormat = surfaceFormat.format();
 
       // One more image than the minimum gives the driver room to breathe without stalling us
-      int imageCount = capabilities.minImageCount() + 1;
+      var imageCount = capabilities.minImageCount() + 1;
       if (capabilities.maxImageCount() > 0) {
         imageCount = Math.min(imageCount, capabilities.maxImageCount());
       }
 
-      VkSwapchainCreateInfoKHR createInfo =
+      var createInfo =
           VkSwapchainCreateInfoKHR.calloc(stack)
               .sType(VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR)
               .surface(surface)
@@ -72,9 +72,9 @@ class VulkanSwapChain implements Disposable {
               .imageArrayLayers(1)
               .imageUsage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
 
-      VulkanDevice.QueueFamilyIndices families = device.queueFamilyIndices();
+      var families = device.queueFamilyIndices();
       if (families.graphicsFamily() != families.presentFamily()) {
-        IntBuffer familyIndices = stack.ints(families.graphicsFamily(), families.presentFamily());
+        var familyIndices = stack.ints(families.graphicsFamily(), families.presentFamily());
         createInfo.imageSharingMode(VK_SHARING_MODE_CONCURRENT).pQueueFamilyIndices(familyIndices);
       } else {
         createInfo.imageSharingMode(VK_SHARING_MODE_EXCLUSIVE);
@@ -87,16 +87,16 @@ class VulkanSwapChain implements Disposable {
           .clipped(true)
           .oldSwapchain(VK_NULL_HANDLE);
 
-      LongBuffer pSwapChain = stack.mallocLong(1);
+      var pSwapChain = stack.mallocLong(1);
       if (vkCreateSwapchainKHR(device.device(), createInfo, null, pSwapChain) != VK_SUCCESS) {
         throw new RuntimeException("Failed to create VkSwapchainKHR");
       }
       swapChain = pSwapChain.get(0);
 
       // Retrieve the swap chain images
-      IntBuffer count = stack.mallocInt(1);
+      var count = stack.mallocInt(1);
       vkGetSwapchainImagesKHR(device.device(), swapChain, count, null);
-      LongBuffer pImages = stack.mallocLong(count.get(0));
+      var pImages = stack.mallocLong(count.get(0));
       vkGetSwapchainImagesKHR(device.device(), swapChain, count, pImages);
 
       images = new long[count.get(0)];
@@ -116,9 +116,9 @@ class VulkanSwapChain implements Disposable {
   private void createImageViews() {
     imageViews = new long[images.length];
     try (MemoryStack stack = stackPush()) {
-      LongBuffer pView = stack.mallocLong(1);
+      var pView = stack.mallocLong(1);
       for (int i = 0; i < images.length; i++) {
-        VkImageViewCreateInfo viewInfo =
+        var viewInfo =
             VkImageViewCreateInfo.calloc(stack)
                 .sType(VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO)
                 .image(images[i])
@@ -149,10 +149,10 @@ class VulkanSwapChain implements Disposable {
   void buildFramebuffers(long renderPass) {
     framebuffers = new long[imageViews.length];
     try (MemoryStack stack = stackPush()) {
-      LongBuffer pFramebuffer = stack.mallocLong(1);
+      var pFramebuffer = stack.mallocLong(1);
       for (int i = 0; i < imageViews.length; i++) {
-        LongBuffer attachments = stack.longs(imageViews[i]);
-        VkFramebufferCreateInfo framebufferInfo =
+        var attachments = stack.longs(imageViews[i]);
+        var framebufferInfo =
             VkFramebufferCreateInfo.calloc(stack)
                 .sType(VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO)
                 .renderPass(renderPass)
@@ -200,9 +200,9 @@ class VulkanSwapChain implements Disposable {
   }
 
   private VkSurfaceFormatKHR chooseSurfaceFormat(MemoryStack stack) {
-    IntBuffer count = stack.mallocInt(1);
+    var count = stack.mallocInt(1);
     vkGetPhysicalDeviceSurfaceFormatsKHR(device.physicalDevice(), surface, count, null);
-    VkSurfaceFormatKHR.Buffer formats = VkSurfaceFormatKHR.malloc(count.get(0), stack);
+    var formats = VkSurfaceFormatKHR.malloc(count.get(0), stack);
     vkGetPhysicalDeviceSurfaceFormatsKHR(device.physicalDevice(), surface, count, formats);
 
     // Prefer BGRA8 sRGB — most common, best perceptual quality
@@ -222,9 +222,9 @@ class VulkanSwapChain implements Disposable {
       return VK_PRESENT_MODE_FIFO_KHR;
     }
 
-    IntBuffer count = stack.mallocInt(1);
+    var count = stack.mallocInt(1);
     vkGetPhysicalDeviceSurfacePresentModesKHR(device.physicalDevice(), surface, count, null);
-    IntBuffer modes = stack.mallocInt(count.get(0));
+    var modes = stack.mallocInt(count.get(0));
     vkGetPhysicalDeviceSurfacePresentModesKHR(device.physicalDevice(), surface, count, modes);
 
     // MAILBOX gives triple-buffering without tearing — prefer it when vSync is off
@@ -243,11 +243,11 @@ class VulkanSwapChain implements Disposable {
     }
 
     // Query the actual framebuffer size from GLFW (accounts for HiDPI scaling)
-    IntBuffer width = stack.mallocInt(1);
-    IntBuffer height = stack.mallocInt(1);
+    var width = stack.mallocInt(1);
+    var height = stack.mallocInt(1);
     glfwGetFramebufferSize(windowHandle, width, height);
 
-    VkExtent2D actual =
+    var actual =
         VkExtent2D.malloc(stack)
             .width(
                 Math.clamp(
@@ -286,7 +286,9 @@ class VulkanSwapChain implements Disposable {
     destroyFramebuffers();
     destroyImageViews();
     vkDestroySwapchainKHR(device.device(), swapChain, null);
-    if (extent != null) extent.free();
+    if (extent != null) {
+      extent.free();
+    }
     log.debug("VkSwapchainKHR destroyed");
   }
 }

@@ -59,9 +59,9 @@ public class Application implements WindowEventListener {
   private void loop() {
     Renderer.setClearFlags(BufferBitTypes.COLOR);
 
-    float beginTime = Time.getTime();
+    var beginTime = Time.getTime();
     float endTime;
-    float deltaTime = -1.0f;
+    var deltaTime = -1.0f;
 
     while (!Window.shouldClose()) {
       Window.pollEvents();

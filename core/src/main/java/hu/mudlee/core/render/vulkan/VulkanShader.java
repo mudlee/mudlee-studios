@@ -6,9 +6,6 @@ import static org.lwjgl.vulkan.VK12.*;
 import hu.mudlee.core.io.ResourceLoader;
 import hu.mudlee.core.render.Shader;
 import hu.mudlee.core.render.VertexBufferLayout;
-import hu.mudlee.core.render.VertexLayoutAttribute;
-import java.nio.ByteBuffer;
-import java.nio.LongBuffer;
 import org.joml.Matrix4f;
 import org.joml.Vector4f;
 import org.lwjgl.system.MemoryStack;
@@ -65,12 +62,12 @@ public class VulkanShader extends Shader {
   private final float[] viewData = new float[16];
 
   public VulkanShader(String vertexShaderName, String fragmentShaderName) {
-    VulkanContext ctx = VulkanContext.get();
+    var ctx = VulkanContext.get();
     device = ctx.device();
 
     // Derive SPIR-V paths from the GLSL names
-    String vertPath = "/shaders/" + vertexShaderName.replace(".glsl", ".spv");
-    String fragPath = "/shaders/" + fragmentShaderName.replace(".glsl", ".spv");
+    var vertPath = "/shaders/" + vertexShaderName.replace(".glsl", ".spv");
+    var fragPath = "/shaders/" + fragmentShaderName.replace(".glsl", ".spv");
 
     vertShaderModule = createShaderModule(vertPath);
     fragShaderModule = createShaderModule(fragPath);
@@ -204,12 +201,12 @@ public class VulkanShader extends Shader {
     try (MemoryStack stack = stackPush()) {
       var spirvCode = ResourceLoader.loadToByteBuffer(resourcePath, stack);
 
-      VkShaderModuleCreateInfo createInfo =
+      var createInfo =
           VkShaderModuleCreateInfo.calloc(stack)
               .sType(VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO)
               .pCode(spirvCode);
 
-      LongBuffer pModule = stack.mallocLong(1);
+      var pModule = stack.mallocLong(1);
       if (vkCreateShaderModule(device.device(), createInfo, null, pModule) != VK_SUCCESS) {
         throw new RuntimeException("Failed to create VkShaderModule from " + resourcePath);
       }
@@ -223,21 +220,21 @@ public class VulkanShader extends Shader {
    */
   private void createPipelineLayout() {
     try (MemoryStack stack = stackPush()) {
-      VkPushConstantRange.Buffer pushConstantRange =
+      var pushConstantRange =
           VkPushConstantRange.calloc(1, stack)
               .stageFlags(VK_SHADER_STAGE_VERTEX_BIT)
               .offset(0)
               .size(PUSH_CONSTANT_SIZE);
 
-      LongBuffer pSetLayouts = stack.longs(descriptorSetLayout);
+      var pSetLayouts = stack.longs(descriptorSetLayout);
 
-      VkPipelineLayoutCreateInfo layoutInfo =
+      var layoutInfo =
           VkPipelineLayoutCreateInfo.calloc(stack)
               .sType(VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO)
               .pSetLayouts(pSetLayouts)
               .pPushConstantRanges(pushConstantRange);
 
-      LongBuffer pLayout = stack.mallocLong(1);
+      var pLayout = stack.mallocLong(1);
       if (vkCreatePipelineLayout(device.device(), layoutInfo, null, pLayout) != VK_SUCCESS) {
         throw new RuntimeException("Failed to create VkPipelineLayout");
       }
@@ -252,10 +249,9 @@ public class VulkanShader extends Shader {
   private long createGraphicsPipeline(
       VertexBufferLayout layout, long renderPass, VkExtent2D extent) {
     try (MemoryStack stack = stackPush()) {
-      ByteBuffer mainName = stack.UTF8("main");
+      var mainName = stack.UTF8("main");
 
-      VkPipelineShaderStageCreateInfo.Buffer shaderStages =
-          VkPipelineShaderStageCreateInfo.calloc(2, stack);
+      var shaderStages = VkPipelineShaderStageCreateInfo.calloc(2, stack);
       shaderStages
           .get(0)
           .sType(VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO)
@@ -270,16 +266,15 @@ public class VulkanShader extends Shader {
           .pName(mainName);
 
       // Vertex input: one binding, attributes from the provided VertexBufferLayout
-      VertexLayoutAttribute[] attrs = layout.attributes();
+      var attrs = layout.attributes();
 
-      VkVertexInputBindingDescription.Buffer bindingDesc =
+      var bindingDesc =
           VkVertexInputBindingDescription.calloc(1, stack)
               .binding(0)
               .stride(attrs.length > 0 ? attrs[0].getStride() : 0)
               .inputRate(VK_VERTEX_INPUT_RATE_VERTEX);
 
-      VkVertexInputAttributeDescription.Buffer attrDescs =
-          VkVertexInputAttributeDescription.calloc(attrs.length, stack);
+      var attrDescs = VkVertexInputAttributeDescription.calloc(attrs.length, stack);
       for (int i = 0; i < attrs.length; i++) {
         attrDescs
             .get(i)
@@ -289,31 +284,31 @@ public class VulkanShader extends Shader {
             .offset(attrs[i].getOffset());
       }
 
-      VkPipelineVertexInputStateCreateInfo vertexInput =
+      var vertexInput =
           VkPipelineVertexInputStateCreateInfo.calloc(stack)
               .sType(VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO)
               .pVertexBindingDescriptions(bindingDesc)
               .pVertexAttributeDescriptions(attrDescs);
 
-      VkPipelineInputAssemblyStateCreateInfo inputAssembly =
+      var inputAssembly =
           VkPipelineInputAssemblyStateCreateInfo.calloc(stack)
               .sType(VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO)
               .topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
               .primitiveRestartEnable(false);
 
       // Viewport and scissor are dynamic — set each frame in VulkanContext.clear()
-      VkPipelineDynamicStateCreateInfo dynamicState =
+      var dynamicState =
           VkPipelineDynamicStateCreateInfo.calloc(stack)
               .sType(VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO)
               .pDynamicStates(stack.ints(VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR));
 
-      VkPipelineViewportStateCreateInfo viewportState =
+      var viewportState =
           VkPipelineViewportStateCreateInfo.calloc(stack)
               .sType(VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO)
               .viewportCount(1)
               .scissorCount(1);
 
-      VkPipelineRasterizationStateCreateInfo rasterizer =
+      var rasterizer =
           VkPipelineRasterizationStateCreateInfo.calloc(stack)
               .sType(VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO)
               .depthClampEnable(false)
@@ -324,14 +319,14 @@ public class VulkanShader extends Shader {
               .frontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE)
               .depthBiasEnable(false);
 
-      VkPipelineMultisampleStateCreateInfo multisampling =
+      var multisampling =
           VkPipelineMultisampleStateCreateInfo.calloc(stack)
               .sType(VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO)
               .sampleShadingEnable(false)
               .rasterizationSamples(VK_SAMPLE_COUNT_1_BIT);
 
       // Standard alpha blending
-      VkPipelineColorBlendAttachmentState.Buffer colorBlendAttachment =
+      var colorBlendAttachment =
           VkPipelineColorBlendAttachmentState.calloc(1, stack)
               .colorWriteMask(
                   VK_COLOR_COMPONENT_R_BIT
@@ -346,13 +341,13 @@ public class VulkanShader extends Shader {
               .dstAlphaBlendFactor(VK_BLEND_FACTOR_ZERO)
               .alphaBlendOp(VK_BLEND_OP_ADD);
 
-      VkPipelineColorBlendStateCreateInfo colorBlending =
+      var colorBlending =
           VkPipelineColorBlendStateCreateInfo.calloc(stack)
               .sType(VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO)
               .logicOpEnable(false)
               .pAttachments(colorBlendAttachment);
 
-      VkGraphicsPipelineCreateInfo.Buffer pipelineInfo =
+      var pipelineInfo =
           VkGraphicsPipelineCreateInfo.calloc(1, stack)
               .sType(VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO)
               .pStages(shaderStages)
@@ -369,7 +364,7 @@ public class VulkanShader extends Shader {
               .basePipelineHandle(VK_NULL_HANDLE)
               .basePipelineIndex(-1);
 
-      LongBuffer pPipeline = stack.mallocLong(1);
+      var pPipeline = stack.mallocLong(1);
       if (vkCreateGraphicsPipelines(device.device(), VK_NULL_HANDLE, pipelineInfo, null, pPipeline)
           != VK_SUCCESS) {
         throw new RuntimeException("Failed to create VkPipeline");

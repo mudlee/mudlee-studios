@@ -76,7 +76,7 @@ public class OpenGLShader extends Shader {
       return;
     }
 
-    int location = glGetUniformLocation(programId, name);
+    var location = glGetUniformLocation(programId, name);
     if (location < 0) {
       log.error(
           "Uniform could not find ({}) or not used, so optimized out when trying to create: {}",

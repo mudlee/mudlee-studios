@@ -90,6 +90,49 @@ Uses the **Ashley** ECS framework (Badlogic Games). Components (`ShaderComponent
 
 `Application`, `Window`, `Renderer`, `SceneManager`, `ECS`, `Time` — all follow the static-factory/singleton pattern.
 
+## Code Style Rules
+
+These rules are enforced project-wide and must be followed in all new and modified code.
+
+### Formatting
+
+Code is formatted with **google-java-format** via the Spotless Gradle plugin:
+
+```bash
+./gradlew spotlessApply   # format in-place
+./gradlew spotlessCheck   # verify without modifying
+```
+
+### Mandatory Curly Braces
+
+Every `if`, `else`, `for`, `while`, and `do` body **must** use curly braces, even for single-line bodies.
+
+```java
+// Wrong
+if (condition) return;
+for (int i = 0; i < n; i++) doSomething();
+
+// Correct
+if (condition) { return; }
+for (int i = 0; i < n; i++) { doSomething(); }
+```
+
+### Local Variable Type Inference (`var`)
+
+Use `var` for all local variable declarations where the type is clear from the right-hand side.
+
+```java
+// Wrong
+VkCommandBuffer cmdBuf = commandPool.beginSingleUse(stack);
+LongBuffer pImage = stack.mallocLong(1);
+
+// Correct
+var cmdBuf = commandPool.beginSingleUse(stack);
+var pImage = stack.mallocLong(1);
+```
+
+Do **not** use `var` for: fields, method parameters, return types, or cases where the inferred type would be ambiguous (e.g. a bare numeric literal like `var x = 0` when the intent is `long`).
+
 ## Dependencies
 
 | Library | Version | Purpose |

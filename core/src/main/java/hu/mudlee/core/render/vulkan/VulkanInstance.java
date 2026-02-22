@@ -6,10 +6,7 @@ import static org.lwjgl.vulkan.EXTDebugUtils.*;
 import static org.lwjgl.vulkan.VK12.*;
 
 import hu.mudlee.core.Disposable;
-import java.nio.IntBuffer;
-import java.nio.LongBuffer;
 import java.util.HashSet;
-import java.util.Set;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.vulkan.*;
@@ -33,7 +30,7 @@ class VulkanInstance implements Disposable {
     }
 
     try (MemoryStack stack = stackPush()) {
-      VkApplicationInfo appInfo =
+      var appInfo =
           VkApplicationInfo.calloc(stack)
               .sType(VK_STRUCTURE_TYPE_APPLICATION_INFO)
               .pApplicationName(stack.UTF8Safe(appName))
@@ -42,24 +39,24 @@ class VulkanInstance implements Disposable {
               .engineVersion(VK_MAKE_VERSION(1, 0, 0))
               .apiVersion(VK_MAKE_API_VERSION(0, 1, 3, 0));
 
-      VkInstanceCreateInfo createInfo =
+      var createInfo =
           VkInstanceCreateInfo.calloc(stack)
               .sType(VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO)
               .pApplicationInfo(appInfo)
               .ppEnabledExtensionNames(buildExtensionList(stack));
 
       if (debug && isValidationLayerAvailable()) {
-        PointerBuffer layers = stack.mallocPointer(1);
+        var layers = stack.mallocPointer(1);
         layers.put(stack.ASCII(VALIDATION_LAYER)).rewind();
         createInfo.ppEnabledLayerNames(layers);
 
         // Chain debug messenger info so it captures instance creation/destruction messages
-        VkDebugUtilsMessengerCreateInfoEXT debugInfo = buildDebugMessengerCreateInfo(stack);
+        var debugInfo = buildDebugMessengerCreateInfo(stack);
         createInfo.pNext(debugInfo.address());
       }
 
-      PointerBuffer pInstance = stack.mallocPointer(1);
-      int result = vkCreateInstance(createInfo, null, pInstance);
+      var pInstance = stack.mallocPointer(1);
+      var result = vkCreateInstance(createInfo, null, pInstance);
       if (result != VK_SUCCESS) {
         throw new RuntimeException("Failed to create VkInstance, error: " + result);
       }
@@ -79,8 +76,8 @@ class VulkanInstance implements Disposable {
 
   private void setupDebugMessenger() {
     try (MemoryStack stack = stackPush()) {
-      LongBuffer pMessenger = stack.mallocLong(1);
-      int result =
+      var pMessenger = stack.mallocLong(1);
+      var result =
           vkCreateDebugUtilsMessengerEXT(
               handle, buildDebugMessengerCreateInfo(stack), null, pMessenger);
       if (result != VK_SUCCESS) {
@@ -105,8 +102,7 @@ class VulkanInstance implements Disposable {
                 | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT)
         .pfnUserCallback(
             (severity, types, callbackData, userData) -> {
-              VkDebugUtilsMessengerCallbackDataEXT data =
-                  VkDebugUtilsMessengerCallbackDataEXT.create(callbackData);
+              var data = VkDebugUtilsMessengerCallbackDataEXT.create(callbackData);
               if ((severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) != 0) {
                 log.error("[Vulkan Validation] {}", data.pMessageString());
               } else if ((severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) != 0) {
@@ -119,7 +115,7 @@ class VulkanInstance implements Disposable {
   }
 
   private PointerBuffer buildExtensionList(MemoryStack stack) {
-    PointerBuffer glfwExtensions = glfwGetRequiredInstanceExtensions();
+    var glfwExtensions = glfwGetRequiredInstanceExtensions();
     if (glfwExtensions == null) {
       throw new RuntimeException("Failed to get GLFW required Vulkan extensions");
     }
@@ -129,7 +125,7 @@ class VulkanInstance implements Disposable {
     }
 
     // Append VK_EXT_debug_utils for validation layer messages
-    PointerBuffer extensions = stack.mallocPointer(glfwExtensions.remaining() + 1);
+    var extensions = stack.mallocPointer(glfwExtensions.remaining() + 1);
     extensions.put(glfwExtensions);
     extensions.put(stack.UTF8(VK_EXT_DEBUG_UTILS_EXTENSION_NAME));
     return extensions.rewind();
@@ -137,13 +133,13 @@ class VulkanInstance implements Disposable {
 
   private boolean isValidationLayerAvailable() {
     try (MemoryStack stack = stackPush()) {
-      IntBuffer count = stack.mallocInt(1);
+      var count = stack.mallocInt(1);
       vkEnumerateInstanceLayerProperties(count, null);
 
-      VkLayerProperties.Buffer layers = VkLayerProperties.malloc(count.get(0), stack);
+      var layers = VkLayerProperties.malloc(count.get(0), stack);
       vkEnumerateInstanceLayerProperties(count.position(0), layers);
 
-      Set<String> names = new HashSet<>();
+      var names = new HashSet<String>();
       for (VkLayerProperties layer : layers) {
         names.add(layer.layerNameString());
       }

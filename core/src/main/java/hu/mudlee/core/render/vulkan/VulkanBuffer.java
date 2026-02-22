@@ -5,9 +5,7 @@ import static org.lwjgl.vulkan.VK12.*;
 
 import hu.mudlee.core.Disposable;
 import java.nio.ByteBuffer;
-import java.nio.LongBuffer;
 import java.util.function.Consumer;
-import org.lwjgl.PointerBuffer;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.vulkan.*;
 
@@ -27,23 +25,23 @@ class VulkanBuffer implements Disposable {
     this.size = size;
 
     try (MemoryStack stack = stackPush()) {
-      VkBufferCreateInfo bufferInfo =
+      var bufferInfo =
           VkBufferCreateInfo.calloc(stack)
               .sType(VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO)
               .size(size)
               .usage(usage)
               .sharingMode(VK_SHARING_MODE_EXCLUSIVE);
 
-      LongBuffer pBuffer = stack.mallocLong(1);
+      var pBuffer = stack.mallocLong(1);
       if (vkCreateBuffer(device.device(), bufferInfo, null, pBuffer) != VK_SUCCESS) {
         throw new RuntimeException("Failed to create Vulkan buffer");
       }
       handle = pBuffer.get(0);
 
-      VkMemoryRequirements memReqs = VkMemoryRequirements.malloc(stack);
+      var memReqs = VkMemoryRequirements.malloc(stack);
       vkGetBufferMemoryRequirements(device.device(), handle, memReqs);
 
-      VkMemoryAllocateInfo allocInfo =
+      var allocInfo =
           VkMemoryAllocateInfo.calloc(stack)
               .sType(VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO)
               .allocationSize(memReqs.size())
@@ -51,7 +49,7 @@ class VulkanBuffer implements Disposable {
                   VulkanMemoryUtil.findMemoryType(
                       device.memoryProperties(), memReqs.memoryTypeBits(), memoryPropertyFlags));
 
-      LongBuffer pMemory = stack.mallocLong(1);
+      var pMemory = stack.mallocLong(1);
       if (vkAllocateMemory(device.device(), allocInfo, null, pMemory) != VK_SUCCESS) {
         throw new RuntimeException("Failed to allocate Vulkan buffer memory");
       }
@@ -71,7 +69,7 @@ class VulkanBuffer implements Disposable {
    */
   void map(Consumer<ByteBuffer> action) {
     try (MemoryStack stack = stackPush()) {
-      PointerBuffer ppData = stack.mallocPointer(1);
+      var ppData = stack.mallocPointer(1);
       vkMapMemory(device.device(), memory, 0, size, 0, ppData);
       action.accept(ppData.getByteBuffer(0, (int) size));
       vkUnmapMemory(device.device(), memory);
@@ -84,10 +82,9 @@ class VulkanBuffer implements Disposable {
    */
   void copyFrom(VulkanBuffer src, VulkanCommandPool commandPool) {
     try (MemoryStack stack = stackPush()) {
-      VkCommandBuffer cmdBuf = commandPool.beginSingleUse(stack);
+      var cmdBuf = commandPool.beginSingleUse(stack);
 
-      VkBufferCopy.Buffer copyRegion =
-          VkBufferCopy.calloc(1, stack).srcOffset(0).dstOffset(0).size(src.size);
+      var copyRegion = VkBufferCopy.calloc(1, stack).srcOffset(0).dstOffset(0).size(src.size);
 
       vkCmdCopyBuffer(cmdBuf, src.handle, handle, copyRegion);
       commandPool.endSingleUse(cmdBuf);

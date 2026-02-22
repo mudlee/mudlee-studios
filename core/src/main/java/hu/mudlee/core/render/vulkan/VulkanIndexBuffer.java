@@ -3,7 +3,6 @@ package hu.mudlee.core.render.vulkan;
 import static org.lwjgl.vulkan.VK12.*;
 
 import hu.mudlee.core.render.ElementBuffer;
-import java.nio.IntBuffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,9 +27,9 @@ public class VulkanIndexBuffer extends ElementBuffer {
 
   public VulkanIndexBuffer(int[] indices, VulkanDevice device, VulkanCommandPool commandPool) {
     this.length = indices.length;
-    long sizeBytes = (long) indices.length * Integer.BYTES;
+    var sizeBytes = (long) indices.length * Integer.BYTES;
 
-    VulkanBuffer staging =
+    var staging =
         new VulkanBuffer(
             device,
             sizeBytes,
@@ -39,7 +38,7 @@ public class VulkanIndexBuffer extends ElementBuffer {
 
     staging.map(
         dst -> {
-          IntBuffer intView = dst.asIntBuffer();
+          var intView = dst.asIntBuffer();
           intView.put(indices).flip();
         });
 

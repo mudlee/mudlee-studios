@@ -4,8 +4,6 @@ import static org.lwjgl.system.MemoryStack.stackPush;
 import static org.lwjgl.vulkan.VK12.*;
 
 import hu.mudlee.core.Disposable;
-import java.nio.LongBuffer;
-import org.lwjgl.PointerBuffer;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.vulkan.*;
 import org.slf4j.Logger;
@@ -26,13 +24,13 @@ class VulkanCommandPool implements Disposable {
 
     try (MemoryStack stack = stackPush()) {
       // RESET_COMMAND_BUFFER_BIT allows individual command buffers to be reset
-      VkCommandPoolCreateInfo poolInfo =
+      var poolInfo =
           VkCommandPoolCreateInfo.calloc(stack)
               .sType(VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO)
               .queueFamilyIndex(device.queueFamilyIndices().graphicsFamily())
               .flags(VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
 
-      LongBuffer pPool = stack.mallocLong(1);
+      var pPool = stack.mallocLong(1);
       if (vkCreateCommandPool(device.device(), poolInfo, null, pPool) != VK_SUCCESS) {
         throw new RuntimeException("Failed to create VkCommandPool");
       }
@@ -44,14 +42,14 @@ class VulkanCommandPool implements Disposable {
   }
 
   private void allocateCommandBuffers(MemoryStack stack) {
-    VkCommandBufferAllocateInfo allocInfo =
+    var allocInfo =
         VkCommandBufferAllocateInfo.calloc(stack)
             .sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO)
             .commandPool(handle)
             .level(VK_COMMAND_BUFFER_LEVEL_PRIMARY)
             .commandBufferCount(FRAMES_IN_FLIGHT);
 
-    PointerBuffer pBuffers = stack.mallocPointer(FRAMES_IN_FLIGHT);
+    var pBuffers = stack.mallocPointer(FRAMES_IN_FLIGHT);
     if (vkAllocateCommandBuffers(device.device(), allocInfo, pBuffers) != VK_SUCCESS) {
       throw new RuntimeException("Failed to allocate VkCommandBuffers");
     }
@@ -74,18 +72,18 @@ class VulkanCommandPool implements Disposable {
    * paired with {@link #endSingleUse(VkCommandBuffer)}.
    */
   VkCommandBuffer beginSingleUse(MemoryStack stack) {
-    VkCommandBufferAllocateInfo allocInfo =
+    var allocInfo =
         VkCommandBufferAllocateInfo.calloc(stack)
             .sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO)
             .commandPool(handle)
             .level(VK_COMMAND_BUFFER_LEVEL_PRIMARY)
             .commandBufferCount(1);
 
-    PointerBuffer pBuffer = stack.mallocPointer(1);
+    var pBuffer = stack.mallocPointer(1);
     vkAllocateCommandBuffers(device.device(), allocInfo, pBuffer);
-    VkCommandBuffer cmdBuf = new VkCommandBuffer(pBuffer.get(0), device.device());
+    var cmdBuf = new VkCommandBuffer(pBuffer.get(0), device.device());
 
-    VkCommandBufferBeginInfo beginInfo =
+    var beginInfo =
         VkCommandBufferBeginInfo.calloc(stack)
             .sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO)
             .flags(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
@@ -99,8 +97,8 @@ class VulkanCommandPool implements Disposable {
     vkEndCommandBuffer(cmdBuf);
 
     try (MemoryStack stack = stackPush()) {
-      PointerBuffer pCmdBuf = stack.pointers(cmdBuf);
-      VkSubmitInfo submitInfo =
+      var pCmdBuf = stack.pointers(cmdBuf);
+      var submitInfo =
           VkSubmitInfo.calloc(stack).sType(VK_STRUCTURE_TYPE_SUBMIT_INFO).pCommandBuffers(pCmdBuf);
 
       vkQueueSubmit(device.graphicsQueue(), submitInfo, VK_NULL_HANDLE);

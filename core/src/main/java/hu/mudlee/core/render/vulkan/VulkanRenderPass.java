@@ -5,7 +5,6 @@ import static org.lwjgl.vulkan.KHRSwapchain.VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 import static org.lwjgl.vulkan.VK12.*;
 
 import hu.mudlee.core.Disposable;
-import java.nio.LongBuffer;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.vulkan.*;
 import org.slf4j.Logger;
@@ -27,7 +26,7 @@ class VulkanRenderPass implements Disposable {
 
     try (MemoryStack stack = stackPush()) {
       // Describe the single color attachment (swapchain image)
-      VkAttachmentDescription.Buffer colorAttachment =
+      var colorAttachment =
           VkAttachmentDescription.calloc(1, stack)
               .format(colorFormat)
               .samples(VK_SAMPLE_COUNT_1_BIT)
@@ -38,19 +37,19 @@ class VulkanRenderPass implements Disposable {
               .initialLayout(VK_IMAGE_LAYOUT_UNDEFINED)
               .finalLayout(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 
-      VkAttachmentReference.Buffer colorRef =
+      var colorRef =
           VkAttachmentReference.calloc(1, stack)
               .attachment(0)
               .layout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
-      VkSubpassDescription.Buffer subpass =
+      var subpass =
           VkSubpassDescription.calloc(1, stack)
               .pipelineBindPoint(VK_PIPELINE_BIND_POINT_GRAPHICS)
               .colorAttachmentCount(1)
               .pColorAttachments(colorRef);
 
       // Subpass dependency: ensure the image is available before writing to it
-      VkSubpassDependency.Buffer dependency =
+      var dependency =
           VkSubpassDependency.calloc(1, stack)
               .srcSubpass(VK_SUBPASS_EXTERNAL)
               .dstSubpass(0)
@@ -59,14 +58,14 @@ class VulkanRenderPass implements Disposable {
               .dstStageMask(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT)
               .dstAccessMask(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
 
-      VkRenderPassCreateInfo renderPassInfo =
+      var renderPassInfo =
           VkRenderPassCreateInfo.calloc(stack)
               .sType(VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO)
               .pAttachments(colorAttachment)
               .pSubpasses(subpass)
               .pDependencies(dependency);
 
-      LongBuffer pRenderPass = stack.mallocLong(1);
+      var pRenderPass = stack.mallocLong(1);
       if (vkCreateRenderPass(device.device(), renderPassInfo, null, pRenderPass) != VK_SUCCESS) {
         throw new RuntimeException("Failed to create VkRenderPass");
       }

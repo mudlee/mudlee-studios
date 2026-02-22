@@ -23,10 +23,10 @@ public class ScreenPixelRatioHandler {
       return 2;
     }
 
-    final var widthScreenCoordBuf = MemoryUtil.memAllocInt(1);
-    final var heightScreenCoordBuf = MemoryUtil.memAllocInt(1);
-    final var widthPixelsBuf = MemoryUtil.memAllocInt(1);
-    final var heightPixelsBuf = MemoryUtil.memAllocInt(1);
+    var widthScreenCoordBuf = MemoryUtil.memAllocInt(1);
+    var heightScreenCoordBuf = MemoryUtil.memAllocInt(1);
+    var widthPixelsBuf = MemoryUtil.memAllocInt(1);
+    var heightPixelsBuf = MemoryUtil.memAllocInt(1);
 
     glfwGetWindowSize(windowId, widthScreenCoordBuf, heightScreenCoordBuf);
     glfwGetFramebufferSize(windowId, widthPixelsBuf, heightPixelsBuf);

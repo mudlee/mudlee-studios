@@ -6,8 +6,6 @@ import static org.lwjgl.vulkan.VK12.*;
 
 import hu.mudlee.core.io.ResourceLoader;
 import hu.mudlee.core.render.texture.Texture2D;
-import java.nio.IntBuffer;
-import java.nio.LongBuffer;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.vulkan.*;
 import org.slf4j.Logger;
@@ -39,7 +37,7 @@ public class VulkanTexture2D extends Texture2D {
 
   public VulkanTexture2D(String path) {
     this.path = path;
-    VulkanContext ctx = VulkanContext.get();
+    var ctx = VulkanContext.get();
     this.device = ctx.device();
 
     uploadTexture(ctx);
@@ -66,10 +64,18 @@ public class VulkanTexture2D extends Texture2D {
   }
 
   public void dispose() {
-    if (sampler != VK_NULL_HANDLE) vkDestroySampler(device.device(), sampler, null);
-    if (imageView != VK_NULL_HANDLE) vkDestroyImageView(device.device(), imageView, null);
-    if (image != VK_NULL_HANDLE) vkDestroyImage(device.device(), image, null);
-    if (imageMemory != VK_NULL_HANDLE) vkFreeMemory(device.device(), imageMemory, null);
+    if (sampler != VK_NULL_HANDLE) {
+      vkDestroySampler(device.device(), sampler, null);
+    }
+    if (imageView != VK_NULL_HANDLE) {
+      vkDestroyImageView(device.device(), imageView, null);
+    }
+    if (image != VK_NULL_HANDLE) {
+      vkDestroyImage(device.device(), image, null);
+    }
+    if (imageMemory != VK_NULL_HANDLE) {
+      vkFreeMemory(device.device(), imageMemory, null);
+    }
     log.debug("VulkanTexture2D disposed: {}", path);
   }
 
@@ -80,9 +86,9 @@ public class VulkanTexture2D extends Texture2D {
   private void uploadTexture(VulkanContext ctx) {
     try (MemoryStack stack = stackPush()) {
       // Force RGBA output from STBImage — Vulkan prefers a consistent 4-channel format
-      IntBuffer w = stack.mallocInt(1);
-      IntBuffer h = stack.mallocInt(1);
-      IntBuffer channels = stack.mallocInt(1);
+      var w = stack.mallocInt(1);
+      var h = stack.mallocInt(1);
+      var channels = stack.mallocInt(1);
 
       var imageData = ResourceLoader.loadToByteBuffer(path, stack);
       var pixels = stbi_load_from_memory(imageData, w, h, channels, STBI_rgb_alpha);
@@ -91,12 +97,12 @@ public class VulkanTexture2D extends Texture2D {
             "Failed to load texture '" + path + "': " + stbi_failure_reason());
       }
 
-      int width = w.get(0);
-      int height = h.get(0);
-      long imageSizeBytes = (long) width * height * 4; // RGBA = 4 bytes per pixel
+      var width = w.get(0);
+      var height = h.get(0);
+      var imageSizeBytes = (long) width * height * 4; // RGBA = 4 bytes per pixel
 
       // Staging buffer: CPU-writable
-      VulkanBuffer staging =
+      var staging =
           new VulkanBuffer(
               device,
               imageSizeBytes,
@@ -139,7 +145,7 @@ public class VulkanTexture2D extends Texture2D {
   private void createImage(
       int width, int height, int format, int tiling, int usage, int memoryProps) {
     try (MemoryStack stack = stackPush()) {
-      VkImageCreateInfo imageInfo =
+      var imageInfo =
           VkImageCreateInfo.calloc(stack)
               .sType(VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO)
               .imageType(VK_IMAGE_TYPE_2D)
@@ -153,16 +159,16 @@ public class VulkanTexture2D extends Texture2D {
               .samples(VK_SAMPLE_COUNT_1_BIT);
       imageInfo.extent().width(width).height(height).depth(1);
 
-      LongBuffer pImage = stack.mallocLong(1);
+      var pImage = stack.mallocLong(1);
       if (vkCreateImage(device.device(), imageInfo, null, pImage) != VK_SUCCESS) {
         throw new RuntimeException("Failed to create VkImage for texture '" + path + "'");
       }
       image = pImage.get(0);
 
-      VkMemoryRequirements memReqs = VkMemoryRequirements.malloc(stack);
+      var memReqs = VkMemoryRequirements.malloc(stack);
       vkGetImageMemoryRequirements(device.device(), image, memReqs);
 
-      VkMemoryAllocateInfo allocInfo =
+      var allocInfo =
           VkMemoryAllocateInfo.calloc(stack)
               .sType(VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO)
               .allocationSize(memReqs.size())
@@ -170,7 +176,7 @@ public class VulkanTexture2D extends Texture2D {
                   VulkanMemoryUtil.findMemoryType(
                       device.memoryProperties(), memReqs.memoryTypeBits(), memoryProps));
 
-      LongBuffer pMemory = stack.mallocLong(1);
+      var pMemory = stack.mallocLong(1);
       if (vkAllocateMemory(device.device(), allocInfo, null, pMemory) != VK_SUCCESS) {
         throw new RuntimeException("Failed to allocate image memory for '" + path + "'");
       }
@@ -182,9 +188,9 @@ public class VulkanTexture2D extends Texture2D {
 
   private void transitionImageLayout(VulkanCommandPool commandPool, int oldLayout, int newLayout) {
     try (MemoryStack stack = stackPush()) {
-      VkCommandBuffer cmdBuf = commandPool.beginSingleUse(stack);
+      var cmdBuf = commandPool.beginSingleUse(stack);
 
-      VkImageMemoryBarrier.Buffer barrier =
+      var barrier =
           VkImageMemoryBarrier.calloc(1, stack)
               .sType(VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER)
               .oldLayout(oldLayout)
@@ -227,9 +233,9 @@ public class VulkanTexture2D extends Texture2D {
   private void copyBufferToImage(
       VulkanBuffer buffer, int width, int height, VulkanCommandPool commandPool) {
     try (MemoryStack stack = stackPush()) {
-      VkCommandBuffer cmdBuf = commandPool.beginSingleUse(stack);
+      var cmdBuf = commandPool.beginSingleUse(stack);
 
-      VkBufferImageCopy.Buffer region =
+      var region =
           VkBufferImageCopy.calloc(1, stack)
               .bufferOffset(0)
               .bufferRowLength(0)
@@ -252,7 +258,7 @@ public class VulkanTexture2D extends Texture2D {
 
   private void createImageView() {
     try (MemoryStack stack = stackPush()) {
-      VkImageViewCreateInfo viewInfo =
+      var viewInfo =
           VkImageViewCreateInfo.calloc(stack)
               .sType(VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO)
               .image(image)
@@ -266,7 +272,7 @@ public class VulkanTexture2D extends Texture2D {
           .baseArrayLayer(0)
           .layerCount(1);
 
-      LongBuffer pView = stack.mallocLong(1);
+      var pView = stack.mallocLong(1);
       if (vkCreateImageView(device.device(), viewInfo, null, pView) != VK_SUCCESS) {
         throw new RuntimeException("Failed to create VkImageView for '" + path + "'");
       }
@@ -277,7 +283,7 @@ public class VulkanTexture2D extends Texture2D {
   private void createSampler() {
     try (MemoryStack stack = stackPush()) {
       // Nearest filtering matches the OpenGL GL_NEAREST behaviour used for pixel art
-      VkSamplerCreateInfo samplerInfo =
+      var samplerInfo =
           VkSamplerCreateInfo.calloc(stack)
               .sType(VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO)
               .magFilter(VK_FILTER_NEAREST)
@@ -296,7 +302,7 @@ public class VulkanTexture2D extends Texture2D {
               .minLod(0.0f)
               .maxLod(0.0f);
 
-      LongBuffer pSampler = stack.mallocLong(1);
+      var pSampler = stack.mallocLong(1);
       if (vkCreateSampler(device.device(), samplerInfo, null, pSampler) != VK_SUCCESS) {
         throw new RuntimeException("Failed to create VkSampler for '" + path + "'");
       }
@@ -313,13 +319,13 @@ public class VulkanTexture2D extends Texture2D {
     descriptorSet = ctx.allocateTextureDescriptorSet();
 
     try (MemoryStack stack = stackPush()) {
-      VkDescriptorImageInfo.Buffer imageInfo =
+      var imageInfo =
           VkDescriptorImageInfo.calloc(1, stack)
               .imageLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
               .imageView(imageView)
               .sampler(sampler);
 
-      VkWriteDescriptorSet.Buffer descriptorWrite =
+      var descriptorWrite =
           VkWriteDescriptorSet.calloc(1, stack)
               .sType(VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET)
               .dstSet(descriptorSet)

@@ -5,7 +5,6 @@ import static org.lwjgl.vulkan.VK12.*;
 
 import hu.mudlee.core.render.VertexBuffer;
 import hu.mudlee.core.render.VertexBufferLayout;
-import java.nio.FloatBuffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,10 +36,10 @@ public class VulkanVertexBuffer extends VertexBuffer {
     this.layout = layout;
     this.length = vertices.length;
 
-    long sizeBytes = (long) vertices.length * Float.BYTES;
+    var sizeBytes = (long) vertices.length * Float.BYTES;
 
     // Stage: host-visible buffer for CPU upload
-    VulkanBuffer staging =
+    var staging =
         new VulkanBuffer(
             device,
             sizeBytes,
@@ -49,7 +48,7 @@ public class VulkanVertexBuffer extends VertexBuffer {
 
     staging.map(
         dst -> {
-          FloatBuffer floatView = dst.asFloatBuffer();
+          var floatView = dst.asFloatBuffer();
           floatView.put(vertices).flip();
         });
 
