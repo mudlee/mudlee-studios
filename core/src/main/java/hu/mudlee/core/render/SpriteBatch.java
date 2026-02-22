@@ -94,7 +94,17 @@ public class SpriteBatch implements Disposable {
     }
 
     public void draw(Texture2D texture, Rectangle destinationRect, Color color) {
-        draw(texture, destinationRect.x, destinationRect.y, destinationRect.width, destinationRect.height, color, 0f, 0f, 1f, 1f);
+        draw(
+                texture,
+                destinationRect.x,
+                destinationRect.y,
+                destinationRect.width,
+                destinationRect.height,
+                color,
+                0f,
+                0f,
+                1f,
+                1f);
     }
 
     public void draw(Texture2D texture, Vector2f position, Rectangle sourceRect, Color color) {
@@ -135,7 +145,17 @@ public class SpriteBatch implements Disposable {
         vertexArray.dispose();
     }
 
-    private void draw(Texture2D texture, float x, float y, float w, float h, Color color, float u0, float v0, float u1, float v1) {
+    private void draw(
+            Texture2D texture,
+            float x,
+            float y,
+            float w,
+            float h,
+            Color color,
+            float u0,
+            float v0,
+            float u1,
+            float v1) {
         if (!begun) {
             throw new IllegalStateException("SpriteBatch.draw() called outside begin()/end()");
         }

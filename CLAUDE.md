@@ -17,7 +17,7 @@ Create a basic 2D and 3D rendering engine like LibGDX and MonoGame.
 
 **Key Engine Guidelines:**
 
-- The engine's structure and API should be similar what MonoGame has (in Java style). See https://docs.monogame.net/api/index.html.
+- The engine's structure and API should be similar what MonoGame has (in Java style). See https://docs.monogame.net/api/index.html and https://www.monogameextended.net/docs/about/introduction/.
 - See how MonoGame is used under this repository: https://github.com/MonoGame/MonoGame.Samples
 - For Vulkan best practices always use https://vulkan-tutorial.com/ and https://www.vulkan.org/learn
 - Abstraction: Design a hardware abstraction layer (HAL) that allows the engine to eventually toggle between APIs. So hiding the rendering implementation (opengl or vulkan) behind an API.

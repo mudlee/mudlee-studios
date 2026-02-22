@@ -8,6 +8,7 @@ import hu.mudlee.core.render.RenderBackend;
 import hu.mudlee.core.render.Renderer;
 import hu.mudlee.core.render.SpriteBatch;
 import hu.mudlee.core.render.camera.Camera2D;
+import hu.mudlee.core.render.camera.OrthographicCamera;
 import hu.mudlee.core.render.texture.Texture2D;
 import org.joml.Vector2f;
 import org.joml.Vector4f;
@@ -38,7 +39,7 @@ public class SandboxApplication extends Game {
 
         spriteBatch = new SpriteBatch();
 
-        camera = new Camera2D();
+        camera = new OrthographicCamera();
         camera.position.x -= 100;
         camera.position.y -= 100;
 
@@ -55,7 +56,7 @@ public class SandboxApplication extends Game {
 
     @Override
     protected void draw(GameTime gameTime) {
-        spriteBatch.begin(camera.getProjectionMatrix(), camera.getViewMatrix());
+        spriteBatch.begin(camera.getTransformMatrix());
         spriteBatch.draw(marioTexture, new Vector2f(0.5f, 0.5f), Color.WHITE);
         spriteBatch.end();
     }

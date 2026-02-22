@@ -11,7 +11,8 @@ package hu.mudlee.core.input;
  * InputBinding.vector2().up(Keys.W).down(Keys.S).left(Keys.A).right(Keys.D)
  * </pre>
  */
-public sealed interface InputBinding permits InputBinding.KeyBinding, InputBinding.MouseButtonBinding, InputBinding.Vector2CompositeBinding {
+public sealed interface InputBinding
+        permits InputBinding.KeyBinding, InputBinding.MouseButtonBinding, InputBinding.Vector2CompositeBinding {
 
     /** A single keyboard key binding. */
     record KeyBinding(Keys key) implements InputBinding {}

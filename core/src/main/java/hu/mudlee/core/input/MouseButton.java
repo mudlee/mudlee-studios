@@ -7,7 +7,6 @@ import java.util.Map;
 
 /** Mouse button constants. Hides GLFW button indices from game code. */
 public enum MouseButton {
-
     LEFT(GLFW_MOUSE_BUTTON_LEFT),
     RIGHT(GLFW_MOUSE_BUTTON_RIGHT),
     MIDDLE(GLFW_MOUSE_BUTTON_MIDDLE),

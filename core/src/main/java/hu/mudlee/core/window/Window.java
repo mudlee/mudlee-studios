@@ -114,7 +114,8 @@ public class Window implements Disposable {
 
         log.debug("Setting up input callbacks");
         glfwSetCursorPosCallback(window.id, (w, x, y) -> InputSystem.processMouseMove(x, y));
-        glfwSetMouseButtonCallback(window.id, (w, button, action, mods) -> InputSystem.processMouseButton(button, action));
+        glfwSetMouseButtonCallback(
+                window.id, (w, button, action, mods) -> InputSystem.processMouseButton(button, action));
         glfwSetScrollCallback(window.id, (w, xOffset, yOffset) -> InputSystem.processMouseScroll(xOffset, yOffset));
         glfwSetKeyCallback(window.id, (w, key, scancode, action, mods) -> InputSystem.processKey(key, action));
 
