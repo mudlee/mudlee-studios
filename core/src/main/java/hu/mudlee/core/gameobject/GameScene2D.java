@@ -5,9 +5,9 @@ import hu.mudlee.core.Game;
 import hu.mudlee.core.GameTime;
 import hu.mudlee.core.GraphicsDevice;
 import hu.mudlee.core.Screen;
-import hu.mudlee.core.render.SpriteBatch;
+import hu.mudlee.core.render.SpriteBatch2D;
 import hu.mudlee.core.render.camera.Camera2D;
-import hu.mudlee.core.render.camera.OrthographicCamera;
+import hu.mudlee.core.render.camera.OrthographicCamera2D;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,36 +16,36 @@ import java.util.List;
  * their lifecycle each frame.
  *
  * <p>Integrates directly with {@link hu.mudlee.core.ScreenManager} — push or set a
- * {@code GameScene} just like any other {@code Screen}.
+ * {@code GameScene2D} just like any other {@code Screen}.
  *
  * <pre>
- * public class PlayerScene extends GameScene {
+ * public class PlayerScene extends GameScene2D {
  *     public PlayerScene(Game game, GraphicsDevice gd) { super(game, gd); }
  *
  *     &#064;Override
  *     protected void onShow() {
  *         var player = new GameObject("Player");
- *         player.addComponent(new SpriteRenderer());
+ *         player.addComponent(new SpriteRenderer2D());
  *         addGameObject(player);
  *     }
  * }
  * </pre>
  */
-public abstract class GameScene implements Screen {
+public abstract class GameScene2D implements Screen {
     protected final Game game;
     protected final GraphicsDevice graphicsDevice;
     protected Camera2D camera;
-    protected SpriteBatch spriteBatch;
+    protected SpriteBatch2D spriteBatch;
 
     private final List<GameObject> gameObjects = new ArrayList<>();
 
-    protected GameScene(Game game, GraphicsDevice graphicsDevice) {
+    protected GameScene2D(Game game, GraphicsDevice graphicsDevice) {
         this.game = game;
         this.graphicsDevice = graphicsDevice;
     }
 
     /**
-     * Called after the {@link SpriteBatch} and camera have been created. Subclasses set up
+     * Called after the {@link SpriteBatch2D} and camera have been created. Subclasses set up
      * their {@link GameObject}s here.
      */
     protected abstract void onShow();
@@ -65,15 +65,15 @@ public abstract class GameScene implements Screen {
 
     @Override
     public final void show() {
-        spriteBatch = new SpriteBatch();
-        camera = new OrthographicCamera();
+        spriteBatch = new SpriteBatch2D();
+        camera = new OrthographicCamera2D();
         onShow();
     }
 
     @Override
     public void update(GameTime gameTime) {
-        for (int i = 0; i < gameObjects.size(); i++) {
-            gameObjects.get(i).update(gameTime);
+        for (GameObject gameObject : gameObjects) {
+            gameObject.update(gameTime);
         }
     }
 
@@ -81,8 +81,8 @@ public abstract class GameScene implements Screen {
     public void draw(GameTime gameTime) {
         graphicsDevice.clear(Color.BLACK);
         spriteBatch.begin(camera.getTransformMatrix());
-        for (int i = 0; i < gameObjects.size(); i++) {
-            gameObjects.get(i).draw(gameTime, spriteBatch);
+        for (GameObject gameObject : gameObjects) {
+            gameObject.draw(gameTime, spriteBatch);
         }
         spriteBatch.end();
     }

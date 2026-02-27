@@ -27,7 +27,7 @@ import org.joml.Vector2f;
  * <p>Internally uses 6 non-indexed vertices per sprite (two triangles). The dynamic VBO is updated
  * on {@link #end()} (or when the batch fills up or the texture changes).
  */
-public class SpriteBatch implements Disposable {
+public class SpriteBatch2D implements Disposable {
 
     private static final int MAX_SPRITES = 1000;
     private static final int FLOATS_PER_VERTEX = 9; // vec3 pos + vec4 color + vec2 uv
@@ -45,7 +45,7 @@ public class SpriteBatch implements Disposable {
     private boolean begun;
     private Texture2D currentTexture;
 
-    public SpriteBatch() {
+    public SpriteBatch2D() {
         var stride = FLOATS_PER_VERTEX * Float.BYTES;
         var layout = new VertexBufferLayout(
                 new VertexLayoutAttribute(0, 3, ShaderTypes.FLOAT, false, stride, 0),
@@ -81,7 +81,7 @@ public class SpriteBatch implements Disposable {
 
     public void begin(Matrix4f projection, Matrix4f view) {
         if (begun) {
-            throw new IllegalStateException("SpriteBatch.begin() called without a matching end()");
+            throw new IllegalStateException("SpriteBatch2D.begin() called without a matching end()");
         }
         begun = true;
         spriteCount = 0;
@@ -170,7 +170,7 @@ public class SpriteBatch implements Disposable {
 
     public void end() {
         if (!begun) {
-            throw new IllegalStateException("SpriteBatch.end() called without a matching begin()");
+            throw new IllegalStateException("SpriteBatch2D.end() called without a matching begin()");
         }
         flush();
         begun = false;
@@ -194,7 +194,7 @@ public class SpriteBatch implements Disposable {
             float u1,
             float v1) {
         if (!begun) {
-            throw new IllegalStateException("SpriteBatch.draw() called outside begin()/end()");
+            throw new IllegalStateException("SpriteBatch2D.draw() called outside begin()/end()");
         }
         if (spriteCount >= MAX_SPRITES || (currentTexture != null && currentTexture != texture)) {
             flush();
@@ -221,7 +221,7 @@ public class SpriteBatch implements Disposable {
             float ox,
             float oy) {
         if (!begun) {
-            throw new IllegalStateException("SpriteBatch.draw() called outside begin()/end()");
+            throw new IllegalStateException("SpriteBatch2D.draw() called outside begin()/end()");
         }
         if (spriteCount >= MAX_SPRITES || (currentTexture != null && currentTexture != texture)) {
             flush();

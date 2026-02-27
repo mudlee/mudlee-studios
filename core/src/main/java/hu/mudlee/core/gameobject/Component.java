@@ -1,12 +1,12 @@
 package hu.mudlee.core.gameobject;
 
 import hu.mudlee.core.GameTime;
-import hu.mudlee.core.render.SpriteBatch;
+import hu.mudlee.core.render.SpriteBatch2D;
 
 /**
  * Base class for all entity-level components attached to a {@link GameObject}.
  *
- * <p>This is <strong>not</strong> the same as {@link hu.mudlee.core.GameComponent}, which is a
+ * <p>This is <strong>not</strong> the same as {@link hu.mudlee.core.GameService}, which is a
  * game-level service plugged into the {@link hu.mudlee.core.Game} loop. A {@code Component}
  * belongs to a single {@code GameObject} and participates in that object's per-frame lifecycle.
  *
@@ -14,7 +14,7 @@ import hu.mudlee.core.render.SpriteBatch;
  * <ol>
  *   <li>{@link #start()} — once, when {@link GameObject#start()} is called
  *   <li>{@link #update(GameTime)} — every frame
- *   <li>{@link #draw(GameTime, SpriteBatch)} — every frame, after all updates
+ *   <li>{@link #draw(GameTime, SpriteBatch2D)} — every frame, after all updates
  *   <li>{@link #dispose()} — when the component or its {@code GameObject} is destroyed
  * </ol>
  *
@@ -30,8 +30,8 @@ public abstract class Component {
     /** Called every frame by {@link GameObject#update(GameTime)}. */
     public void update(GameTime gameTime) {}
 
-    /** Called every frame by {@link GameObject#draw(GameTime, SpriteBatch)}, after all updates. */
-    public void draw(GameTime gameTime, SpriteBatch batch) {}
+    /** Called every frame by {@link GameObject#draw(GameTime, SpriteBatch2D)}, after all updates. */
+    public void draw(GameTime gameTime, SpriteBatch2D batch) {}
 
     /** Called when this component is removed or its {@link GameObject} is destroyed. */
     public void dispose() {}

@@ -4,16 +4,16 @@ import hu.mudlee.core.Game;
 import hu.mudlee.core.GraphicsDevice;
 import hu.mudlee.core.content.ContentManager;
 import hu.mudlee.core.gameobject.GameObject;
-import hu.mudlee.core.gameobject.GameScene;
-import hu.mudlee.core.gameobject.components.Animator;
-import hu.mudlee.core.gameobject.components.SpriteRenderer;
+import hu.mudlee.core.gameobject.GameScene2D;
+import hu.mudlee.core.gameobject.components.Animator2D;
+import hu.mudlee.core.gameobject.components.SpriteRenderer2D;
 import hu.mudlee.core.input.InputActionMap;
 import hu.mudlee.core.input.Keys;
 import hu.mudlee.core.render.animation.PlayMode;
-import hu.mudlee.core.render.texture.SpriteSheet;
+import hu.mudlee.core.render.texture.SpriteSheet2D;
 import hu.mudlee.core.render.texture.Texture2D;
 
-public class PlayerScene extends GameScene {
+public class PlayerScene extends GameScene2D {
 
     private ContentManager content;
     private InputActionMap actions;
@@ -26,9 +26,9 @@ public class PlayerScene extends GameScene {
     protected void onShow() {
         content = new ContentManager("textures");
         var texture = content.load(Texture2D.class, "sprites/player");
-        var sheet = new SpriteSheet(texture, 48, 48);
+        var sheet = new SpriteSheet2D(texture, 48, 48);
 
-        var animator = new Animator();
+        var animator = new Animator2D();
         animator.addAnimation("IdleDown", sheet.createAnimation("IdleDown", 0, 0, 6, 0.12f, PlayMode.LOOP));
         animator.addAnimation("IdleRight", sheet.createAnimation("IdleRight", 1, 0, 6, 0.12f, PlayMode.LOOP));
         animator.addAnimation("IdleUp", sheet.createAnimation("IdleUp", 2, 0, 6, 0.12f, PlayMode.LOOP));
@@ -41,7 +41,7 @@ public class PlayerScene extends GameScene {
         animator.addAnimation("Die", sheet.createAnimation("Die", 9, 0, 3, 0.20f, PlayMode.ONCE));
         animator.play("IdleRight");
 
-        var spriteRenderer = new SpriteRenderer();
+        var spriteRenderer = new SpriteRenderer2D();
         spriteRenderer.scale = 8f;
 
         var player = new GameObject("Player");

@@ -4,7 +4,7 @@ import hu.mudlee.core.GameTime;
 import hu.mudlee.core.render.texture.TextureRegion;
 
 /**
- * Stateful driver for an {@link Animation}.
+ * Stateful driver for an {@link Animation2D}.
  *
  * <p>Call {@link #play} every frame unconditionally — switching to the same animation that
  * is already playing is a no-op, so the pattern below is safe:
@@ -15,16 +15,16 @@ import hu.mudlee.core.render.texture.TextureRegion;
  * spriteBatch.draw(player.getCurrentFrame(), position, Color.WHITE);
  * </pre>
  */
-public final class AnimationPlayer {
+public final class AnimationPlayer2D {
 
-    private Animation current;
+    private Animation2D current;
     private float stateTime = 0f;
 
     /**
      * Switches to {@code animation}. If {@code animation} is already playing, does nothing
      * (state time is preserved). Passing {@code null} stops playback.
      */
-    public void play(Animation animation) {
+    public void play(Animation2D animation) {
         if (current == animation) {
             return;
         }

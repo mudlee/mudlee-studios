@@ -1,13 +1,13 @@
 package hu.mudlee.core.render.texture;
 
-import hu.mudlee.core.render.animation.Animation;
+import hu.mudlee.core.render.animation.Animation2D;
 import hu.mudlee.core.render.animation.PlayMode;
 
 /**
  * Extracts {@link TextureRegion} frames from a uniformly-gridded sprite sheet.
  *
  * <pre>
- * var sheet = new SpriteSheet(texture, 48, 48)
+ * var sheet = new SpriteSheet2D(texture, 48, 48)
  *         .withMargin(0, 0)
  *         .withSpacing(0, 0);
  *
@@ -15,7 +15,7 @@ import hu.mudlee.core.render.animation.PlayMode;
  * var run  = sheet.createAnimation("Run",  4, 0, 6, 0.1f,  PlayMode.LOOP);
  * </pre>
  */
-public final class SpriteSheet {
+public final class SpriteSheet2D {
 
     private final Texture2D texture;
     private final int frameWidth;
@@ -25,19 +25,19 @@ public final class SpriteSheet {
     private int spacingX = 0;
     private int spacingY = 0;
 
-    public SpriteSheet(Texture2D texture, int frameWidth, int frameHeight) {
+    public SpriteSheet2D(Texture2D texture, int frameWidth, int frameHeight) {
         this.texture = texture;
         this.frameWidth = frameWidth;
         this.frameHeight = frameHeight;
     }
 
-    public SpriteSheet withMargin(int x, int y) {
+    public SpriteSheet2D withMargin(int x, int y) {
         this.marginX = x;
         this.marginY = y;
         return this;
     }
 
-    public SpriteSheet withSpacing(int x, int y) {
+    public SpriteSheet2D withSpacing(int x, int y) {
         this.spacingX = x;
         this.spacingY = y;
         return this;
@@ -52,14 +52,14 @@ public final class SpriteSheet {
 
     /**
      * Extracts {@code frameCount} consecutive frames from {@code row} starting at
-     * {@code startCol} and wraps them in an {@link Animation}.
+     * {@code startCol} and wraps them in an {@link Animation2D}.
      */
-    public Animation createAnimation(
+    public Animation2D createAnimation(
             String name, int row, int startCol, int frameCount, float frameDuration, PlayMode mode) {
         var frames = new TextureRegion[frameCount];
         for (int i = 0; i < frameCount; i++) {
             frames[i] = getRegion(startCol + i, row);
         }
-        return new Animation(name, frames, frameDuration, mode);
+        return new Animation2D(name, frames, frameDuration, mode);
     }
 }

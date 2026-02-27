@@ -5,11 +5,11 @@ import hu.mudlee.core.render.texture.TextureRegion;
 /**
  * A stateless sequence of {@link TextureRegion} frames.
  *
- * <p>Stateless means one instance can be shared across multiple {@link AnimationPlayer}s
+ * <p>Stateless means one instance can be shared across multiple {@link AnimationPlayer2D}s
  * simultaneously. Pass a state time (accumulated seconds) to {@link #getKeyFrame} to
  * retrieve the correct frame for that moment.
  */
-public final class Animation {
+public final class Animation2D {
 
     public final String name;
     public final PlayMode playMode;
@@ -17,7 +17,7 @@ public final class Animation {
 
     private final TextureRegion[] frames;
 
-    public Animation(String name, TextureRegion[] frames, float frameDuration, PlayMode playMode) {
+    public Animation2D(String name, TextureRegion[] frames, float frameDuration, PlayMode playMode) {
         this.name = name;
         this.frames = frames;
         this.frameDuration = frameDuration;

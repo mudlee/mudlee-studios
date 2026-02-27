@@ -10,7 +10,7 @@ import org.joml.Vector2f;
  * {@link #zoom} multiplier, and {@link #rotation} in radians. Subclasses decide how to compute
  * the combined projection × view matrix returned by {@link #getTransformMatrix()}.
  *
- * <p>Pass the result to {@link hu.mudlee.core.render.SpriteBatch#begin(Matrix4f)}.
+ * <p>Pass the result to {@link hu.mudlee.core.render.SpriteBatch2D#begin(Matrix4f)}.
  */
 public abstract class Camera2D {
 
@@ -20,7 +20,7 @@ public abstract class Camera2D {
 
     /**
      * Returns the combined projection × view matrix for this camera.
-     * Pass it directly to {@link hu.mudlee.core.render.SpriteBatch#begin(Matrix4f)}.
+     * Pass it directly to {@link hu.mudlee.core.render.SpriteBatch2D#begin(Matrix4f)}.
      */
     public abstract Matrix4f getTransformMatrix();
 }

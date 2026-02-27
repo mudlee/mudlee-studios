@@ -1,7 +1,7 @@
 package hu.mudlee.core.gameobject;
 
 import hu.mudlee.core.GameTime;
-import hu.mudlee.core.render.SpriteBatch;
+import hu.mudlee.core.render.SpriteBatch2D;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,7 +23,7 @@ import java.util.List;
 public final class GameObject {
 
     public final String name;
-    public final Transform transform = new Transform();
+    public final Transform2D transform = new Transform2D();
 
     private final List<Component> components = new ArrayList<>(8);
 
@@ -83,8 +83,8 @@ public final class GameObject {
         }
     }
 
-    /** Calls {@link Component#draw(GameTime, SpriteBatch)} on every attached component. */
-    public void draw(GameTime gameTime, SpriteBatch batch) {
+    /** Calls {@link Component#draw(GameTime, SpriteBatch2D)} on every attached component. */
+    public void draw(GameTime gameTime, SpriteBatch2D batch) {
         for (int i = 0; i < components.size(); i++) {
             components.get(i).draw(gameTime, batch);
         }

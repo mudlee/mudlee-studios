@@ -8,9 +8,9 @@ import hu.mudlee.core.Screen;
 import hu.mudlee.core.content.ContentManager;
 import hu.mudlee.core.input.InputActionMap;
 import hu.mudlee.core.input.Keys;
-import hu.mudlee.core.render.SpriteBatch;
+import hu.mudlee.core.render.SpriteBatch2D;
 import hu.mudlee.core.render.camera.Camera2D;
-import hu.mudlee.core.render.camera.OrthographicCamera;
+import hu.mudlee.core.render.camera.OrthographicCamera2D;
 import hu.mudlee.core.render.texture.Texture2D;
 import org.joml.Vector2f;
 
@@ -20,7 +20,7 @@ public class GameScreen implements Screen {
     private final GraphicsDevice graphicsDevice;
 
     private ContentManager content;
-    private SpriteBatch spriteBatch;
+    private SpriteBatch2D SpriteBatch2D;
     private Texture2D marioTexture;
     private Camera2D camera;
     private InputActionMap actions;
@@ -35,9 +35,9 @@ public class GameScreen implements Screen {
         content = new ContentManager("textures");
         marioTexture = content.load(Texture2D.class, "mario");
 
-        spriteBatch = new SpriteBatch();
+        SpriteBatch2D = new SpriteBatch2D();
 
-        camera = new OrthographicCamera();
+        camera = new OrthographicCamera2D();
         camera.position.x -= 100;
         camera.position.y -= 100;
 
@@ -55,15 +55,15 @@ public class GameScreen implements Screen {
     @Override
     public void draw(GameTime gameTime) {
         graphicsDevice.clear(Color.BLACK);
-        spriteBatch.begin(camera.getTransformMatrix());
-        spriteBatch.draw(marioTexture, new Vector2f(0.5f, 0.5f), Color.WHITE);
-        spriteBatch.end();
+        SpriteBatch2D.begin(camera.getTransformMatrix());
+        SpriteBatch2D.draw(marioTexture, new Vector2f(0.5f, 0.5f), Color.WHITE);
+        SpriteBatch2D.end();
     }
 
     @Override
     public void dispose() {
         actions.disable();
-        spriteBatch.dispose();
+        SpriteBatch2D.dispose();
         content.unload();
     }
 }

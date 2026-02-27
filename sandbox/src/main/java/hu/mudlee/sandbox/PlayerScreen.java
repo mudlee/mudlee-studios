@@ -9,13 +9,13 @@ import hu.mudlee.core.content.ContentManager;
 import hu.mudlee.core.input.InputActionMap;
 import hu.mudlee.core.input.Keyboard;
 import hu.mudlee.core.input.Keys;
-import hu.mudlee.core.render.SpriteBatch;
-import hu.mudlee.core.render.animation.Animation;
-import hu.mudlee.core.render.animation.AnimationPlayer;
+import hu.mudlee.core.render.SpriteBatch2D;
+import hu.mudlee.core.render.animation.Animation2D;
+import hu.mudlee.core.render.animation.AnimationPlayer2D;
 import hu.mudlee.core.render.animation.PlayMode;
 import hu.mudlee.core.render.camera.Camera2D;
-import hu.mudlee.core.render.camera.OrthographicCamera;
-import hu.mudlee.core.render.texture.SpriteSheet;
+import hu.mudlee.core.render.camera.OrthographicCamera2D;
+import hu.mudlee.core.render.texture.SpriteSheet2D;
 import hu.mudlee.core.render.texture.Texture2D;
 import org.joml.Vector2f;
 
@@ -42,16 +42,16 @@ public class PlayerScreen implements Screen {
     private final GraphicsDevice graphicsDevice;
 
     private ContentManager content;
-    private SpriteBatch spriteBatch;
+    private SpriteBatch2D SpriteBatch2D;
     private Camera2D camera;
-    private AnimationPlayer playerAnimation;
+    private AnimationPlayer2D playerAnimation;
     private InputActionMap actions;
 
     // All animations from the sprite sheet
-    private Animation idleDown, idleRight, idleUp;
-    private Animation walkDown, walkRight, walkUp;
-    private Animation attackDown, attackRight, attackUp;
-    private Animation die;
+    private Animation2D idleDown, idleRight, idleUp;
+    private Animation2D walkDown, walkRight, walkUp;
+    private Animation2D attackDown, attackRight, attackUp;
+    private Animation2D die;
 
     private Direction direction = Direction.RIGHT;
     private State state = State.IDLE;
@@ -67,7 +67,7 @@ public class PlayerScreen implements Screen {
     public void show() {
         content = new ContentManager("textures");
         var texture = content.load(Texture2D.class, "sprites/player");
-        var sheet = new SpriteSheet(texture, 48, 48);
+        var sheet = new SpriteSheet2D(texture, 48, 48);
 
         idleDown = sheet.createAnimation("IdleDown", 0, 0, 6, 0.12f, PlayMode.LOOP);
         idleRight = sheet.createAnimation("IdleRight", 1, 0, 6, 0.12f, PlayMode.LOOP);
@@ -83,11 +83,11 @@ public class PlayerScreen implements Screen {
 
         die = sheet.createAnimation("Die", 9, 0, 3, 0.20f, PlayMode.ONCE);
 
-        playerAnimation = new AnimationPlayer();
+        playerAnimation = new AnimationPlayer2D();
         playerAnimation.play(idleRight);
 
-        spriteBatch = new SpriteBatch();
-        camera = new OrthographicCamera();
+        SpriteBatch2D = new SpriteBatch2D();
+        camera = new OrthographicCamera2D();
 
         actions = new InputActionMap("Player");
         actions.addAction("Exit").addBinding(Keys.ESCAPE).onPerformed(ctx -> game.exit());
@@ -154,8 +154,8 @@ public class PlayerScreen implements Screen {
     @Override
     public void draw(GameTime gameTime) {
         graphicsDevice.clear(Color.BLACK);
-        spriteBatch.begin(camera.getTransformMatrix());
-        spriteBatch.draw(
+        SpriteBatch2D.begin(camera.getTransformMatrix());
+        SpriteBatch2D.draw(
                 playerAnimation.getCurrentFrame(),
                 position,
                 Color.WHITE,
@@ -164,17 +164,17 @@ public class PlayerScreen implements Screen {
                 SCALE,
                 direction == Direction.LEFT,
                 false);
-        spriteBatch.end();
+        SpriteBatch2D.end();
     }
 
     @Override
     public void dispose() {
         actions.disable();
-        spriteBatch.dispose();
+        SpriteBatch2D.dispose();
         content.unload();
     }
 
-    private Animation animationFor(State s, Direction d) {
+    private Animation2D animationFor(State s, Direction d) {
         return switch (s) {
             case IDLE ->
                 switch (d) {
@@ -193,7 +193,7 @@ public class PlayerScreen implements Screen {
         };
     }
 
-    private Animation attackFor(Direction d) {
+    private Animation2D attackFor(Direction d) {
         return switch (d) {
             case DOWN -> attackDown;
             case UP -> attackUp;

@@ -14,7 +14,7 @@ import org.joml.Matrix4f;
  * ortho(0, screenW, 0, screenH) · T(screenW/2, screenH/2) · S(zoom) · R(rotation) · T(-position)
  * </pre>
  */
-public final class OrthographicCamera extends Camera2D {
+public final class OrthographicCamera2D extends Camera2D {
 
     private final Matrix4f transformMatrix = new Matrix4f();
 

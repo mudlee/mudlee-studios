@@ -21,7 +21,7 @@ public abstract class Game implements WindowEventListener {
     protected GraphicsDeviceManager gdm;
     protected GraphicsDevice graphicsDevice;
     protected ContentManager content;
-    public final List<GameComponent> components = new ArrayList<>();
+    public final List<GameService> components = new ArrayList<>();
 
     protected Game() {}
 

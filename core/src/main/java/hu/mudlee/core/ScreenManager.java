@@ -18,7 +18,7 @@ import java.util.Deque;
  * <p>Only the top screen receives {@link #update} and {@link #draw} calls. {@link #resize} is
  * forwarded to every screen in the stack.
  */
-public final class ScreenManager extends GameComponent {
+public final class ScreenManager extends GameService {
 
     private final Deque<Screen> stack = new ArrayDeque<>();
 
