@@ -14,6 +14,8 @@ module hu.mudlee.core {
 
     exports hu.mudlee.core;
     exports hu.mudlee.core.content;
+    exports hu.mudlee.core.gameobject;
+    exports hu.mudlee.core.gameobject.components;
     exports hu.mudlee.core.input;
     exports hu.mudlee.core.render;
     exports hu.mudlee.core.render.camera;

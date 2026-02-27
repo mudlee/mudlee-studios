@@ -1,5 +1,6 @@
 package hu.mudlee.core;
 
+// TODO: rename to GameService? It's not really a component in the same sense as a GameObject.Component, but it's also not really a system in the ECS sense. Maybe GameModule?
 /**
  * An optional component that plugs into the {@link Game} loop.
  *

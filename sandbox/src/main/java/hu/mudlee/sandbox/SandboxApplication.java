@@ -21,7 +21,7 @@ public class SandboxApplication extends Game {
     protected void loadContent() {
         var screenManager = new ScreenManager();
         components.add(screenManager);
-        screenManager.set(new PlayerScreen(this, graphicsDevice));
+        screenManager.set(new PlayerScene(this, graphicsDevice));
     }
 
     public static void main(String[] args) {

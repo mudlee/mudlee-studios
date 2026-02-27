@@ -133,7 +133,6 @@ public class PlayerScreen implements Screen {
             position.x -= MOVE_SPEED * dt;
             direction = Direction.LEFT;
             moving = true;
-
         }
         if (ks.isKeyDown(Keys.DOWN)) {
             position.y -= MOVE_SPEED * dt;
@@ -149,7 +148,7 @@ public class PlayerScreen implements Screen {
         state = moving ? State.WALK : State.IDLE;
         playerAnimation.play(animationFor(state, direction));
         playerAnimation.update(gameTime);
-        //camera.position.set(position);
+        // camera.position.set(position);
     }
 
     @Override
@@ -157,7 +156,14 @@ public class PlayerScreen implements Screen {
         graphicsDevice.clear(Color.BLACK);
         spriteBatch.begin(camera.getTransformMatrix());
         spriteBatch.draw(
-                playerAnimation.getCurrentFrame(), position, Color.WHITE, 0f, origin, SCALE, direction == Direction.LEFT, false);
+                playerAnimation.getCurrentFrame(),
+                position,
+                Color.WHITE,
+                0f,
+                origin,
+                SCALE,
+                direction == Direction.LEFT,
+                false);
         spriteBatch.end();
     }
 
@@ -170,16 +176,18 @@ public class PlayerScreen implements Screen {
 
     private Animation animationFor(State s, Direction d) {
         return switch (s) {
-            case IDLE -> switch (d) {
-                case DOWN -> idleDown;
-                case UP -> idleUp;
-                default -> idleRight;
-            };
-            case WALK -> switch (d) {
-                case DOWN -> walkDown;
-                case UP -> walkUp;
-                default -> walkRight;
-            };
+            case IDLE ->
+                switch (d) {
+                    case DOWN -> idleDown;
+                    case UP -> idleUp;
+                    default -> idleRight;
+                };
+            case WALK ->
+                switch (d) {
+                    case DOWN -> walkDown;
+                    case UP -> walkUp;
+                    default -> walkRight;
+                };
             case ATTACK -> attackFor(d);
             case DIE -> die;
         };
