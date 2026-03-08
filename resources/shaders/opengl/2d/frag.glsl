@@ -12,5 +12,5 @@ void main()
 	//float noise = fract(sin(dot(fColor.xy, vec2(12.9898, 78.233))) * 43758.5453);
 	//FINAL_COLOR = fColor * noise;
 	//FINAL_COLOR = fColor;
-	FINAL_COLOR = texture(TEX_SAMPLER, fTexCoords);
+	FINAL_COLOR = texture(TEX_SAMPLER, fTexCoords) * fColor;
 }

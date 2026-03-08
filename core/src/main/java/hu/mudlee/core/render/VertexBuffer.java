@@ -2,6 +2,7 @@ package hu.mudlee.core.render;
 
 import hu.mudlee.core.render.opengl.OpenGLVertexBuffer;
 import hu.mudlee.core.render.vulkan.VulkanVertexBuffer;
+import java.nio.ByteBuffer;
 
 public abstract class VertexBuffer {
     public static VertexBuffer create(float[] vertices, VertexBufferLayout layout, int bufferUsage) {
@@ -19,7 +20,11 @@ public abstract class VertexBuffer {
     }
 
     public void update(float[] data, int floatCount) {
-        throw new UnsupportedOperationException("This VertexBuffer does not support dynamic updates");
+        throw new UnsupportedOperationException("This VertexBuffer does not support dynamic float updates");
+    }
+
+    public void update(ByteBuffer data, int byteCount) {
+        throw new UnsupportedOperationException("This VertexBuffer does not support dynamic byte updates");
     }
 
     public abstract int getId();

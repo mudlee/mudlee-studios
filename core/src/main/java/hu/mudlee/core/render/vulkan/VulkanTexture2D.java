@@ -40,6 +40,7 @@ public class VulkanTexture2D extends Texture2D {
 
     public VulkanTexture2D(String path) {
         this.path = path;
+
         var ctx = VulkanContext.get();
         this.device = ctx.device();
 
@@ -51,6 +52,22 @@ public class VulkanTexture2D extends Texture2D {
         log.debug("VulkanTexture2D created: {}", path);
     }
 
+    /** Creates a texture from raw RGBA8 pixel data (e.g. a font atlas). */
+    public VulkanTexture2D(java.nio.ByteBuffer pixels, int width, int height) {
+        this.path = "<pixels>";
+        var ctx = VulkanContext.get();
+        this.device = ctx.device();
+        this.width = width;
+        this.height = height;
+
+        uploadPixels(ctx, pixels);
+        createImageView();
+        createSampler();
+        allocateAndWriteDescriptorSet(ctx);
+
+        log.debug("VulkanTexture2D created from pixels: {}x{}", width, height);
+    }
+
     @Override
     public int getWidth() {
         return width;
@@ -59,6 +76,12 @@ public class VulkanTexture2D extends Texture2D {
     @Override
     public int getHeight() {
         return height;
+    }
+
+    @Override
+    public int getNativeHandle() {
+        throw new UnsupportedOperationException(
+                "VulkanTexture2D does not expose an integer native handle; use descriptorSet() instead");
     }
 
     /** Informs VulkanContext that this is the texture to bind for the next draw call(s). */
@@ -111,42 +134,42 @@ public class VulkanTexture2D extends Texture2D {
 
             width = w.get(0);
             height = h.get(0);
-            var imageSizeBytes = (long) width * height * 4; // RGBA = 4 bytes per pixel
 
-            // Staging buffer: CPU-writable
-            var staging = new VulkanBuffer(
-                    device,
-                    imageSizeBytes,
-                    VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-            staging.map(dst -> {
-                dst.put(pixels);
-                dst.flip();
-            });
-
-            // rewind() resets position to 0 so that memAddress() resolves to the base allocation address
+            uploadPixels(ctx, pixels);
             stbi_image_free(pixels.rewind());
-
-            // Create the device-local VkImage
-            createImage(
-                    width,
-                    height,
-                    VK_FORMAT_R8G8B8A8_SRGB,
-                    VK_IMAGE_TILING_OPTIMAL,
-                    VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-            // Transition: UNDEFINED → TRANSFER_DST_OPTIMAL, copy pixels, then SHADER_READ_ONLY
-            transitionImageLayout(ctx.commandPool(), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-
-            copyBufferToImage(staging, width, height, ctx.commandPool());
-
-            transitionImageLayout(
-                    ctx.commandPool(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-            staging.dispose();
         }
+    }
+
+    private void uploadPixels(VulkanContext ctx, java.nio.ByteBuffer pixels) {
+        var imageSizeBytes = (long) width * height * 4; // RGBA = 4 bytes per pixel
+
+        var staging = new VulkanBuffer(
+                device,
+                imageSizeBytes,
+                VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+        staging.map(dst -> {
+            var src = pixels.duplicate();
+            src.limit(src.position() + (int) imageSizeBytes);
+            dst.put(src);
+            dst.flip();
+        });
+
+        createImage(
+                width,
+                height,
+                VK_FORMAT_R8G8B8A8_SRGB,
+                VK_IMAGE_TILING_OPTIMAL,
+                VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+        transitionImageLayout(ctx.commandPool(), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+        copyBufferToImage(staging, width, height, ctx.commandPool());
+        transitionImageLayout(
+                ctx.commandPool(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+        staging.dispose();
     }
 
     private void createImage(int width, int height, int format, int tiling, int usage, int memoryProps) {

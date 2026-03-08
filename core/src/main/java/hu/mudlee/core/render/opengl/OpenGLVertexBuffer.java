@@ -5,6 +5,7 @@ import static org.lwjgl.system.MemoryStack.stackPush;
 
 import hu.mudlee.core.render.VertexBuffer;
 import hu.mudlee.core.render.VertexBufferLayout;
+import java.nio.ByteBuffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,6 +47,16 @@ public class OpenGLVertexBuffer extends VertexBuffer {
             var buffer = stack.mallocFloat(floatCount).put(data, 0, floatCount).flip();
             glBufferSubData(GL_ARRAY_BUFFER, 0L, buffer);
         }
+        unbind();
+    }
+
+    @Override
+    public void update(ByteBuffer data, int byteCount) {
+        this.length = byteCount;
+        bind();
+        var view = data.duplicate();
+        view.limit(view.position() + byteCount);
+        glBufferSubData(GL_ARRAY_BUFFER, 0L, view);
         unbind();
     }
 

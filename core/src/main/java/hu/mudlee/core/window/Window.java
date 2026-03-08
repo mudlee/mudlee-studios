@@ -59,6 +59,10 @@ public class Window implements Disposable {
         return get().listeners.size() - 1;
     }
 
+    public static long getId() {
+        return get().id;
+    }
+
     public static Vector2i getSize() {
         return get().size;
     }

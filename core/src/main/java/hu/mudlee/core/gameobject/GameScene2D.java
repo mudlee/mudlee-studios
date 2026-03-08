@@ -79,7 +79,7 @@ public abstract class GameScene2D implements Screen {
 
     @Override
     public void draw(GameTime gameTime) {
-        graphicsDevice.clear(Color.BLACK);
+        graphicsDevice.clear(Color.WHITE);
         spriteBatch.begin(camera.getTransformMatrix());
         for (GameObject gameObject : gameObjects) {
             gameObject.draw(gameTime, spriteBatch);

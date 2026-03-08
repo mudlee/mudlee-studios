@@ -3,6 +3,7 @@ package hu.mudlee.core.render.vulkan;
 import static org.lwjgl.vulkan.VK12.*;
 
 import hu.mudlee.core.render.ElementBuffer;
+import hu.mudlee.core.render.types.IndexType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,6 +67,11 @@ public class VulkanIndexBuffer extends ElementBuffer {
     @Override
     public int getLength() {
         return length;
+    }
+
+    @Override
+    public IndexType getIndexType() {
+        return IndexType.INT;
     }
 
     @Override

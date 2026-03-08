@@ -49,6 +49,20 @@ public class OpenGLTexture2D extends Texture2D {
         unBind();
     }
 
+    /** Creates a texture directly from raw RGBA8 pixel data (e.g. font atlas or procedural textures). */
+    public OpenGLTexture2D(java.nio.ByteBuffer pixels, int width, int height) {
+        this.path = null;
+        this.width = width;
+        this.height = height;
+
+        textureId = glGenTextures();
+        glBindTexture(GL_TEXTURE_2D, textureId);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+        unBind();
+    }
+
     @Override
     public int getWidth() {
         return width;
@@ -57,6 +71,11 @@ public class OpenGLTexture2D extends Texture2D {
     @Override
     public int getHeight() {
         return height;
+    }
+
+    @Override
+    public int getNativeHandle() {
+        return textureId;
     }
 
     @Override

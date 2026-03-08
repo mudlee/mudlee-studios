@@ -1,6 +1,7 @@
 package hu.mudlee.core.render;
 
 import hu.mudlee.core.render.opengl.OpenGLGraphicsContext;
+import hu.mudlee.core.render.types.BlendFactor;
 import hu.mudlee.core.render.types.PolygonMode;
 import hu.mudlee.core.render.types.RenderMode;
 import hu.mudlee.core.render.vulkan.VulkanContext;
@@ -8,6 +9,8 @@ import hu.mudlee.core.window.WindowEventListener;
 import org.joml.Vector4f;
 
 public class Renderer implements WindowEventListener {
+    private static int drawCallCount = 0;
+
     private final GraphicsContext context;
     private static Renderer instance;
     private static RenderBackend backend = RenderBackend.OPENGL;
@@ -58,11 +61,31 @@ public class Renderer implements WindowEventListener {
     }
 
     public static void renderRaw(VertexArray vao, Shader shader, RenderMode renderMode, PolygonMode polygonMode) {
+        drawCallCount++;
         get().context.renderRaw(vao, shader, renderMode, polygonMode);
+    }
+
+    public static void renderRaw(
+            VertexArray vao,
+            Shader shader,
+            RenderMode renderMode,
+            PolygonMode polygonMode,
+            int elementOffset,
+            int elementCount) {
+        drawCallCount++;
+        get().context.renderRaw(vao, shader, renderMode, polygonMode, elementOffset, elementCount);
     }
 
     public static void setViewport(int x, int y, int width, int height) {
         get().context.setViewport(x, y, width, height);
+    }
+
+    public static void setBlend(boolean enable, BlendFactor src, BlendFactor dst) {
+        get().context.setBlend(enable, src, dst);
+    }
+
+    public static void setScissor(boolean enable, int x, int y, int width, int height) {
+        get().context.setScissor(enable, x, y, width, height);
     }
 
     public static void setClearColor(Vector4f color) {
@@ -78,11 +101,16 @@ public class Renderer implements WindowEventListener {
     }
 
     public static void clear() {
+        drawCallCount = 0;
         get().context.clear();
     }
 
     public static void waitForGPU() {
         get().context.waitIdle();
+    }
+
+    public static int getDrawCallCount() {
+        return drawCallCount;
     }
 
     public static void dispose() {

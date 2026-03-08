@@ -8,6 +8,8 @@ import hu.mudlee.core.render.GraphicsContext;
 import hu.mudlee.core.render.Shader;
 import hu.mudlee.core.render.VertexArray;
 import hu.mudlee.core.render.VertexBuffer;
+import hu.mudlee.core.render.types.BlendFactor;
+import hu.mudlee.core.render.types.IndexType;
 import hu.mudlee.core.render.types.PolygonMode;
 import hu.mudlee.core.render.types.RenderMode;
 import org.joml.Vector4f;
@@ -121,10 +123,67 @@ public class OpenGLGraphicsContext implements GraphicsContext {
     }
 
     @Override
+    public void setBlend(boolean enable, BlendFactor src, BlendFactor dst) {
+        if (enable) {
+            glEnable(GL_BLEND);
+            glBlendEquation(GL_FUNC_ADD);
+            glBlendFunc(toGL(src), toGL(dst));
+        } else {
+            glDisable(GL_BLEND);
+        }
+    }
+
+    @Override
+    public void setScissor(boolean enable, int x, int y, int width, int height) {
+        if (enable) {
+            glEnable(GL_SCISSOR_TEST);
+            glScissor(x, y, width, height);
+        } else {
+            glDisable(GL_SCISSOR_TEST);
+        }
+    }
+
+    @Override
+    public void renderRaw(
+            VertexArray vao,
+            Shader shader,
+            RenderMode renderMode,
+            PolygonMode polygonMode,
+            int elementOffset,
+            int elementCount) {
+        shader.bind();
+        vao.bind();
+
+        if (prevPolygonMode != polygonMode) {
+            glPolygonMode(GL41.GL_FRONT_AND_BACK, polygonMode.glRef);
+        }
+
+        if (vao.getEBO().isPresent()) {
+            var ebo = vao.getEBO().get();
+            var glIndexType = ebo instanceof OpenGLElementBuffer oebo && oebo.getIndexType() == IndexType.SHORT
+                    ? GL_UNSIGNED_SHORT
+                    : GL_UNSIGNED_INT;
+            glDrawElements(renderMode.glRef, elementCount, glIndexType, elementOffset);
+        }
+
+        vao.unbind();
+        shader.unbind();
+    }
+
+    @Override
     public void windowResized(int newWidth, int newHeight) {
         glViewport(0, 0, newWidth, newHeight);
     }
 
     @Override
     public void dispose() {}
+
+    private static int toGL(BlendFactor factor) {
+        return switch (factor) {
+            case ZERO -> GL_ZERO;
+            case ONE -> GL_ONE;
+            case SRC_ALPHA -> GL_SRC_ALPHA;
+            case ONE_MINUS_SRC_ALPHA -> GL_ONE_MINUS_SRC_ALPHA;
+        };
+    }
 }

@@ -5,6 +5,7 @@ import static org.lwjgl.vulkan.VK12.*;
 
 import hu.mudlee.core.render.VertexBuffer;
 import hu.mudlee.core.render.VertexBufferLayout;
+import java.nio.ByteBuffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -101,6 +102,19 @@ public class VulkanVertexBuffer extends VertexBuffer {
         this.length = floatCount;
         perFrameBuffers[VulkanContext.get().currentFrame()].map(
                 dst -> dst.asFloatBuffer().put(data, 0, floatCount));
+    }
+
+    @Override
+    public void update(ByteBuffer data, int byteCount) {
+        if (!dynamic) {
+            throw new UnsupportedOperationException("Cannot update a static VulkanVertexBuffer");
+        }
+        this.length = byteCount;
+        perFrameBuffers[VulkanContext.get().currentFrame()].map(dst -> {
+            var view = data.duplicate();
+            view.limit(view.position() + byteCount);
+            dst.put(view);
+        });
     }
 
     /** Returns the raw VkBuffer handle for use in vkCmdBindVertexBuffers. */

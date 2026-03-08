@@ -5,6 +5,7 @@ import hu.mudlee.core.Disposable;
 import hu.mudlee.core.Rectangle;
 import hu.mudlee.core.render.texture.Texture2D;
 import hu.mudlee.core.render.texture.TextureRegion;
+import hu.mudlee.core.render.types.BlendFactor;
 import hu.mudlee.core.render.types.PolygonMode;
 import hu.mudlee.core.render.types.RenderMode;
 import hu.mudlee.core.render.types.ShaderProps;
@@ -182,7 +183,7 @@ public class SpriteBatch2D implements Disposable {
         vertexArray.dispose();
     }
 
-    private void draw(
+    public void draw(
             Texture2D texture,
             float x,
             float y,
@@ -240,7 +241,9 @@ public class SpriteBatch2D implements Disposable {
         var floatCount = spriteCount * FLOATS_PER_SPRITE;
         dynamicVbo.update(vertexData, floatCount);
         currentTexture.bind();
+        Renderer.setBlend(true, BlendFactor.SRC_ALPHA, BlendFactor.ONE_MINUS_SRC_ALPHA);
         Renderer.renderRaw(vertexArray, shader, RenderMode.TRIANGLES, PolygonMode.FILL);
+        Renderer.setBlend(false, BlendFactor.SRC_ALPHA, BlendFactor.ONE_MINUS_SRC_ALPHA);
         spriteCount = 0;
         currentTexture = null;
     }
