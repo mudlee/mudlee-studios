@@ -3,7 +3,6 @@ package hu.mudlee.core;
 import hu.mudlee.core.content.ContentManager;
 import hu.mudlee.core.input.InputSystem;
 import hu.mudlee.core.render.Renderer;
-import hu.mudlee.core.scene.SceneManager;
 import hu.mudlee.core.settings.Antialiasing;
 import hu.mudlee.core.settings.WindowPreferences;
 import hu.mudlee.core.window.Window;
@@ -62,7 +61,6 @@ public abstract class Game implements WindowEventListener {
         for (var component : components) {
             component.dispose();
         }
-        SceneManager.onDispose();
         Renderer.dispose();
         Window.remove();
         log.info("Terminated");
@@ -74,7 +72,6 @@ public abstract class Game implements WindowEventListener {
 
     @Override
     public void onWindowResized(int width, int height) {
-        SceneManager.onWindowResized(width, height);
         for (var component : components) {
             component.resize(width, height);
         }
@@ -104,7 +101,6 @@ public abstract class Game implements WindowEventListener {
             if (deltaTime >= 0f) {
                 totalTime += deltaTime;
                 gameTime.set(deltaTime, totalTime, deltaTime > TARGET_ELAPSED_SECONDS);
-                SceneManager.onUpdate(gameTime);
                 update(gameTime);
                 for (var component : components) {
                     component.update(gameTime);
