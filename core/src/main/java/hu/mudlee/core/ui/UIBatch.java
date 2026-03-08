@@ -57,36 +57,36 @@ public final class UIBatch implements Disposable {
      * background. {@code x} and {@code y} are the top-left origin in screen pixels.
      */
     public void drawText(BitmapFont font, String text, float x, float y, Color color) {
-        // Render shadow in all 4 diagonal directions to create a solid outline
-        drawTextRaw(font, text, x - 1, y - 1, SHADOW_COLOR);
-        drawTextRaw(font, text, x + 1, y - 1, SHADOW_COLOR);
-        drawTextRaw(font, text, x - 1, y + 1, SHADOW_COLOR);
-        drawTextRaw(font, text, x + 1, y + 1, SHADOW_COLOR);
-        drawTextRaw(font, text, x, y, color);
+        try (var quad = STBTTAlignedQuad.malloc()) {
+            // Render shadow in all 4 diagonal directions to create a solid outline
+            drawTextRaw(font, text, x - 1, y - 1, SHADOW_COLOR, quad);
+            drawTextRaw(font, text, x + 1, y - 1, SHADOW_COLOR, quad);
+            drawTextRaw(font, text, x - 1, y + 1, SHADOW_COLOR, quad);
+            drawTextRaw(font, text, x + 1, y + 1, SHADOW_COLOR, quad);
+            drawTextRaw(font, text, x, y, color, quad);
+        }
     }
 
-    private void drawTextRaw(BitmapFont font, String text, float x, float y, Color color) {
-        try (var quad = STBTTAlignedQuad.malloc()) {
-            var xCursor = new float[] {x};
-            var yCursor = new float[] {y + font.getAscent()};
-            var atlas = font.getAtlasTexture();
+    private void drawTextRaw(BitmapFont font, String text, float x, float y, Color color, STBTTAlignedQuad quad) {
+        var xCursor = new float[] {x};
+        var yCursor = new float[] {y + font.getAscent()};
+        var atlas = font.getAtlasTexture();
 
-            for (int i = 0; i < text.length(); i++) {
-                font.getQuad(text.charAt(i), xCursor, yCursor, quad);
+        for (int i = 0; i < text.length(); i++) {
+            font.getQuad(text.charAt(i), xCursor, yCursor, quad);
 
-                float qx = quad.x0();
-                float qy = quad.y0();
-                float qw = quad.x1() - quad.x0();
-                float qh = quad.y1() - quad.y0();
-                float u0 = quad.s0();
-                float u1 = quad.s1();
-                // SpriteBatch.writeQuad swaps v0/v1 (designed for y-up screens).
-                // Pre-swap here so the glyph samples the correct atlas rows.
-                float v0 = quad.t1();
-                float v1 = quad.t0();
+            float qx = quad.x0();
+            float qy = quad.y0();
+            float qw = quad.x1() - quad.x0();
+            float qh = quad.y1() - quad.y0();
+            float u0 = quad.s0();
+            float u1 = quad.s1();
+            // SpriteBatch.writeQuad swaps v0/v1 (designed for y-up screens).
+            // Pre-swap here so the glyph samples the correct atlas rows.
+            float v0 = quad.t1();
+            float v1 = quad.t0();
 
-                spriteBatch.draw(atlas, qx, qy, qw, qh, color, u0, v0, u1, v1);
-            }
+            spriteBatch.draw(atlas, qx, qy, qw, qh, color, u0, v0, u1, v1);
         }
     }
 

@@ -46,7 +46,7 @@ type needs.
 
 ---
 
-## 3. `Transform2D` is hardcoded on `GameObject`
+## 3. `Transform2D` is hardcoded on `GameObject` (UPCOMING)
 
 **Files:** `gameobject/GameObject.java:26`, `gameobject/Transform2D.java`
 
