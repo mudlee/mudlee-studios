@@ -28,7 +28,7 @@ import org.joml.Vector2f;
  * <p>Internally uses 6 non-indexed vertices per sprite (two triangles). The dynamic VBO is updated
  * on {@link #end()} (or when the batch fills up or the texture changes).
  */
-public class SpriteBatch2D implements Disposable {
+public class SpriteBatch2D implements Disposable, RenderContext {
 
     private static final int MAX_SPRITES = 1000;
     private static final int FLOATS_PER_VERTEX = 9; // vec3 pos + vec4 color + vec2 uv

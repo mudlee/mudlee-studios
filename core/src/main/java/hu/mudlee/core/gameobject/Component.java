@@ -1,7 +1,7 @@
 package hu.mudlee.core.gameobject;
 
 import hu.mudlee.core.GameTime;
-import hu.mudlee.core.render.SpriteBatch2D;
+import hu.mudlee.core.render.RenderContext;
 
 /**
  * Base class for all entity-level components attached to a {@link GameObject}.
@@ -30,8 +30,8 @@ public abstract class Component {
     /** Called every frame by {@link GameObject#update(GameTime)}. */
     public void update(GameTime gameTime) {}
 
-    /** Called every frame by {@link GameObject#draw(GameTime, SpriteBatch2D)}, after all updates. */
-    public void draw(GameTime gameTime, SpriteBatch2D batch) {}
+    /** Called every frame by {@link GameObject#draw(GameTime, RenderContext)}, after all updates. */
+    public void draw(GameTime gameTime, RenderContext context) {}
 
     /** Called when this component is removed or its {@link GameObject} is destroyed. */
     public void dispose() {}

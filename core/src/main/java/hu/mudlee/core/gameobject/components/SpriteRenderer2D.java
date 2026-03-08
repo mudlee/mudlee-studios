@@ -3,6 +3,7 @@ package hu.mudlee.core.gameobject.components;
 import hu.mudlee.core.Color;
 import hu.mudlee.core.GameTime;
 import hu.mudlee.core.gameobject.Component;
+import hu.mudlee.core.render.RenderContext;
 import hu.mudlee.core.render.SpriteBatch2D;
 import hu.mudlee.core.render.texture.TextureRegion;
 import org.joml.Vector2f;
@@ -41,7 +42,10 @@ public final class SpriteRenderer2D extends Component {
     }
 
     @Override
-    public void draw(GameTime gameTime, SpriteBatch2D batch) {
+    public void draw(GameTime gameTime, RenderContext context) {
+        if (!(context instanceof SpriteBatch2D batch)) {
+            return;
+        }
         var animator = getComponent(Animator2D.class);
         var frame = (animator != null) ? animator.getCurrentFrame() : region;
         if (frame == null) {
