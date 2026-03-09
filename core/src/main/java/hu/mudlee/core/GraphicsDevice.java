@@ -4,6 +4,7 @@ import hu.mudlee.core.render.RenderBackend;
 import hu.mudlee.core.render.Renderer;
 import hu.mudlee.core.render.types.BufferBitTypes;
 import hu.mudlee.core.window.Window;
+import org.joml.Vector4f;
 
 /**
  * Public GPU facade exposed to game code.
@@ -13,11 +14,13 @@ import hu.mudlee.core.window.Window;
  */
 public final class GraphicsDevice {
 
+    private final Vector4f clearColorVec = new Vector4f();
+
     GraphicsDevice() {}
 
     /** Clears the back-buffer with the given colour. Call once at the start of {@code draw()}. */
     public void clear(Color color) {
-        Renderer.setClearColor(color.toVector4f());
+        Renderer.setClearColor(clearColorVec.set(color.r, color.g, color.b, color.a));
         Renderer.setClearFlags(BufferBitTypes.COLOR);
         Renderer.clear();
     }

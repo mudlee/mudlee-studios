@@ -29,6 +29,9 @@ public final class UIBatch implements Disposable {
 
     private final SpriteBatch2D spriteBatch = new SpriteBatch2D();
     private final Matrix4f ortho = new Matrix4f();
+    private final STBTTAlignedQuad quad = STBTTAlignedQuad.malloc();
+    private final float[] xCursor = new float[1];
+    private final float[] yCursor = new float[1];
     private int screenW, screenH;
 
     /** Call once after the window is created and whenever the window resizes. */
@@ -57,19 +60,17 @@ public final class UIBatch implements Disposable {
      * background. {@code x} and {@code y} are the top-left origin in screen pixels.
      */
     public void drawText(BitmapFont font, String text, float x, float y, Color color) {
-        try (var quad = STBTTAlignedQuad.malloc()) {
-            // Render shadow in all 4 diagonal directions to create a solid outline
-            drawTextRaw(font, text, x - 1, y - 1, SHADOW_COLOR, quad);
-            drawTextRaw(font, text, x + 1, y - 1, SHADOW_COLOR, quad);
-            drawTextRaw(font, text, x - 1, y + 1, SHADOW_COLOR, quad);
-            drawTextRaw(font, text, x + 1, y + 1, SHADOW_COLOR, quad);
-            drawTextRaw(font, text, x, y, color, quad);
-        }
+        // Render shadow in all 4 diagonal directions to create a solid outline
+        drawTextRaw(font, text, x - 1, y - 1, SHADOW_COLOR, quad);
+        drawTextRaw(font, text, x + 1, y - 1, SHADOW_COLOR, quad);
+        drawTextRaw(font, text, x - 1, y + 1, SHADOW_COLOR, quad);
+        drawTextRaw(font, text, x + 1, y + 1, SHADOW_COLOR, quad);
+        drawTextRaw(font, text, x, y, color, quad);
     }
 
     private void drawTextRaw(BitmapFont font, String text, float x, float y, Color color, STBTTAlignedQuad quad) {
-        var xCursor = new float[] {x};
-        var yCursor = new float[] {y + font.getAscent()};
+        xCursor[0] = x;
+        yCursor[0] = y + font.getAscent();
         var atlas = font.getAtlasTexture();
 
         for (int i = 0; i < text.length(); i++) {
@@ -97,6 +98,7 @@ public final class UIBatch implements Disposable {
 
     @Override
     public void dispose() {
+        quad.free();
         spriteBatch.dispose();
     }
 }

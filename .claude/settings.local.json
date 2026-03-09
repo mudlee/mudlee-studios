@@ -17,7 +17,13 @@
       "WebSearch",
       "WebFetch(domain:docs.monogameextended.net)",
       "WebFetch(domain:docs.unity3d.com)",
-      "Bash(grep BUILD:*)"
+      "Bash(grep BUILD:*)",
+      "Bash(python:*)",
+      "Bash(python3:*)",
+      "Bash(where py:*)",
+      "Bash(node:*)",
+      "WebFetch(domain:medium.com)",
+      "Bash(wc:*)"
     ]
   }
 }

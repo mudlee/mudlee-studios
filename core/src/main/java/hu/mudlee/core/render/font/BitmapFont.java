@@ -7,6 +7,9 @@ import static org.lwjgl.system.MemoryUtil.*;
 import hu.mudlee.core.Disposable;
 import hu.mudlee.core.io.ResourceLoader;
 import hu.mudlee.core.render.texture.Texture2D;
+import java.nio.FloatBuffer;
+import org.lwjgl.BufferUtils;
+import org.lwjgl.stb.STBTTAlignedQuad;
 import org.lwjgl.stb.STBTTBakedChar;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,6 +39,11 @@ public final class BitmapFont implements Disposable {
     private final Texture2D atlasTexture;
     private final float ascent;
     private final float ptSize;
+    private final FloatBuffer quadXBuf = BufferUtils.createFloatBuffer(1);
+    private final FloatBuffer quadYBuf = BufferUtils.createFloatBuffer(1);
+    private final STBTTAlignedQuad measureQuad = STBTTAlignedQuad.malloc();
+    private final float[] measureX = new float[1];
+    private final float[] measureY = new float[1];
 
     public BitmapFont(String ttfResourcePath, float ptSize) {
         this.ptSize = ptSize;
@@ -100,18 +108,16 @@ public final class BitmapFont implements Disposable {
      * @param yCursor  y-position cursor (baseline, not top)
      * @param quad     output quad — caller must allocate via {@link org.lwjgl.stb.STBTTAlignedQuad#malloc}
      */
-    public void getQuad(char c, float[] xCursor, float[] yCursor, org.lwjgl.stb.STBTTAlignedQuad quad) {
+    public void getQuad(char c, float[] xCursor, float[] yCursor, STBTTAlignedQuad quad) {
         int idx = c - FIRST_CHAR;
         if (idx < 0 || idx >= CHAR_COUNT) {
             return;
         }
-        try (var stack = stackPush()) {
-            var xb = stack.floats(xCursor[0]);
-            var yb = stack.floats(yCursor[0]);
-            stbtt_GetBakedQuad(charData, ATLAS_SIZE, ATLAS_SIZE, idx, xb, yb, quad, true);
-            xCursor[0] = xb.get(0);
-            yCursor[0] = yb.get(0);
-        }
+        quadXBuf.put(0, xCursor[0]);
+        quadYBuf.put(0, yCursor[0]);
+        stbtt_GetBakedQuad(charData, ATLAS_SIZE, ATLAS_SIZE, idx, quadXBuf, quadYBuf, quad, true);
+        xCursor[0] = quadXBuf.get(0);
+        yCursor[0] = quadYBuf.get(0);
     }
 
     /**
@@ -119,18 +125,17 @@ public final class BitmapFont implements Disposable {
      * Useful for aligning columns.
      */
     public float measureTextWidth(String text) {
-        try (var quad = org.lwjgl.stb.STBTTAlignedQuad.malloc()) {
-            var xCursor = new float[] {0f};
-            var yCursor = new float[] {0f};
-            for (int i = 0; i < text.length(); i++) {
-                getQuad(text.charAt(i), xCursor, yCursor, quad);
-            }
-            return xCursor[0];
+        measureX[0] = 0f;
+        measureY[0] = 0f;
+        for (int i = 0; i < text.length(); i++) {
+            getQuad(text.charAt(i), measureX, measureY, measureQuad);
         }
+        return measureX[0];
     }
 
     @Override
     public void dispose() {
+        measureQuad.free();
         charData.free();
         atlasTexture.dispose();
     }

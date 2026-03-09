@@ -5,10 +5,12 @@ import static org.lwjgl.system.MemoryStack.stackPush;
 
 import hu.mudlee.core.io.ResourceLoader;
 import hu.mudlee.core.render.Shader;
+import java.nio.FloatBuffer;
 import java.util.HashMap;
 import java.util.Map;
 import org.joml.Matrix4f;
 import org.joml.Vector4f;
+import org.lwjgl.BufferUtils;
 import org.lwjgl.system.MemoryStack;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,6 +21,8 @@ public class OpenGLShader extends Shader {
     private final Map<String, Integer> uniforms = new HashMap<>();
     private final int vertexId;
     private final int fragmentId;
+    private final FloatBuffer mat4Buf = BufferUtils.createFloatBuffer(16);
+    private final FloatBuffer vec4Buf = BufferUtils.createFloatBuffer(4);
 
     public OpenGLShader(String vertexShaderName, String fragmentShaderName) {
         log.debug(
@@ -99,22 +103,18 @@ public class OpenGLShader extends Shader {
     @Override
     public void setUniform(int programId, String name, Matrix4f value) {
         if (doesUniformExist(name)) {
-            try (MemoryStack stack = MemoryStack.stackPush()) {
-                final var buffer = stack.mallocFloat(16);
-                value.get(buffer);
-                glProgramUniformMatrix4fv(programId, uniforms.get(name), false, buffer);
-            }
+            mat4Buf.clear();
+            value.get(mat4Buf);
+            glProgramUniformMatrix4fv(programId, uniforms.get(name), false, mat4Buf);
         }
     }
 
     @Override
     public void setUniform(int programId, String name, Vector4f value) {
         if (doesUniformExist(name)) {
-            try (MemoryStack stack = MemoryStack.stackPush()) {
-                final var buffer = stack.mallocFloat(4);
-                value.get(buffer);
-                glProgramUniform4fv(programId, uniforms.get(name), buffer);
-            }
+            vec4Buf.clear();
+            value.get(vec4Buf);
+            glProgramUniform4fv(programId, uniforms.get(name), vec4Buf);
         }
     }
 

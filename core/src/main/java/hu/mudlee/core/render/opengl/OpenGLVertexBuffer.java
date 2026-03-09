@@ -6,6 +6,8 @@ import static org.lwjgl.system.MemoryStack.stackPush;
 import hu.mudlee.core.render.VertexBuffer;
 import hu.mudlee.core.render.VertexBufferLayout;
 import java.nio.ByteBuffer;
+import java.nio.FloatBuffer;
+import org.lwjgl.BufferUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,11 +15,13 @@ public class OpenGLVertexBuffer extends VertexBuffer {
     private static final Logger log = LoggerFactory.getLogger(OpenGLVertexBuffer.class);
     private final int id;
     private final VertexBufferLayout layout;
+    private final FloatBuffer uploadBuffer;
     private int length;
 
     public OpenGLVertexBuffer(float[] vertices, VertexBufferLayout layout, int bufferUsage) {
         try (final var stack = stackPush()) {
             this.layout = layout;
+            this.uploadBuffer = null;
             length = vertices.length;
             id = glGenBuffers();
             bind();
@@ -32,6 +36,7 @@ public class OpenGLVertexBuffer extends VertexBuffer {
     public OpenGLVertexBuffer(VertexBufferLayout layout, int maxFloats) {
         this.layout = layout;
         this.length = 0;
+        this.uploadBuffer = BufferUtils.createFloatBuffer(maxFloats);
         id = glGenBuffers();
         bind();
         glBufferData(GL_ARRAY_BUFFER, (long) maxFloats * Float.BYTES, GL_DYNAMIC_DRAW);
@@ -43,10 +48,10 @@ public class OpenGLVertexBuffer extends VertexBuffer {
     public void update(float[] data, int floatCount) {
         this.length = floatCount;
         bind();
-        try (var stack = stackPush()) {
-            var buffer = stack.mallocFloat(floatCount).put(data, 0, floatCount).flip();
-            glBufferSubData(GL_ARRAY_BUFFER, 0L, buffer);
-        }
+        uploadBuffer.clear();
+        uploadBuffer.put(data, 0, floatCount);
+        uploadBuffer.flip();
+        glBufferSubData(GL_ARRAY_BUFFER, 0L, uploadBuffer);
         unbind();
     }
 

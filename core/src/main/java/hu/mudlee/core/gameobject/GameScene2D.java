@@ -72,8 +72,8 @@ public abstract class GameScene2D implements Screen {
 
     @Override
     public void update(GameTime gameTime) {
-        for (GameObject gameObject : gameObjects) {
-            gameObject.update(gameTime);
+        for (int i = 0; i < gameObjects.size(); i++) {
+            gameObjects.get(i).update(gameTime);
         }
     }
 
@@ -81,8 +81,8 @@ public abstract class GameScene2D implements Screen {
     public void draw(GameTime gameTime) {
         graphicsDevice.clear(Color.WHITE);
         spriteBatch.begin(camera.getTransformMatrix());
-        for (GameObject gameObject : gameObjects) {
-            gameObject.draw(gameTime, spriteBatch);
+        for (int i = 0; i < gameObjects.size(); i++) {
+            gameObjects.get(i).draw(gameTime, spriteBatch);
         }
         spriteBatch.end();
     }

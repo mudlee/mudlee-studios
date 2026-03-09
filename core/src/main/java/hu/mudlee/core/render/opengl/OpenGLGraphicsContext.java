@@ -13,7 +13,9 @@ import hu.mudlee.core.render.types.IndexType;
 import hu.mudlee.core.render.types.PolygonMode;
 import hu.mudlee.core.render.types.RenderMode;
 import org.joml.Vector4f;
+import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL41;
+import org.lwjgl.opengl.GL43;
 import org.lwjgl.opengl.GLUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,6 +53,10 @@ public class OpenGLGraphicsContext implements GraphicsContext {
 
         if (debug) {
             GLUtil.setupDebugMessageCallback();
+            if (GL.getCapabilities().OpenGL43) {
+                GL43.glDebugMessageControl(
+                        GL_DONT_CARE, GL_DONT_CARE, GL43.GL_DEBUG_SEVERITY_NOTIFICATION, (int[]) null, false);
+            }
         }
 
         log.debug("Initialized");
@@ -92,18 +98,20 @@ public class OpenGLGraphicsContext implements GraphicsContext {
                 glDrawElementsInstanced(
                         renderMode.glRef, vao.getEBO().get().getLength(), GL_UNSIGNED_INT, 0, vao.getInstanceCount());
             } else {
-                for (VertexBuffer buffer : vao.getVBOs()) {
+                var vbos = vao.getVBOs();
+                for (int i = 0; i < vbos.size(); i++) {
                     // NOTE: we suppose that vertex coordinates always passed as vec3
-                    glDrawArraysInstanced(renderMode.glRef, 0, buffer.getLength() / 3, vao.getInstanceCount());
+                    glDrawArraysInstanced(renderMode.glRef, 0, vbos.get(i).getLength() / 3, vao.getInstanceCount());
                 }
             }
         } else {
             if (vao.getEBO().isPresent()) {
                 glDrawElements(renderMode.glRef, vao.getEBO().get().getLength(), GL_UNSIGNED_INT, 0);
             } else {
-                for (VertexBuffer buffer : vao.getVBOs()) {
+                var vbos = vao.getVBOs();
+                for (int i = 0; i < vbos.size(); i++) {
                     // NOTE: we suppose that vertex coordinates always passed as vec3
-                    glDrawArrays(renderMode.glRef, 0, buffer.getLength() / 3);
+                    glDrawArrays(renderMode.glRef, 0, vbos.get(i).getLength() / 3);
                 }
             }
         }

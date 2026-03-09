@@ -37,6 +37,10 @@ public final class DebugStatsComponent extends UIComponent {
     private float heapUsedMb = 0f;
     private float heapMaxMb = 0f;
     private int drawCalls = 0;
+    private String fpsStr = "";
+    private String frameTimeStr = "";
+    private String heapStr = "";
+    private String drawCallsStr = "";
 
     public DebugStatsComponent(BitmapFont font) {
         this.font = font;
@@ -70,6 +74,10 @@ public final class DebugStatsComponent extends UIComponent {
         heapMaxMb = rt.maxMemory() / (1024f * 1024f);
 
         drawCalls = Renderer.getDrawCallCount();
+        fpsStr = String.format("%.1f", averageFps);
+        frameTimeStr = String.format("%.2f ms", frameTimeMs);
+        heapStr = String.format("%.0f / %.0f MB", heapUsedMb, heapMaxMb);
+        drawCallsStr = String.format("%d", drawCalls);
     }
 
     @Override
@@ -80,15 +88,15 @@ public final class DebugStatsComponent extends UIComponent {
         var x = MARGIN;
         var y = MARGIN;
         batch.drawText(font, "FPS", x, y, Color.WHITE);
-        batch.drawText(font, String.format("%.1f", averageFps), x + valueX, y, Color.WHITE);
+        batch.drawText(font, fpsStr, x + valueX, y, Color.WHITE);
         y += LINE_HEIGHT;
         batch.drawText(font, "Frame time", x, y, Color.WHITE);
-        batch.drawText(font, String.format("%.2f ms", frameTimeMs), x + valueX, y, Color.WHITE);
+        batch.drawText(font, frameTimeStr, x + valueX, y, Color.WHITE);
         y += LINE_HEIGHT;
         batch.drawText(font, "Heap", x, y, Color.WHITE);
-        batch.drawText(font, String.format("%.0f / %.0f MB", heapUsedMb, heapMaxMb), x + valueX, y, Color.WHITE);
+        batch.drawText(font, heapStr, x + valueX, y, Color.WHITE);
         y += LINE_HEIGHT;
         batch.drawText(font, "Draw calls", x, y, Color.WHITE);
-        batch.drawText(font, String.format("%d", drawCalls), x + valueX, y, Color.WHITE);
+        batch.drawText(font, drawCallsStr, x + valueX, y, Color.WHITE);
     }
 }
