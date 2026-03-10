@@ -54,7 +54,12 @@ public final class EntityManager {
     @SuppressWarnings("unchecked")
     public <T extends Component> T getComponent(Entity entity, Class<T> type) {
         var map = byType.get(type);
-        return map == null ? null : (T) map.get(entity.id());
+        var result = map == null ? null : (T) map.get(entity.id());
+        if (result == null) {
+            throw new IllegalStateException(
+                    "Entity " + entity.id() + " missing required component: " + type.getSimpleName());
+        }
+        return result;
     }
 
     public boolean hasComponent(Entity entity, Class<? extends Component> type) {

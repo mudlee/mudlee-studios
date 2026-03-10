@@ -19,8 +19,6 @@ public final class PlayerControlSystem extends SystemBase {
 
     @Override
     public void update(GameTime gameTime) {
-        // TODO: em.getEntitiesWith() returns entities. Then em.getComponent() can return null, which
-        // the editor reports as a possible error. Elaborate on this.
         for (var entity : em.getEntitiesWith(
                 PlayerStateComponent.class,
                 Transform2DComponent.class,
@@ -83,18 +81,16 @@ public final class PlayerControlSystem extends SystemBase {
 
     private String animFor(State s, Direction d) {
         return switch (s) {
-            case IDLE ->
-                switch (d) {
-                    case DOWN -> "IdleDown";
-                    case UP -> "IdleUp";
-                    default -> "IdleRight";
-                };
-            case WALK ->
-                switch (d) {
-                    case DOWN -> "WalkDown";
-                    case UP -> "WalkUp";
-                    default -> "WalkRight";
-                };
+            case IDLE -> switch (d) {
+                case DOWN -> "IdleDown";
+                case UP -> "IdleUp";
+                default -> "IdleRight";
+            };
+            case WALK -> switch (d) {
+                case DOWN -> "WalkDown";
+                case UP -> "WalkUp";
+                default -> "WalkRight";
+            };
             case ATTACK -> attackFor(d);
             case DIE -> "Die";
         };

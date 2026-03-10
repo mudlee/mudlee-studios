@@ -10,7 +10,6 @@ import hu.mudlee.core.render.SpriteBatch2D;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Objects;
 
 public final class SpriteRender2DSystem extends RenderSystemBase {
 
@@ -28,7 +27,7 @@ public final class SpriteRender2DSystem extends RenderSystemBase {
 
         sortBuffer.clear();
         sortBuffer.addAll(em.getEntitiesWith(Transform2DComponent.class, Sprite2DComponent.class));
-        sortBuffer.sort(Comparator.comparingInt(e -> Objects.requireNonNull(em.getComponent(e, Transform2DComponent.class)).z));
+        sortBuffer.sort(Comparator.comparingInt(e -> em.getComponent(e, Transform2DComponent.class).z));
 
         for (int i = 0; i < sortBuffer.size(); i++) {
             var entity = sortBuffer.get(i);

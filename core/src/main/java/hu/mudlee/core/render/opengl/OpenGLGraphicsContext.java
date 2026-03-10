@@ -7,7 +7,6 @@ import static org.lwjgl.opengl.GL41.*;
 import hu.mudlee.core.render.GraphicsContext;
 import hu.mudlee.core.render.Shader;
 import hu.mudlee.core.render.VertexArray;
-import hu.mudlee.core.render.VertexBuffer;
 import hu.mudlee.core.render.types.BlendFactor;
 import hu.mudlee.core.render.types.IndexType;
 import hu.mudlee.core.render.types.PolygonMode;
