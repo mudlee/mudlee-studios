@@ -122,6 +122,22 @@ public class Window implements Disposable {
                 window.id, (w, button, action, mods) -> InputSystem.processMouseButton(button, action));
         glfwSetScrollCallback(window.id, (w, xOffset, yOffset) -> InputSystem.processMouseScroll(xOffset, yOffset));
         glfwSetKeyCallback(window.id, (w, key, scancode, action, mods) -> InputSystem.processKey(key, action));
+        glfwSetJoystickCallback((jid, event) -> {
+            if (event == GLFW_CONNECTED && glfwJoystickIsGamepad(jid)) {
+                InputSystem.onGamepadConnected(jid);
+                log.info("Gamepad connected: {} (slot {})", glfwGetGamepadName(jid), jid);
+            } else if (event == GLFW_DISCONNECTED) {
+                InputSystem.onGamepadDisconnected(jid);
+                log.info("Gamepad disconnected (slot {})", jid);
+            }
+        });
+        for (int jid = GLFW_JOYSTICK_1; jid <= GLFW_JOYSTICK_LAST; jid++) {
+            if (glfwJoystickPresent(jid) && glfwJoystickIsGamepad(jid)) {
+                InputSystem.onGamepadConnected(jid);
+                log.info("Gamepad already connected: {} (slot {})", glfwGetGamepadName(jid), jid);
+                break;
+            }
+        }
 
         if (!window.preferences.isFullscreen()) {
             glfwSetWindowPos(

@@ -66,6 +66,21 @@ public final class InputAction {
         return this;
     }
 
+    /** Adds a gamepad button binding to this action. Returns {@code this} for chaining. */
+    public InputAction addBinding(GamepadButton button) {
+        bindings.add(InputBinding.of(button));
+        return this;
+    }
+
+    /**
+     * Adds a gamepad stick composite binding. Intended for {@link ActionType#VECTOR2} actions.
+     * Returns {@code this} for chaining.
+     */
+    public InputAction addStickCompositeBinding(GamepadAxis xAxis, GamepadAxis yAxis) {
+        bindings.add(new InputBinding.GamepadStickCompositeBinding(xAxis, yAxis));
+        return this;
+    }
+
     /**
      * Adds a 2D composite binding and returns it for fluent configuration. Intended for
      * {@link ActionType#VECTOR2} actions.

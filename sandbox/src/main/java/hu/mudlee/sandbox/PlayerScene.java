@@ -15,6 +15,8 @@ import hu.mudlee.core.ecs.component.Transform2DComponent;
 import hu.mudlee.core.ecs.system.Animation2DSystem;
 import hu.mudlee.core.ecs.system.SpriteRender2DSystem;
 import hu.mudlee.core.input.ActionType;
+import hu.mudlee.core.input.GamepadAxis;
+import hu.mudlee.core.input.GamepadButton;
 import hu.mudlee.core.input.InputActionMap;
 import hu.mudlee.core.input.Keys;
 import hu.mudlee.core.render.SpriteBatch2D;
@@ -79,10 +81,11 @@ public class PlayerScene implements Screen {
         actions = new InputActionMap("Player");
         var moveAction = actions.addAction("Move", ActionType.VECTOR2);
         moveAction.addCompositeBinding().up(Keys.UP).down(Keys.DOWN).left(Keys.LEFT).right(Keys.RIGHT);
+        moveAction.addStickCompositeBinding(GamepadAxis.LEFT_X, GamepadAxis.LEFT_Y);
 
-        var attackAction = actions.addAction("Attack").addBinding(Keys.SPACE);
-        var dieAction = actions.addAction("Die").addBinding(Keys.X);
-        actions.addAction("Exit").addBinding(Keys.ESCAPE).onPerformed(ctx -> game.exit());
+        var attackAction = actions.addAction("Attack").addBinding(Keys.SPACE).addBinding(GamepadButton.A);
+        var dieAction = actions.addAction("Die").addBinding(Keys.X).addBinding(GamepadButton.B);
+        actions.addAction("Exit").addBinding(Keys.ESCAPE).addBinding(GamepadButton.START).onPerformed(ctx -> game.exit());
         actions.enable();
 
         world.addSystem(new PlayerControlSystem(moveAction, attackAction, dieAction));

@@ -12,13 +12,28 @@ package hu.mudlee.core.input;
  * </pre>
  */
 public sealed interface InputBinding
-        permits InputBinding.KeyBinding, InputBinding.MouseButtonBinding, InputBinding.Vector2CompositeBinding {
+        permits InputBinding.KeyBinding,
+                InputBinding.MouseButtonBinding,
+                InputBinding.Vector2CompositeBinding,
+                InputBinding.GamepadButtonBinding,
+                InputBinding.GamepadStickCompositeBinding {
 
     /** A single keyboard key binding. */
     record KeyBinding(Keys key) implements InputBinding {}
 
     /** A single mouse button binding. */
     record MouseButtonBinding(MouseButton button) implements InputBinding {}
+
+    /** A single gamepad button binding. */
+    record GamepadButtonBinding(GamepadButton button) implements InputBinding {}
+
+    /**
+     * Maps a gamepad's X and Y axes to a 2D vector.
+     *
+     * <p>The GLFW Y-axis inversion (−1.0 = up) is corrected automatically by {@code InputSystem},
+     * so game code always receives +Y = up.
+     */
+    record GamepadStickCompositeBinding(GamepadAxis xAxis, GamepadAxis yAxis) implements InputBinding {}
 
     /**
      * A composite 2D-vector binding that maps four directional keys to a {@link org.joml.Vector2f}.
@@ -88,6 +103,11 @@ public sealed interface InputBinding
     /** Creates a mouse button binding. */
     static InputBinding of(MouseButton button) {
         return new MouseButtonBinding(button);
+    }
+
+    /** Creates a gamepad button binding. */
+    static InputBinding of(GamepadButton button) {
+        return new GamepadButtonBinding(button);
     }
 
     /** Creates a new, unconfigured 2D composite binding. Configure it via the fluent setters. */

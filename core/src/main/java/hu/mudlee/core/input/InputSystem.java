@@ -3,24 +3,33 @@ package hu.mudlee.core.input;
 import static org.lwjgl.glfw.GLFW.*;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import org.joml.Vector2f;
+import org.lwjgl.glfw.GLFWGamepadState;
+import org.lwjgl.system.MemoryStack;
 
 /**
  * Internal hub that drives the input system each frame.
  *
  * <p><strong>This class is not part of the public API.</strong> Game code should use
- * {@link Keyboard}, {@link Mouse}, {@link InputAction}, and {@link InputActionMap} instead.
+ * {@link Keyboard}, {@link Mouse}, {@link Gamepad}, {@link InputAction}, and
+ * {@link InputActionMap} instead.
  */
 public final class InputSystem {
 
     private static final boolean[] KEY_STATE = new boolean[Keys.values().length];
     private static final boolean[] MOUSE_STATE = new boolean[MouseButton.values().length];
+    private static final boolean[] GAMEPAD_BUTTON_STATE = new boolean[15];
+    private static final boolean[] PREV_GAMEPAD_BUTTON_STATE = new boolean[15];
+    private static final float[] GAMEPAD_AXIS_STATE = new float[6];
+    private static final float STICK_DEADZONE = 0.15f;
 
     private static float mouseX;
     private static float mouseY;
     private static float scrollX;
     private static float scrollY;
+    private static int activePadId = -1;
 
     private static final List<InputAction> activeActions = new ArrayList<>();
 
@@ -34,14 +43,41 @@ public final class InputSystem {
         return new MouseState(mouseX, mouseY, scrollX, scrollY, MOUSE_STATE);
     }
 
+    static GamepadState getGamepadState() {
+        return new GamepadState(
+                Arrays.copyOf(GAMEPAD_BUTTON_STATE, GAMEPAD_BUTTON_STATE.length),
+                Arrays.copyOf(GAMEPAD_AXIS_STATE, GAMEPAD_AXIS_STATE.length));
+    }
+
+    static boolean isGamepadConnected() {
+        return activePadId != -1;
+    }
+
+    public static void onGamepadConnected(int jid) {
+        if (activePadId == -1) {
+            activePadId = jid;
+        }
+    }
+
+    public static void onGamepadDisconnected(int jid) {
+        if (activePadId == jid) {
+            activePadId = -1;
+            Arrays.fill(GAMEPAD_BUTTON_STATE, false);
+            Arrays.fill(PREV_GAMEPAD_BUTTON_STATE, false);
+            Arrays.fill(GAMEPAD_AXIS_STATE, 0f);
+        }
+    }
+
     static float readFloat(InputAction action) {
         for (var binding : action.bindings()) {
-            if (binding instanceof InputBinding.KeyBinding kb
-                    && KEY_STATE[kb.key().ordinal()]) {
+            if (binding instanceof InputBinding.KeyBinding kb && KEY_STATE[kb.key().ordinal()]) {
                 return 1f;
             }
-            if (binding instanceof InputBinding.MouseButtonBinding mb
-                    && MOUSE_STATE[mb.button().ordinal()]) {
+            if (binding instanceof InputBinding.MouseButtonBinding mb && MOUSE_STATE[mb.button().ordinal()]) {
+                return 1f;
+            }
+            if (binding instanceof InputBinding.GamepadButtonBinding gb
+                    && GAMEPAD_BUTTON_STATE[gb.button().glfwCode()]) {
                 return 1f;
             }
         }
@@ -64,12 +100,13 @@ public final class InputSystem {
 
     /**
      * Called once per frame <em>before</em> {@code Window.pollEvents()}.
-     * Resets per-frame scroll, then advances BUTTON actions from STARTED → PERFORMED
-     * and drives VECTOR2 composite actions.
+     * Polls the gamepad, resets per-frame scroll, then advances BUTTON actions from
+     * STARTED → PERFORMED and drives VECTOR2 composite actions.
      */
     public static void update() {
         scrollX = 0f;
         scrollY = 0f;
+        pollGamepad();
         for (var action : activeActions) {
             if (action.getType() == ActionType.BUTTON && action.getPhase() == ActionPhase.STARTED) {
                 action.transitionTo(ActionPhase.PERFORMED);
@@ -173,6 +210,71 @@ public final class InputSystem {
         scrollY += (float) yOffset;
     }
 
+    private static void pollGamepad() {
+        if (activePadId == -1) {
+            return;
+        }
+        try (var stack = MemoryStack.stackPush()) {
+            var state = GLFWGamepadState.malloc(stack);
+            if (!glfwGetGamepadState(activePadId, state)) {
+                return;
+            }
+            System.arraycopy(GAMEPAD_BUTTON_STATE, 0, PREV_GAMEPAD_BUTTON_STATE, 0, GAMEPAD_BUTTON_STATE.length);
+            for (int i = 0; i < GAMEPAD_BUTTON_STATE.length; i++) {
+                GAMEPAD_BUTTON_STATE[i] = state.buttons(i) == GLFW_PRESS;
+            }
+            for (int i = 0; i < GAMEPAD_AXIS_STATE.length; i++) {
+                var raw = state.axes(i);
+                GAMEPAD_AXIS_STATE[i] = Math.abs(raw) < STICK_DEADZONE ? 0f : raw;
+            }
+            for (int i = 0; i < GAMEPAD_BUTTON_STATE.length; i++) {
+                var pressed = GAMEPAD_BUTTON_STATE[i];
+                var wasPressed = PREV_GAMEPAD_BUTTON_STATE[i];
+                if (pressed == wasPressed) {
+                    continue;
+                }
+                var button = GamepadButton.values()[i];
+                if (pressed) {
+                    processGamepadButtonPressed(button);
+                } else {
+                    processGamepadButtonReleased(button);
+                }
+            }
+        }
+    }
+
+    private static void processGamepadButtonPressed(GamepadButton button) {
+        for (var action : activeActions) {
+            if (action.getType() != ActionType.BUTTON || action.getPhase() != ActionPhase.WAITING) {
+                continue;
+            }
+            for (var binding : action.bindings()) {
+                if (binding instanceof InputBinding.GamepadButtonBinding gb && gb.button() == button) {
+                    action.transitionTo(ActionPhase.STARTED);
+                    break;
+                }
+            }
+        }
+    }
+
+    private static void processGamepadButtonReleased(GamepadButton button) {
+        for (var action : activeActions) {
+            if (action.getType() != ActionType.BUTTON) {
+                continue;
+            }
+            var phase = action.getPhase();
+            if (phase != ActionPhase.STARTED && phase != ActionPhase.PERFORMED) {
+                continue;
+            }
+            var boundToThisButton = action.bindings().stream()
+                    .anyMatch(b -> b instanceof InputBinding.GamepadButtonBinding gb && gb.button() == button);
+            if (boundToThisButton && !isAnyBindingActive(action)) {
+                action.transitionTo(ActionPhase.CANCELED);
+                action.transitionTo(ActionPhase.WAITING);
+            }
+        }
+    }
+
     private static void updateVector2Action(InputAction action) {
         var vec = computeVector2(action);
         var active = vec.x != 0f || vec.y != 0f;
@@ -188,36 +290,46 @@ public final class InputSystem {
 
     private static Vector2f computeVector2(InputAction action) {
         for (var binding : action.bindings()) {
-            if (!(binding instanceof InputBinding.Vector2CompositeBinding composite)) {
-                continue;
+            if (binding instanceof InputBinding.Vector2CompositeBinding composite) {
+                float x = 0f;
+                float y = 0f;
+                if (composite.right() != null && KEY_STATE[composite.right().ordinal()]) {
+                    x += 1f;
+                }
+                if (composite.left() != null && KEY_STATE[composite.left().ordinal()]) {
+                    x -= 1f;
+                }
+                if (composite.up() != null && KEY_STATE[composite.up().ordinal()]) {
+                    y += 1f;
+                }
+                if (composite.down() != null && KEY_STATE[composite.down().ordinal()]) {
+                    y -= 1f;
+                }
+                if (x != 0f || y != 0f) {
+                    return new Vector2f(x, y);
+                }
             }
-            float x = 0f;
-            float y = 0f;
-            if (composite.right() != null && KEY_STATE[composite.right().ordinal()]) {
-                x += 1f;
+            if (binding instanceof InputBinding.GamepadStickCompositeBinding stick) {
+                var x = GAMEPAD_AXIS_STATE[stick.xAxis().glfwCode()];
+                var y = -GAMEPAD_AXIS_STATE[stick.yAxis().glfwCode()]; // invert GLFW Y convention
+                if (x != 0f || y != 0f) {
+                    return new Vector2f(x, y);
+                }
             }
-            if (composite.left() != null && KEY_STATE[composite.left().ordinal()]) {
-                x -= 1f;
-            }
-            if (composite.up() != null && KEY_STATE[composite.up().ordinal()]) {
-                y += 1f;
-            }
-            if (composite.down() != null && KEY_STATE[composite.down().ordinal()]) {
-                y -= 1f;
-            }
-            return new Vector2f(x, y);
         }
         return new Vector2f(0f, 0f);
     }
 
     private static boolean isAnyBindingActive(InputAction action) {
         for (var binding : action.bindings()) {
-            if (binding instanceof InputBinding.KeyBinding kb
-                    && KEY_STATE[kb.key().ordinal()]) {
+            if (binding instanceof InputBinding.KeyBinding kb && KEY_STATE[kb.key().ordinal()]) {
                 return true;
             }
-            if (binding instanceof InputBinding.MouseButtonBinding mb
-                    && MOUSE_STATE[mb.button().ordinal()]) {
+            if (binding instanceof InputBinding.MouseButtonBinding mb && MOUSE_STATE[mb.button().ordinal()]) {
+                return true;
+            }
+            if (binding instanceof InputBinding.GamepadButtonBinding gb
+                    && GAMEPAD_BUTTON_STATE[gb.button().glfwCode()]) {
                 return true;
             }
         }
