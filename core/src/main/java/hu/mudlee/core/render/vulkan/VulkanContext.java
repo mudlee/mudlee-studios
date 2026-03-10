@@ -72,6 +72,7 @@ public class VulkanContext implements GraphicsContext {
 
     private final float[] clearColor = {0f, 0f, 0f, 1f};
     private VulkanTexture2D activeTexture;
+    private String rendererInfo = "";
 
     public VulkanContext(boolean debug) {
         this.debug = debug;
@@ -490,6 +491,7 @@ public class VulkanContext implements GraphicsContext {
         try (MemoryStack stack = stackPush()) {
             var props = VkPhysicalDeviceProperties.malloc(stack);
             vkGetPhysicalDeviceProperties(device.physicalDevice(), props);
+            rendererInfo = props.deviceNameString() + " (Vulkan)";
             log.debug("GPU: {}", props.deviceNameString());
             log.debug(
                     "Vulkan API: {}.{}.{}",
@@ -497,5 +499,10 @@ public class VulkanContext implements GraphicsContext {
                     VK_API_VERSION_MINOR(props.apiVersion()),
                     VK_API_VERSION_PATCH(props.apiVersion()));
         }
+    }
+
+    @Override
+    public String getRendererInfo() {
+        return rendererInfo;
     }
 }

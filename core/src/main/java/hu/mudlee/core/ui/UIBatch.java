@@ -43,9 +43,11 @@ public final class UIBatch implements Disposable {
     /**
      * Begins the UI batch for the current frame. Sets up a screen-space ortho projection (pixel
      * coordinates, origin top-left, y-down).
+     *
+     * <p>The Vulkan backend already corrects its NDC Y-inversion via a negative-height viewport in
+     * {@code VulkanContext.clear()}, so the same OpenGL-style matrix works for both backends.
      */
     public void begin() {
-        // y-down: top=0, bottom=screenH; matches UI convention
         ortho.setOrtho(0f, screenW, screenH, 0f, -1f, 1f);
         spriteBatch.begin(ortho);
     }
@@ -56,15 +58,19 @@ public final class UIBatch implements Disposable {
     }
 
     /**
-     * Draws a string using the given font with a solid outline shadow for visibility on any
+     * Draws a string using the given font with a drop shadow (+1, +1) for visibility on any
      * background. {@code x} and {@code y} are the top-left origin in screen pixels.
      */
     public void drawText(BitmapFont font, String text, float x, float y, Color color) {
-        // Render shadow in all 4 diagonal directions to create a solid outline
-        drawTextRaw(font, text, x - 1, y - 1, SHADOW_COLOR, quad);
-        drawTextRaw(font, text, x + 1, y - 1, SHADOW_COLOR, quad);
-        drawTextRaw(font, text, x - 1, y + 1, SHADOW_COLOR, quad);
-        drawTextRaw(font, text, x + 1, y + 1, SHADOW_COLOR, quad);
+        drawText(font, text, x, y, color, SHADOW_COLOR);
+    }
+
+    /**
+     * Draws a string with an explicit shadow colour (used by warning levels that override the default
+     * dark shadow, e.g. CRITICAL renders a black outline around red text).
+     */
+    public void drawText(BitmapFont font, String text, float x, float y, Color color, Color shadowColor) {
+        drawTextRaw(font, text, x + 1, y + 1, shadowColor, quad);
         drawTextRaw(font, text, x, y, color, quad);
     }
 

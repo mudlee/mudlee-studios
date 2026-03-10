@@ -5,6 +5,7 @@ import static org.lwjgl.system.MemoryStack.stackPush;
 import static org.lwjgl.vulkan.VK12.*;
 
 import hu.mudlee.core.io.ResourceLoader;
+import hu.mudlee.core.render.Renderer;
 import hu.mudlee.core.render.texture.Texture2D;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.vulkan.*;
@@ -50,6 +51,7 @@ public class VulkanTexture2D extends Texture2D {
         allocateAndWriteDescriptorSet(ctx);
 
         log.debug("VulkanTexture2D created: {}", path);
+        Renderer.incrementTextureCount();
     }
 
     /** Creates a texture from raw RGBA8 pixel data (e.g. a font atlas). */
@@ -66,6 +68,7 @@ public class VulkanTexture2D extends Texture2D {
         allocateAndWriteDescriptorSet(ctx);
 
         log.debug("VulkanTexture2D created from pixels: {}x{}", width, height);
+        Renderer.incrementTextureCount();
     }
 
     @Override
@@ -112,6 +115,7 @@ public class VulkanTexture2D extends Texture2D {
         if (imageMemory != VK_NULL_HANDLE) {
             vkFreeMemory(device.device(), imageMemory, null);
         }
+        Renderer.decrementTextureCount();
         log.debug("VulkanTexture2D disposed: {}", path);
     }
 

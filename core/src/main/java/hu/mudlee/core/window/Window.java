@@ -67,6 +67,10 @@ public class Window implements Disposable {
         return get().size;
     }
 
+    public static int getPixelRatio() {
+        return ScreenPixelRatioHandler.get();
+    }
+
     public static void create() {
         log.info("Creating window...");
 

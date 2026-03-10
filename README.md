@@ -30,3 +30,7 @@ $ ./gradlew spotlessApply
 # Check formatting without modifying files (exits non-zero if anything is unformatted)
 $ ./gradlew spotlessCheck
 ```
+
+# TODOs
+
+- Add cli flag to pick rendering backend (OpenGL or Vulkan)

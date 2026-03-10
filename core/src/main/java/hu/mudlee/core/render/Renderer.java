@@ -10,6 +10,9 @@ import org.joml.Vector4f;
 
 public class Renderer implements WindowEventListener {
     private static int drawCallCount = 0;
+    private static int vertexCount = 0;
+    private static int textureCount = 0;
+    private static int spriteBatchFlushCount = 0;
 
     private final GraphicsContext context;
     private static Renderer instance;
@@ -102,6 +105,8 @@ public class Renderer implements WindowEventListener {
 
     public static void clear() {
         drawCallCount = 0;
+        vertexCount = 0;
+        spriteBatchFlushCount = 0;
         get().context.clear();
     }
 
@@ -111,6 +116,38 @@ public class Renderer implements WindowEventListener {
 
     public static int getDrawCallCount() {
         return drawCallCount;
+    }
+
+    public static void incrementVertexCount(int count) {
+        vertexCount += count;
+    }
+
+    public static int getVertexCount() {
+        return vertexCount;
+    }
+
+    public static void incrementTextureCount() {
+        textureCount++;
+    }
+
+    public static void decrementTextureCount() {
+        textureCount--;
+    }
+
+    public static int getTextureCount() {
+        return textureCount;
+    }
+
+    public static void incrementSpriteBatchFlushCount() {
+        spriteBatchFlushCount++;
+    }
+
+    public static int getSpriteBatchFlushCount() {
+        return spriteBatchFlushCount;
+    }
+
+    public static String getRendererInfo() {
+        return get().context.getRendererInfo();
     }
 
     public static void dispose() {

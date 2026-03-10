@@ -16,7 +16,7 @@ public class SandboxApplication extends Game {
                 .setPreferredBackBufferHeight(1080)
                 .setVSync(true)
                 .setFullscreen(false)
-                .setPreferredBackend(RenderBackend.VULKAN);
+                .setPreferredBackend(RenderBackend.OPENGL);
     }
 
     @Override

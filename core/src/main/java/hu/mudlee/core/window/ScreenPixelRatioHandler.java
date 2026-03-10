@@ -16,11 +16,16 @@ public class ScreenPixelRatioHandler {
     private static final Logger log = LoggerFactory.getLogger(ScreenPixelRatioHandler.class);
     private static int ratioTmp;
 
+    public static int get() {
+        return ratioTmp;
+    }
+
     public static int set(long windowId, GLFWVidMode vidMode) {
         // Check if the monitor is 4K
         if (vidMode.width() >= UHD_MIN_WIDTH && vidMode.height() >= UHD_MIN_HEIGHT) {
+            ratioTmp = 2;
             log.debug("Screen pixel ratio has been calculated to: 2");
-            return 2;
+            return ratioTmp;
         }
 
         var widthScreenCoordBuf = MemoryUtil.memAllocInt(1);

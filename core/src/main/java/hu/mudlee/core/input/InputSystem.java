@@ -70,10 +70,12 @@ public final class InputSystem {
 
     static float readFloat(InputAction action) {
         for (var binding : action.bindings()) {
-            if (binding instanceof InputBinding.KeyBinding kb && KEY_STATE[kb.key().ordinal()]) {
+            if (binding instanceof InputBinding.KeyBinding kb
+                    && KEY_STATE[kb.key().ordinal()]) {
                 return 1f;
             }
-            if (binding instanceof InputBinding.MouseButtonBinding mb && MOUSE_STATE[mb.button().ordinal()]) {
+            if (binding instanceof InputBinding.MouseButtonBinding mb
+                    && MOUSE_STATE[mb.button().ordinal()]) {
                 return 1f;
             }
             if (binding instanceof InputBinding.GamepadButtonBinding gb
@@ -322,10 +324,12 @@ public final class InputSystem {
 
     private static boolean isAnyBindingActive(InputAction action) {
         for (var binding : action.bindings()) {
-            if (binding instanceof InputBinding.KeyBinding kb && KEY_STATE[kb.key().ordinal()]) {
+            if (binding instanceof InputBinding.KeyBinding kb
+                    && KEY_STATE[kb.key().ordinal()]) {
                 return true;
             }
-            if (binding instanceof InputBinding.MouseButtonBinding mb && MOUSE_STATE[mb.button().ordinal()]) {
+            if (binding instanceof InputBinding.MouseButtonBinding mb
+                    && MOUSE_STATE[mb.button().ordinal()]) {
                 return true;
             }
             if (binding instanceof InputBinding.GamepadButtonBinding gb

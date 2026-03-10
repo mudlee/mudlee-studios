@@ -242,8 +242,10 @@ public class SpriteBatch2D implements Disposable, RenderContext {
         dynamicVbo.update(vertexData, floatCount);
         currentTexture.bind();
         Renderer.setBlend(true, BlendFactor.SRC_ALPHA, BlendFactor.ONE_MINUS_SRC_ALPHA);
+        Renderer.incrementVertexCount(spriteCount * VERTICES_PER_SPRITE);
         Renderer.renderRaw(vertexArray, shader, RenderMode.TRIANGLES, PolygonMode.FILL);
         Renderer.setBlend(false, BlendFactor.SRC_ALPHA, BlendFactor.ONE_MINUS_SRC_ALPHA);
+        Renderer.incrementSpriteBatchFlushCount();
         spriteCount = 0;
         currentTexture = null;
     }

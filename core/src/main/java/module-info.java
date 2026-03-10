@@ -11,6 +11,7 @@ module hu.mudlee.core {
     requires org.lwjgl.stb.natives;
     requires org.lwjgl.vulkan;
     requires transitive org.joml;
+    requires java.management;
 
     exports hu.mudlee.core;
     exports hu.mudlee.core.content;

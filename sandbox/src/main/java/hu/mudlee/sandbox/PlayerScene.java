@@ -80,17 +80,29 @@ public class PlayerScene implements Screen {
 
         actions = new InputActionMap("Player");
         var moveAction = actions.addAction("Move", ActionType.VECTOR2);
-        moveAction.addCompositeBinding().up(Keys.UP).down(Keys.DOWN).left(Keys.LEFT).right(Keys.RIGHT);
+        moveAction
+                .addCompositeBinding()
+                .up(Keys.UP)
+                .down(Keys.DOWN)
+                .left(Keys.LEFT)
+                .right(Keys.RIGHT);
         moveAction.addStickCompositeBinding(GamepadAxis.LEFT_X, GamepadAxis.LEFT_Y);
 
         var attackAction = actions.addAction("Attack").addBinding(Keys.SPACE).addBinding(GamepadButton.A);
         var dieAction = actions.addAction("Die").addBinding(Keys.X).addBinding(GamepadButton.B);
-        actions.addAction("Exit").addBinding(Keys.ESCAPE).addBinding(GamepadButton.START).onPerformed(ctx -> game.exit());
+        actions.addAction("Exit")
+                .addBinding(Keys.ESCAPE)
+                .addBinding(GamepadButton.START)
+                .onPerformed(ctx -> game.exit());
         actions.enable();
 
         world.addSystem(new PlayerControlSystem(moveAction, attackAction, dieAction));
 
-        world.entities.getComponent(cameraEntity, CameraComponent.class).camera.position.set(960, 540);
+        world.entities
+                .getComponent(cameraEntity, CameraComponent.class)
+                .camera
+                .position
+                .set(960, 540);
     }
 
     @Override
@@ -100,7 +112,7 @@ public class PlayerScene implements Screen {
 
     @Override
     public void draw(GameTime gameTime) {
-        graphicsDevice.clear(Color.WHITE);
+        graphicsDevice.clear(Color.BLACK);
         var camera = world.entities.getComponent(cameraEntity, CameraComponent.class).camera;
         spriteBatch.begin(camera.getTransformMatrix());
         world.render(spriteBatch);

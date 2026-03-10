@@ -39,4 +39,9 @@ public interface GraphicsContext extends Disposable {
 
     /** Block until the GPU has finished all in-flight work. No-op for stateless backends. */
     default void waitIdle() {}
+
+    /** Returns a human-readable string identifying the GPU and backend, e.g. "RTX 4090 (OpenGL)". */
+    default String getRendererInfo() {
+        return "";
+    }
 }

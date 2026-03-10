@@ -97,16 +97,18 @@ public final class PlayerControlSystem extends EntityProcessingSystem {
 
     private String animFor(State s, Direction d) {
         return switch (s) {
-            case IDLE -> switch (d) {
-                case DOWN -> "IdleDown";
-                case UP -> "IdleUp";
-                default -> "IdleRight";
-            };
-            case WALK -> switch (d) {
-                case DOWN -> "WalkDown";
-                case UP -> "WalkUp";
-                default -> "WalkRight";
-            };
+            case IDLE ->
+                switch (d) {
+                    case DOWN -> "IdleDown";
+                    case UP -> "IdleUp";
+                    default -> "IdleRight";
+                };
+            case WALK ->
+                switch (d) {
+                    case DOWN -> "WalkDown";
+                    case UP -> "WalkUp";
+                    default -> "WalkRight";
+                };
             case ATTACK -> attackFor(d);
             case DIE -> "Die";
         };

@@ -23,7 +23,17 @@
       "Bash(where py:*)",
       "Bash(node:*)",
       "WebFetch(domain:medium.com)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(./gradlew spotlessApply:*)",
+      "Bash(./gradlew build:*)",
+      "WebFetch(domain:libgdx.badlogicgames.com)",
+      "Bash(./gradlew :core:compileJava :sandbox:compileJava 2>&1 | tail -20)",
+      "Bash(./gradlew :sandbox:compileJava 2>&1 | tail -15)",
+      "Bash(./gradlew :core:compileJava:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "WebFetch(domain:www.glfw.org)",
+      "WebFetch(domain:javadoc.lwjgl.org)"
     ]
   }
 }

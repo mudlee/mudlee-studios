@@ -20,7 +20,20 @@ import java.util.Deque;
  */
 public final class ScreenManager extends GameService {
 
+    private static ScreenManager instance;
+
     private final Deque<Screen> stack = new ArrayDeque<>();
+
+    public ScreenManager() {
+        instance = this;
+    }
+
+    public static String getActiveScreenName() {
+        if (instance == null || instance.stack.isEmpty()) {
+            return "";
+        }
+        return instance.stack.peek().getClass().getSimpleName();
+    }
 
     /** Replaces the entire stack with {@code screen}. All previous screens are disposed. */
     public void set(Screen screen) {

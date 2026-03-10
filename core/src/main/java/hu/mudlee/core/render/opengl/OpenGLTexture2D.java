@@ -3,6 +3,7 @@ package hu.mudlee.core.render.opengl;
 import static org.lwjgl.opengl.GL41.*;
 import static org.lwjgl.stb.STBImage.stbi_image_free;
 
+import hu.mudlee.core.render.Renderer;
 import hu.mudlee.core.render.texture.Texture2D;
 import hu.mudlee.core.render.texture.TextureLoader;
 import org.slf4j.Logger;
@@ -47,6 +48,7 @@ public class OpenGLTexture2D extends Texture2D {
         // Free memory
         stbi_image_free(data.image());
         unBind();
+        Renderer.incrementTextureCount();
     }
 
     /** Creates a texture directly from raw RGBA8 pixel data (e.g. font atlas or procedural textures). */
@@ -61,6 +63,7 @@ public class OpenGLTexture2D extends Texture2D {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
         unBind();
+        Renderer.incrementTextureCount();
     }
 
     @Override
@@ -92,6 +95,7 @@ public class OpenGLTexture2D extends Texture2D {
     @Override
     public void dispose() {
         glDeleteTextures(textureId);
+        Renderer.decrementTextureCount();
     }
 
     private int mapChannelsToColorFormat(int channels) {

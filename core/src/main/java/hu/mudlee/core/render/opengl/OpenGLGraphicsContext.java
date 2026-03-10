@@ -25,6 +25,7 @@ public class OpenGLGraphicsContext implements GraphicsContext {
     private int clearFlags = 0;
     private long windowId;
     private PolygonMode prevPolygonMode = PolygonMode.FILL;
+    private String rendererInfo = "";
 
     public OpenGLGraphicsContext(boolean debug) {
         this.debug = debug;
@@ -65,6 +66,7 @@ public class OpenGLGraphicsContext implements GraphicsContext {
         log.debug("\tShading Language Version: {}", glGetString(GL_SHADING_LANGUAGE_VERSION));
         log.debug("\tVsync: {}", vSync);
 
+        rendererInfo = glGetString(GL_RENDERER) + " (OpenGL)";
         glfwSwapInterval(vSync ? GLFW_TRUE : GLFW_FALSE);
     }
 
@@ -184,6 +186,11 @@ public class OpenGLGraphicsContext implements GraphicsContext {
 
     @Override
     public void dispose() {}
+
+    @Override
+    public String getRendererInfo() {
+        return rendererInfo;
+    }
 
     private static int toGL(BlendFactor factor) {
         return switch (factor) {

@@ -28,6 +28,7 @@ public final class UIService extends GameService {
     private final UICanvas canvas = new UICanvas();
     private BitmapFont defaultFont;
     private int screenW, screenH;
+    private boolean started = false;
 
     public UIService() {
         var size = Window.getSize();
@@ -35,7 +36,6 @@ public final class UIService extends GameService {
         screenH = (int) size.y;
         uiBatch.resize(screenW, screenH);
         defaultFont = new BitmapFont(DEFAULT_FONT, DEFAULT_FONT_SIZE);
-        canvas.start();
     }
 
     public UICanvas getCanvas() {
@@ -52,6 +52,10 @@ public final class UIService extends GameService {
 
     @Override
     public void update(GameTime gameTime) {
+        if (!started) {
+            started = true;
+            canvas.start();
+        }
         canvas.update(gameTime);
     }
 
