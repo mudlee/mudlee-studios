@@ -10,6 +10,8 @@ public final class World implements Disposable {
     private final SystemManager systems = new SystemManager();
 
     public void addSystem(SystemBase system) {
+        system.injectEntityManager(entities);
+        system.initialize(new ComponentMapperService(entities));
         system.onStart();
         systems.add(system);
     }

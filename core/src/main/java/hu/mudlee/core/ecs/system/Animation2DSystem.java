@@ -1,24 +1,34 @@
 package hu.mudlee.core.ecs.system;
 
 import hu.mudlee.core.GameTime;
-import hu.mudlee.core.ecs.EntityManager;
-import hu.mudlee.core.ecs.SystemBase;
+import hu.mudlee.core.ecs.Aspect;
+import hu.mudlee.core.ecs.ComponentMapper;
+import hu.mudlee.core.ecs.ComponentMapperService;
+import hu.mudlee.core.ecs.Entity;
+import hu.mudlee.core.ecs.EntityProcessingSystem;
 import hu.mudlee.core.ecs.component.Animation2DComponent;
 import hu.mudlee.core.ecs.component.Sprite2DComponent;
 
-public final class Animation2DSystem extends SystemBase {
+public final class Animation2DSystem extends EntityProcessingSystem {
 
-    public Animation2DSystem(EntityManager em) {
-        super(em);
+    private ComponentMapper<Animation2DComponent> animMapper;
+    private ComponentMapper<Sprite2DComponent> spriteMapper;
+
+    public Animation2DSystem() {
+        super(Aspect.all(Animation2DComponent.class, Sprite2DComponent.class));
     }
 
     @Override
-    public void update(GameTime gameTime) {
-        for (var entity : em.getEntitiesWith(Animation2DComponent.class, Sprite2DComponent.class)) {
-            var anim = em.getComponent(entity, Animation2DComponent.class);
-            var sprite = em.getComponent(entity, Sprite2DComponent.class);
-            anim.player.update(gameTime);
-            sprite.region = anim.player.getCurrentFrame();
-        }
+    public void initialize(ComponentMapperService mappers) {
+        animMapper = mappers.getMapper(Animation2DComponent.class);
+        spriteMapper = mappers.getMapper(Sprite2DComponent.class);
+    }
+
+    @Override
+    protected void process(GameTime gameTime, Entity entity) {
+        var anim = animMapper.get(entity);
+        var sprite = spriteMapper.get(entity);
+        anim.player.update(gameTime);
+        sprite.region = anim.player.getCurrentFrame();
     }
 }

@@ -14,6 +14,7 @@ import hu.mudlee.core.ecs.component.Sprite2DComponent;
 import hu.mudlee.core.ecs.component.Transform2DComponent;
 import hu.mudlee.core.ecs.system.Animation2DSystem;
 import hu.mudlee.core.ecs.system.SpriteRender2DSystem;
+import hu.mudlee.core.input.ActionType;
 import hu.mudlee.core.input.InputActionMap;
 import hu.mudlee.core.input.Keys;
 import hu.mudlee.core.render.SpriteBatch2D;
@@ -43,8 +44,8 @@ public class PlayerScene implements Screen {
         spriteBatch = new SpriteBatch2D();
         cameraEntity = world.entities.createEntity();
         world.entities.addComponent(cameraEntity, new CameraComponent(new OrthographicCamera2D()));
-        world.addSystem(new Animation2DSystem(world.entities));
-        world.addSystem(new SpriteRender2DSystem(world.entities));
+        world.addSystem(new Animation2DSystem());
+        world.addSystem(new SpriteRender2DSystem());
 
         content = new ContentManager("textures");
         var texture = content.load(Texture2D.class, "sprites/player");
@@ -75,13 +76,18 @@ public class PlayerScene implements Screen {
         world.entities.addComponent(player, anim);
         world.entities.addComponent(player, new PlayerStateComponent(300f));
 
-        world.addSystem(new PlayerControlSystem(world.entities));
-
-        world.entities.getComponent(cameraEntity, CameraComponent.class).camera.position.set(960, 540);
-
         actions = new InputActionMap("Player");
+        var moveAction = actions.addAction("Move", ActionType.VECTOR2);
+        moveAction.addCompositeBinding().up(Keys.UP).down(Keys.DOWN).left(Keys.LEFT).right(Keys.RIGHT);
+
+        var attackAction = actions.addAction("Attack").addBinding(Keys.SPACE);
+        var dieAction = actions.addAction("Die").addBinding(Keys.X);
         actions.addAction("Exit").addBinding(Keys.ESCAPE).onPerformed(ctx -> game.exit());
         actions.enable();
+
+        world.addSystem(new PlayerControlSystem(moveAction, attackAction, dieAction));
+
+        world.entities.getComponent(cameraEntity, CameraComponent.class).camera.position.set(960, 540);
     }
 
     @Override

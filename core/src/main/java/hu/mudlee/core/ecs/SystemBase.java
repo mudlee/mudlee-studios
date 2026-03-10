@@ -4,11 +4,19 @@ import hu.mudlee.core.GameTime;
 
 public abstract class SystemBase {
 
-    protected final EntityManager em;
+    protected EntityManager em;
 
     protected SystemBase(EntityManager em) {
         this.em = em;
     }
+
+    protected SystemBase() {}
+
+    void injectEntityManager(EntityManager em) {
+        this.em = em;
+    }
+
+    public void initialize(ComponentMapperService mappers) {}
 
     public void onStart() {}
 

@@ -9,6 +9,8 @@ public abstract class RenderSystemBase extends SystemBase {
         super(em);
     }
 
+    protected RenderSystemBase() {}
+
     public abstract void render(RenderContext context);
 
     @Override
