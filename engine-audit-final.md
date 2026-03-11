@@ -148,7 +148,7 @@ The engine has a solid architectural foundation: clean HAL abstraction, modern E
 
 ---
 
-#### 13. ECS cache cleared on every structural change
+#### 13. ECS cache cleared on every structural change - DONE
 
 **File:** `EntityManager.java`
 
@@ -158,7 +158,7 @@ The engine has a solid architectural foundation: clean HAL abstraction, modern E
 
 ---
 
-#### 14. `getEntitiesWith()` allocates `HashSet` per call
+#### 14. `getEntitiesWith()` allocates `HashSet` per call - DONE
 
 **File:** `EntityManager.java:72`
 

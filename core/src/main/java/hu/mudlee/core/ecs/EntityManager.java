@@ -12,10 +12,11 @@ import java.util.Set;
 public final class EntityManager {
 
     private int nextId = 0;
+    private long structureVersion = 0;
 
     private final Map<Class<? extends Component>, Map<Integer, Component>> byType = new HashMap<>();
     private final Map<Integer, Set<Class<? extends Component>>> byEntity = new HashMap<>();
-    private final Map<Set<Class<? extends Component>>, List<Entity>> queryCache = new HashMap<>();
+    private final Map<AspectKey, CachedQuery> queryCache = new HashMap<>();
 
     public Entity createEntity() {
         var e = new Entity(nextId++);
@@ -30,13 +31,13 @@ public final class EntityManager {
                 byType.get(type).remove(entity.id());
             }
         }
-        queryCache.clear();
+        structureVersion++;
     }
 
     public <T extends Component> void addComponent(Entity entity, T component) {
         byType.computeIfAbsent(component.getClass(), k -> new HashMap<>()).put(entity.id(), component);
         byEntity.get(entity.id()).add(component.getClass());
-        queryCache.clear();
+        structureVersion++;
     }
 
     public void removeComponent(Entity entity, Class<? extends Component> type) {
@@ -48,7 +49,7 @@ public final class EntityManager {
         if (types != null) {
             types.remove(type);
         }
-        queryCache.clear();
+        structureVersion++;
     }
 
     @SuppressWarnings("unchecked")
@@ -69,8 +70,14 @@ public final class EntityManager {
 
     @SafeVarargs
     public final List<Entity> getEntitiesWith(Class<? extends Component>... required) {
-        var key = new HashSet<Class<? extends Component>>(Arrays.asList(required));
-        return queryCache.computeIfAbsent(key, k -> buildQuery(required));
+        var key = new AspectKey(required);
+        var cached = queryCache.get(key);
+        if (cached != null && cached.version == structureVersion) {
+            return cached.entities;
+        }
+        var result = buildQuery(required);
+        queryCache.put(key, new CachedQuery(structureVersion, result));
+        return result;
     }
 
     @SafeVarargs
@@ -99,4 +106,34 @@ public final class EntityManager {
         }
         return Collections.unmodifiableList(result);
     }
+
+    private static final class AspectKey {
+        private final Class<? extends Component>[] types;
+        private final int hashCode;
+
+        @SafeVarargs
+        AspectKey(Class<? extends Component>... types) {
+            this.types = types.clone();
+            Arrays.sort(this.types, (a, b) -> a.getName().compareTo(b.getName()));
+            this.hashCode = Arrays.hashCode(this.types);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (!(o instanceof AspectKey other)) {
+                return false;
+            }
+            return Arrays.equals(types, other.types);
+        }
+
+        @Override
+        public int hashCode() {
+            return hashCode;
+        }
+    }
+
+    private record CachedQuery(long version, List<Entity> entities) {}
 }
