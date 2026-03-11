@@ -118,7 +118,7 @@ The engine has a solid architectural foundation: clean HAL abstraction, modern E
 
 ---
 
-#### 10. OrthographicCamera2D: No dirty flag
+#### 10. OrthographicCamera2D: No dirty flag - DONE
 
 **File:** `OrthographicCamera2D.java`
 

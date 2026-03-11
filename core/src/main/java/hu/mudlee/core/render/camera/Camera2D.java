@@ -11,12 +11,40 @@ import org.joml.Vector2f;
  * the combined projection × view matrix returned by {@link #getTransformMatrix()}.
  *
  * <p>Pass the result to {@link hu.mudlee.core.render.SpriteBatch2D#begin(Matrix4f)}.
+ *
+ * <p>Uses a dirty flag pattern: the transform matrix is only recomputed when position, zoom, or
+ * rotation changes. Call {@link #markDirty()} after modifying these fields, or use the setter
+ * methods which mark dirty automatically.
  */
 public abstract class Camera2D {
 
     public final Vector2f position = new Vector2f();
     public float zoom = 1f;
     public float rotation = 0f;
+    protected boolean dirty = true;
+
+    /** Marks the camera transform as needing recalculation. */
+    public void markDirty() {
+        dirty = true;
+    }
+
+    /** Sets position and marks the transform as dirty. */
+    public void setPosition(float x, float y) {
+        position.set(x, y);
+        dirty = true;
+    }
+
+    /** Sets zoom and marks the transform as dirty. */
+    public void setZoom(float zoom) {
+        this.zoom = zoom;
+        dirty = true;
+    }
+
+    /** Sets rotation and marks the transform as dirty. */
+    public void setRotation(float rotation) {
+        this.rotation = rotation;
+        dirty = true;
+    }
 
     /**
      * Returns the combined projection × view matrix for this camera.
