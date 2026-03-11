@@ -215,8 +215,8 @@ public final class DebugStatsComponent extends UIComponent {
                 }
             }
         }
-        minFps = minFrameTime > 0f ? 1f / minFrameTime : 0f;
-        maxFps = maxFrameTime > 0f ? 1f / maxFrameTime : 0f;
+        minFps = maxFrameTime > 0f ? 1f / maxFrameTime : 0f;
+        maxFps = minFrameTime > 0f ? 1f / minFrameTime : 0f;
 
         // Heap
         var rt = Runtime.getRuntime();

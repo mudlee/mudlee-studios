@@ -112,6 +112,17 @@ public abstract class Game implements WindowEventListener {
             }
 
             Renderer.swapBuffers(deltaTime);
+
+            var elapsed = Time.getTime() - beginTime;
+            while (elapsed < TARGET_ELAPSED_SECONDS) {
+                try {
+                    Thread.sleep(1);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+                elapsed = Time.getTime() - beginTime;
+            }
+
             endTime = Time.getTime();
             deltaTime = endTime - beginTime;
             beginTime = endTime;

@@ -101,8 +101,9 @@ public class OpenGLGraphicsContext implements GraphicsContext {
             } else {
                 var vbos = vao.getVBOs();
                 for (int i = 0; i < vbos.size(); i++) {
-                    // NOTE: we suppose that vertex coordinates always passed as vec3
-                    glDrawArraysInstanced(renderMode.glRef, 0, vbos.get(i).getLength() / 3, vao.getInstanceCount());
+                    var vbo = vbos.get(i);
+                    var vertexCount = vertexCount(vbo);
+                    glDrawArraysInstanced(renderMode.glRef, 0, vertexCount, vao.getInstanceCount());
                 }
             }
         } else {
@@ -111,8 +112,8 @@ public class OpenGLGraphicsContext implements GraphicsContext {
             } else {
                 var vbos = vao.getVBOs();
                 for (int i = 0; i < vbos.size(); i++) {
-                    // NOTE: we suppose that vertex coordinates always passed as vec3
-                    glDrawArrays(renderMode.glRef, 0, vbos.get(i).getLength() / 3);
+                    var vbo = vbos.get(i);
+                    glDrawArrays(renderMode.glRef, 0, vertexCount(vbo));
                 }
             }
         }
@@ -190,6 +191,11 @@ public class OpenGLGraphicsContext implements GraphicsContext {
     @Override
     public String getRendererInfo() {
         return rendererInfo;
+    }
+
+    private static int vertexCount(hu.mudlee.core.render.VertexBuffer vbo) {
+        var strideBytes = vbo.getLayout().attributes()[0].getStride();
+        return (vbo.getLength() * Float.BYTES) / strideBytes;
     }
 
     private static int toGL(BlendFactor factor) {
