@@ -238,7 +238,7 @@ The engine has a solid architectural foundation: clean HAL abstraction, modern E
 
 ---
 
-#### 22. Timing precision uses float for absolute time
+#### 22. Timing precision uses float for absolute time - DONE
 
 **Files:** `Time.java:3-8`, `Game.java:91-127`, `GameTime.java:11-39`
 
