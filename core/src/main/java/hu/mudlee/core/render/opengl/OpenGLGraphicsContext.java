@@ -92,6 +92,7 @@ public class OpenGLGraphicsContext implements GraphicsContext {
 
         if (prevPolygonMode != polygonMode) {
             glPolygonMode(GL41.GL_FRONT_AND_BACK, polygonMode.glRef);
+            prevPolygonMode = polygonMode;
         }
 
         if (vao.isInstanced()) {
@@ -166,6 +167,7 @@ public class OpenGLGraphicsContext implements GraphicsContext {
 
         if (prevPolygonMode != polygonMode) {
             glPolygonMode(GL41.GL_FRONT_AND_BACK, polygonMode.glRef);
+            prevPolygonMode = polygonMode;
         }
 
         if (vao.getEBO().isPresent()) {
