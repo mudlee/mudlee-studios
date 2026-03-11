@@ -7,6 +7,7 @@ import static org.lwjgl.vulkan.VK12.*;
 import hu.mudlee.core.io.ResourceLoader;
 import hu.mudlee.core.render.Renderer;
 import hu.mudlee.core.render.texture.Texture2D;
+import java.nio.ByteBuffer;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.vulkan.*;
 import org.slf4j.Logger;
@@ -29,6 +30,7 @@ public class VulkanTexture2D extends Texture2D {
 
     private final VulkanDevice device;
     private final String path;
+    private final boolean pixelPerfect;
 
     private int width;
     private int height;
@@ -41,6 +43,7 @@ public class VulkanTexture2D extends Texture2D {
 
     public VulkanTexture2D(String path) {
         this.path = path;
+        this.pixelPerfect = true;
 
         var ctx = VulkanContext.get();
         this.device = ctx.device();
@@ -55,8 +58,10 @@ public class VulkanTexture2D extends Texture2D {
     }
 
     /** Creates a texture from raw RGBA8 pixel data (e.g. a font atlas). */
-    public VulkanTexture2D(java.nio.ByteBuffer pixels, int width, int height) {
-        this.path = "<pixels>";
+    // TODO: do not refer like java.nio... import it at the top.
+    public VulkanTexture2D(ByteBuffer pixels, int width, int height, boolean pixelPerfect) {
+        this.path = "<pixels>"; // TODO: what is this?
+        this.pixelPerfect = pixelPerfect;
         var ctx = VulkanContext.get();
         this.device = ctx.device();
         this.width = width;
@@ -302,11 +307,11 @@ public class VulkanTexture2D extends Texture2D {
 
     private void createSampler() {
         try (MemoryStack stack = stackPush()) {
-            // Nearest filtering matches the OpenGL GL_NEAREST behaviour used for pixel art
+            var filter = pixelPerfect ? VK_FILTER_NEAREST : VK_FILTER_LINEAR;
             var samplerInfo = VkSamplerCreateInfo.calloc(stack)
                     .sType(VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO)
-                    .magFilter(VK_FILTER_NEAREST)
-                    .minFilter(VK_FILTER_NEAREST)
+                    .magFilter(filter)
+                    .minFilter(filter)
                     .addressModeU(VK_SAMPLER_ADDRESS_MODE_REPEAT)
                     .addressModeV(VK_SAMPLER_ADDRESS_MODE_REPEAT)
                     .addressModeW(VK_SAMPLER_ADDRESS_MODE_REPEAT)

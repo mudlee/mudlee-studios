@@ -23,7 +23,8 @@ import hu.mudlee.core.render.SpriteBatch2D;
 import hu.mudlee.core.render.animation.PlayMode;
 import hu.mudlee.core.render.camera.OrthographicCamera2D;
 import hu.mudlee.core.render.texture.SpriteSheet2D;
-import hu.mudlee.core.render.texture.Texture2D;
+import hu.mudlee.core.render.texture.TextureAtlas;
+import org.joml.Vector2f;
 
 public class PlayerScene implements Screen {
 
@@ -34,6 +35,7 @@ public class PlayerScene implements Screen {
     private SpriteBatch2D spriteBatch;
     private Entity cameraEntity;
     private ContentManager content;
+    private TextureAtlas atlas;
     private InputActionMap actions;
 
     public PlayerScene(Game game, GraphicsDevice graphicsDevice) {
@@ -50,8 +52,12 @@ public class PlayerScene implements Screen {
         world.addSystem(new SpriteRender2DSystem());
 
         content = new ContentManager("textures");
-        var texture = content.load(Texture2D.class, "sprites/player");
-        var sheet = new SpriteSheet2D(texture, 48, 48);
+        atlas = new TextureAtlas.Builder()
+                .add("player", "/textures/sprites/player.png")
+                .add("mario", "/textures/mario.png")
+                .build();
+
+        var sheet = new SpriteSheet2D(atlas.getRegion("player"), 48, 48);
 
         var anim = new Animation2DComponent()
                 .add("IdleDown", sheet.createAnimation("IdleDown", 0, 0, 6, 0.12f, PlayMode.LOOP))
@@ -115,6 +121,7 @@ public class PlayerScene implements Screen {
         graphicsDevice.clear(Color.BLACK);
         var camera = world.entities.getComponent(cameraEntity, CameraComponent.class).camera;
         spriteBatch.begin(camera.getTransformMatrix());
+        spriteBatch.draw(atlas.getRegion("mario"), new Vector2f(50, 50), Color.WHITE);
         world.render(spriteBatch);
         spriteBatch.end();
     }
@@ -125,6 +132,7 @@ public class PlayerScene implements Screen {
     @Override
     public void dispose() {
         actions.disable();
+        atlas.dispose();
         content.unload();
         world.dispose();
         spriteBatch.dispose();

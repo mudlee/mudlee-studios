@@ -1,7 +1,9 @@
 package hu.mudlee.core.content;
 
 import hu.mudlee.core.Disposable;
+import hu.mudlee.core.io.ResourceLoader;
 import hu.mudlee.core.render.texture.Texture2D;
+import hu.mudlee.core.render.texture.TextureAtlas;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -59,5 +61,23 @@ public class ContentManager {
 
     private void registerDefaultLoaders() {
         registerLoader(Texture2D.class, (manager, name) -> Texture2D.create(manager.buildPath(name, ".png")));
+        registerLoader(TextureAtlas.class, (manager, name) -> {
+            var manifest = ResourceLoader.load(manager.buildPath(name, ".atlas"));
+            var builder = new TextureAtlas.Builder();
+            for (var line : manifest.lines().toList()) {
+                var trimmed = line.trim();
+                if (trimmed.isEmpty() || trimmed.startsWith("#")) {
+                    continue;
+                }
+                var eq = trimmed.indexOf('=');
+                if (eq < 0) {
+                    continue;
+                }
+                builder.add(
+                        trimmed.substring(0, eq).trim(),
+                        trimmed.substring(eq + 1).trim());
+            }
+            return builder.build();
+        });
     }
 }

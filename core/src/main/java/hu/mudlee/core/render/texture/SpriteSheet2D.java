@@ -31,6 +31,15 @@ public final class SpriteSheet2D {
         this.frameHeight = frameHeight;
     }
 
+    /** Creates a sheet from an atlas region, offsetting frame coordinates by the region's atlas position. */
+    public SpriteSheet2D(TextureRegion atlasRegion, int frameWidth, int frameHeight) {
+        this.texture = atlasRegion.texture;
+        this.frameWidth = frameWidth;
+        this.frameHeight = frameHeight;
+        this.marginX = atlasRegion.x;
+        this.marginY = atlasRegion.y;
+    }
+
     public SpriteSheet2D withMargin(int x, int y) {
         this.marginX = x;
         this.marginY = y;

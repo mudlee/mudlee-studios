@@ -4,6 +4,7 @@ import hu.mudlee.core.Disposable;
 import hu.mudlee.core.render.Renderer;
 import hu.mudlee.core.render.opengl.OpenGLTexture2D;
 import hu.mudlee.core.render.vulkan.VulkanTexture2D;
+import java.nio.ByteBuffer;
 
 public abstract class Texture2D implements Disposable {
     public static Texture2D create(String path) {
@@ -13,10 +14,14 @@ public abstract class Texture2D implements Disposable {
         };
     }
 
-    public static Texture2D createFromPixels(java.nio.ByteBuffer pixels, int width, int height) {
+    public static Texture2D createFromPixels(ByteBuffer pixels, int width, int height) {
+        return createFromPixels(pixels, width, height, false);
+    }
+
+    public static Texture2D createFromPixels(ByteBuffer pixels, int width, int height, boolean pixelPerfect) {
         return switch (Renderer.activeBackend()) {
-            case OPENGL -> new OpenGLTexture2D(pixels, width, height);
-            case VULKAN -> new VulkanTexture2D(pixels, width, height);
+            case OPENGL -> new OpenGLTexture2D(pixels, width, height, pixelPerfect);
+            case VULKAN -> new VulkanTexture2D(pixels, width, height, pixelPerfect);
         };
     }
 
