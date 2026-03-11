@@ -2,6 +2,7 @@ package hu.mudlee.core.ui;
 
 import hu.mudlee.core.GameService;
 import hu.mudlee.core.GameTime;
+import hu.mudlee.core.content.ContentManager;
 import hu.mudlee.core.render.font.BitmapFont;
 import hu.mudlee.core.window.Window;
 
@@ -26,16 +27,17 @@ public final class UIService extends GameService {
 
     private final UIBatch uiBatch = new UIBatch();
     private final UICanvas canvas = new UICanvas();
-    private BitmapFont defaultFont;
+    private final ContentManager content = new ContentManager(null);
+    private final BitmapFont defaultFont;
     private int screenW, screenH;
     private boolean started = false;
 
     public UIService() {
         var size = Window.getSize();
-        screenW = (int) size.x;
-        screenH = (int) size.y;
+        screenW = size.x;
+        screenH = size.y;
         uiBatch.resize(screenW, screenH);
-        defaultFont = new BitmapFont(DEFAULT_FONT, DEFAULT_FONT_SIZE);
+        defaultFont = content.load(BitmapFont.class, DEFAULT_FONT + "@" + DEFAULT_FONT_SIZE);
     }
 
     public UICanvas getCanvas() {
@@ -76,7 +78,7 @@ public final class UIService extends GameService {
     @Override
     public void dispose() {
         canvas.dispose();
-        defaultFont.dispose();
+        content.unload();
         uiBatch.dispose();
     }
 }

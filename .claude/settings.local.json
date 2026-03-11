@@ -33,7 +33,9 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "WebFetch(domain:www.glfw.org)",
-      "WebFetch(domain:javadoc.lwjgl.org)"
+      "WebFetch(domain:javadoc.lwjgl.org)",
+      "Bash(./gradlew :sandbox:compileJava 2>&1 | tail -20)",
+      "Bash(./gradlew :sandbox:compileJava 2>&1 | tail -10)"
     ]
   }
 }

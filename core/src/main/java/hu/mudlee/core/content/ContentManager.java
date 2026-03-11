@@ -2,6 +2,7 @@ package hu.mudlee.core.content;
 
 import hu.mudlee.core.Disposable;
 import hu.mudlee.core.io.ResourceLoader;
+import hu.mudlee.core.render.font.BitmapFont;
 import hu.mudlee.core.render.texture.Texture2D;
 import hu.mudlee.core.render.texture.TextureAtlas;
 import java.util.HashMap;
@@ -61,6 +62,15 @@ public class ContentManager {
 
     private void registerDefaultLoaders() {
         registerLoader(Texture2D.class, (manager, name) -> Texture2D.create(manager.buildPath(name, ".png")));
+        registerLoader(BitmapFont.class, (manager, name) -> {
+            var atIdx = name.lastIndexOf('@');
+            if (atIdx < 0) {
+                throw new IllegalArgumentException("BitmapFont asset name must be 'resourcePath@ptSize', got: " + name);
+            }
+            var path = name.substring(0, atIdx);
+            var ptSize = Float.parseFloat(name.substring(atIdx + 1));
+            return new BitmapFont(path, ptSize);
+        });
         registerLoader(TextureAtlas.class, (manager, name) -> {
             var manifest = ResourceLoader.load(manager.buildPath(name, ".atlas"));
             var builder = new TextureAtlas.Builder();

@@ -178,7 +178,7 @@ The engine has a solid architectural foundation: clean HAL abstraction, modern E
 
 ---
 
-#### 16. Texture atlas missing
+#### 16. Texture atlas missing - DONE
 
 **Files:** `SpriteBatch2D`, `ContentManager`
 
@@ -188,7 +188,7 @@ The engine has a solid architectural foundation: clean HAL abstraction, modern E
 
 ---
 
-#### 17. `BitmapFont` not tracked by `ContentManager`
+#### 17. `BitmapFont` not tracked by `ContentManager` - DONE
 
 **Files:** `BitmapFont.java`, `UIService.java:37`
 
