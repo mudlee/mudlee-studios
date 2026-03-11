@@ -34,7 +34,7 @@ The engine has a solid architectural foundation: clean HAL abstraction, modern E
 
 ---
 
-#### 2. Vulkan: No Vulkan Memory Allocator (VMA)
+#### 2. Vulkan: No Vulkan Memory Allocator (VMA) - DONE
 
 **Files:** `VulkanBuffer.java:50`, `VulkanTexture2D.java:210`
 

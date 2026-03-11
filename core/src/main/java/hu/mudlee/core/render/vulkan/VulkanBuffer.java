@@ -1,28 +1,34 @@
 package hu.mudlee.core.render.vulkan;
 
 import static org.lwjgl.system.MemoryStack.stackPush;
+import static org.lwjgl.util.vma.Vma.*;
 import static org.lwjgl.vulkan.VK12.*;
 
 import hu.mudlee.core.Disposable;
 import java.nio.ByteBuffer;
 import java.util.function.Consumer;
 import org.lwjgl.system.MemoryStack;
-import org.lwjgl.vulkan.*;
+import org.lwjgl.util.vma.VmaAllocationCreateInfo;
+import org.lwjgl.vulkan.VkBufferCopy;
+import org.lwjgl.vulkan.VkBufferCreateInfo;
 
 /**
- * Low-level Vulkan buffer + device memory pair. Used as a building block for vertex, index,
- * uniform, and staging buffers.
+ * Low-level Vulkan buffer backed by a VMA sub-allocation. Used as a building block for vertex,
+ * index, uniform, and staging buffers.
+ *
+ * <p>VMA sub-allocates from large device-memory blocks, keeping the total vkAllocateMemory call
+ * count at O(heap types) regardless of how many buffers are created.
  */
 class VulkanBuffer implements Disposable {
 
-    private final VulkanDevice device;
+    private final long allocator;
     private final long handle;
-    private final long memory;
+    private final long allocation;
     final long size;
 
-    VulkanBuffer(VulkanDevice device, long size, int usage, int memoryPropertyFlags) {
-        this.device = device;
+    VulkanBuffer(long size, int usage, int memoryPropertyFlags) {
         this.size = size;
+        this.allocator = VulkanContext.get().allocator().handle();
 
         try (MemoryStack stack = stackPush()) {
             var bufferInfo = VkBufferCreateInfo.calloc(stack)
@@ -31,28 +37,24 @@ class VulkanBuffer implements Disposable {
                     .usage(usage)
                     .sharingMode(VK_SHARING_MODE_EXCLUSIVE);
 
+            var allocationCreateInfo = VmaAllocationCreateInfo.calloc(stack);
+            var hostVisible = (memoryPropertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0;
+            if (hostVisible) {
+                allocationCreateInfo
+                        .usage(VMA_MEMORY_USAGE_AUTO)
+                        .flags(VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
+            } else {
+                allocationCreateInfo.usage(VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE);
+            }
+
             var pBuffer = stack.mallocLong(1);
-            if (vkCreateBuffer(device.device(), bufferInfo, null, pBuffer) != VK_SUCCESS) {
-                throw new RuntimeException("Failed to create Vulkan buffer");
+            var pAllocation = stack.mallocPointer(1);
+            if (vmaCreateBuffer(allocator, bufferInfo, allocationCreateInfo, pBuffer, pAllocation, null)
+                    != VK_SUCCESS) {
+                throw new RuntimeException("Failed to create Vulkan buffer via VMA");
             }
             handle = pBuffer.get(0);
-
-            var memReqs = VkMemoryRequirements.malloc(stack);
-            vkGetBufferMemoryRequirements(device.device(), handle, memReqs);
-
-            var allocInfo = VkMemoryAllocateInfo.calloc(stack)
-                    .sType(VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO)
-                    .allocationSize(memReqs.size())
-                    .memoryTypeIndex(VulkanMemoryUtil.findMemoryType(
-                            device.memoryProperties(), memReqs.memoryTypeBits(), memoryPropertyFlags));
-
-            var pMemory = stack.mallocLong(1);
-            if (vkAllocateMemory(device.device(), allocInfo, null, pMemory) != VK_SUCCESS) {
-                throw new RuntimeException("Failed to allocate Vulkan buffer memory");
-            }
-            memory = pMemory.get(0);
-
-            vkBindBufferMemory(device.device(), handle, memory, 0);
+            allocation = pAllocation.get(0);
         }
     }
 
@@ -67,9 +69,9 @@ class VulkanBuffer implements Disposable {
     void map(Consumer<ByteBuffer> action) {
         try (MemoryStack stack = stackPush()) {
             var ppData = stack.mallocPointer(1);
-            vkMapMemory(device.device(), memory, 0, size, 0, ppData);
+            vmaMapMemory(allocator, allocation, ppData);
             action.accept(ppData.getByteBuffer(0, (int) size));
-            vkUnmapMemory(device.device(), memory);
+            vmaUnmapMemory(allocator, allocation);
         }
     }
 
@@ -80,10 +82,8 @@ class VulkanBuffer implements Disposable {
     void copyFrom(VulkanBuffer src, VulkanCommandPool commandPool) {
         try (MemoryStack stack = stackPush()) {
             var cmdBuf = commandPool.beginSingleUse(stack);
-
             var copyRegion =
                     VkBufferCopy.calloc(1, stack).srcOffset(0).dstOffset(0).size(src.size);
-
             vkCmdCopyBuffer(cmdBuf, src.handle, handle, copyRegion);
             commandPool.endSingleUse(cmdBuf);
         }
@@ -91,7 +91,6 @@ class VulkanBuffer implements Disposable {
 
     @Override
     public void dispose() {
-        vkDestroyBuffer(device.device(), handle, null);
-        vkFreeMemory(device.device(), memory, null);
+        vmaDestroyBuffer(allocator, handle, allocation);
     }
 }

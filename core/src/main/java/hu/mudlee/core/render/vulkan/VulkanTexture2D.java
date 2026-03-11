@@ -2,6 +2,7 @@ package hu.mudlee.core.render.vulkan;
 
 import static org.lwjgl.stb.STBImage.*;
 import static org.lwjgl.system.MemoryStack.stackPush;
+import static org.lwjgl.util.vma.Vma.*;
 import static org.lwjgl.vulkan.VK12.*;
 
 import hu.mudlee.core.io.ResourceLoader;
@@ -9,6 +10,7 @@ import hu.mudlee.core.render.Renderer;
 import hu.mudlee.core.render.texture.Texture2D;
 import java.nio.ByteBuffer;
 import org.lwjgl.system.MemoryStack;
+import org.lwjgl.util.vma.VmaAllocationCreateInfo;
 import org.lwjgl.vulkan.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,7 +38,7 @@ public class VulkanTexture2D extends Texture2D {
     private int height;
 
     private long image = VK_NULL_HANDLE;
-    private long imageMemory = VK_NULL_HANDLE;
+    private long imageAllocation = VK_NULL_HANDLE;
     private long imageView = VK_NULL_HANDLE;
     private long sampler = VK_NULL_HANDLE;
     private long descriptorSet = VK_NULL_HANDLE;
@@ -114,11 +116,8 @@ public class VulkanTexture2D extends Texture2D {
         if (imageView != VK_NULL_HANDLE) {
             vkDestroyImageView(device.device(), imageView, null);
         }
-        if (image != VK_NULL_HANDLE) {
-            vkDestroyImage(device.device(), image, null);
-        }
-        if (imageMemory != VK_NULL_HANDLE) {
-            vkFreeMemory(device.device(), imageMemory, null);
+        if (image != VK_NULL_HANDLE && imageAllocation != VK_NULL_HANDLE) {
+            vmaDestroyImage(VulkanContext.get().allocator().handle(), image, imageAllocation);
         }
         Renderer.decrementTextureCount();
         log.debug("VulkanTexture2D disposed: {}", path);
@@ -153,7 +152,6 @@ public class VulkanTexture2D extends Texture2D {
         var imageSizeBytes = (long) width * height * 4; // RGBA = 4 bytes per pixel
 
         var staging = new VulkanBuffer(
-                device,
                 imageSizeBytes,
                 VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
@@ -196,28 +194,22 @@ public class VulkanTexture2D extends Texture2D {
                     .samples(VK_SAMPLE_COUNT_1_BIT);
             imageInfo.extent().width(width).height(height).depth(1);
 
+            var allocationCreateInfo = VmaAllocationCreateInfo.calloc(stack).usage(VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE);
+
             var pImage = stack.mallocLong(1);
-            if (vkCreateImage(device.device(), imageInfo, null, pImage) != VK_SUCCESS) {
+            var pAllocation = stack.mallocPointer(1);
+            if (vmaCreateImage(
+                            VulkanContext.get().allocator().handle(),
+                            imageInfo,
+                            allocationCreateInfo,
+                            pImage,
+                            pAllocation,
+                            null)
+                    != VK_SUCCESS) {
                 throw new RuntimeException("Failed to create VkImage for texture '" + path + "'");
             }
             image = pImage.get(0);
-
-            var memReqs = VkMemoryRequirements.malloc(stack);
-            vkGetImageMemoryRequirements(device.device(), image, memReqs);
-
-            var allocInfo = VkMemoryAllocateInfo.calloc(stack)
-                    .sType(VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO)
-                    .allocationSize(memReqs.size())
-                    .memoryTypeIndex(VulkanMemoryUtil.findMemoryType(
-                            device.memoryProperties(), memReqs.memoryTypeBits(), memoryProps));
-
-            var pMemory = stack.mallocLong(1);
-            if (vkAllocateMemory(device.device(), allocInfo, null, pMemory) != VK_SUCCESS) {
-                throw new RuntimeException("Failed to allocate image memory for '" + path + "'");
-            }
-            imageMemory = pMemory.get(0);
-
-            vkBindImageMemory(device.device(), image, imageMemory, 0);
+            imageAllocation = pAllocation.get(0);
         }
     }
 

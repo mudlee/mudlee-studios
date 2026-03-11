@@ -57,6 +57,7 @@ public class VulkanContext implements GraphicsContext {
     private VulkanRenderPass renderPass;
     private VulkanCommandPool commandPool;
     private VulkanSyncObjects syncObjects;
+    private VulkanAllocator allocator;
 
     // Global descriptor layout for combined-image-sampler at set=0, binding=0
     private long textureDescriptorSetLayout = VK_NULL_HANDLE;
@@ -96,6 +97,10 @@ public class VulkanContext implements GraphicsContext {
 
     VulkanDevice device() {
         return device;
+    }
+
+    VulkanAllocator allocator() {
+        return allocator;
     }
 
     VulkanCommandPool commandPool() {
@@ -172,6 +177,7 @@ public class VulkanContext implements GraphicsContext {
         }
 
         device = new VulkanDevice(vkInstance.handle(), surface);
+        allocator = new VulkanAllocator(vkInstance.handle(), device.physicalDevice(), device.device());
         swapChain = new VulkanSwapChain(device, surface, windowId, vSync);
         renderPass = new VulkanRenderPass(device, swapChain.imageFormat());
         swapChain.buildFramebuffers(renderPass.handle());
@@ -293,6 +299,21 @@ public class VulkanContext implements GraphicsContext {
      */
     @Override
     public void renderRaw(VertexArray vertexArray, Shader shader, RenderMode renderMode, PolygonMode polygonMode) {
+        renderRawInternal(vertexArray, shader, -1, 0);
+    }
+
+    @Override
+    public void renderRaw(
+            VertexArray vertexArray,
+            Shader shader,
+            RenderMode renderMode,
+            PolygonMode polygonMode,
+            int elementOffset,
+            int elementCount) {
+        renderRawInternal(vertexArray, shader, elementCount, elementOffset);
+    }
+
+    private void renderRawInternal(VertexArray vertexArray, Shader shader, int elementCount, int elementOffset) {
         if (!(shader instanceof VulkanShader vs)) {
             throw new IllegalArgumentException("VulkanContext requires a VulkanShader");
         }
@@ -336,8 +357,9 @@ public class VulkanContext implements GraphicsContext {
             // Draw indexed or non-indexed
             if (va.getEBO().isPresent() && va.getEBO().get() instanceof VulkanIndexBuffer ib) {
                 vkCmdBindIndexBuffer(cmdBuf, ib.bufferHandle(), 0, VK_INDEX_TYPE_UINT32);
+                var actualCount = elementCount < 0 ? ib.getLength() : elementCount;
                 var instanceCount = va.isInstanced() ? va.getInstanceCount() : 1;
-                vkCmdDrawIndexed(cmdBuf, ib.getLength(), instanceCount, 0, 0, 0);
+                vkCmdDrawIndexed(cmdBuf, actualCount, instanceCount, elementOffset, 0, 0);
             } else {
                 // Derive vertex count from buffer length and stride
                 var stride = (firstVbo.getLayout().attributes().length > 0)
@@ -418,6 +440,7 @@ public class VulkanContext implements GraphicsContext {
 
         renderPass.dispose();
         swapChain.dispose();
+        allocator.dispose();
         device.dispose();
 
         if (surface != VK_NULL_HANDLE) {

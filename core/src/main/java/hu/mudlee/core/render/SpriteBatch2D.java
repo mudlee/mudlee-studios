@@ -207,7 +207,7 @@ public class SpriteBatch2D implements Disposable, RenderContext {
     @Override
     public void dispose() {
         shader.dispose();
-        indexBuffer.dispose();
+        // vertexArray.dispose() owns and disposes the index buffer — do not call indexBuffer.dispose() separately
         vertexArray.dispose();
     }
 

@@ -29,13 +29,12 @@ public class VulkanVertexBuffer extends VertexBuffer {
     private final boolean dynamic;
     private int length;
 
-    /** Convenience constructor — resolves device and command pool from the active VulkanContext. */
+    /** Convenience constructor — resolves command pool from the active VulkanContext. */
     public VulkanVertexBuffer(float[] vertices, VertexBufferLayout layout) {
-        this(vertices, layout, VulkanContext.get().device(), VulkanContext.get().commandPool());
+        this(vertices, layout, VulkanContext.get().commandPool());
     }
 
-    public VulkanVertexBuffer(
-            float[] vertices, VertexBufferLayout layout, VulkanDevice device, VulkanCommandPool commandPool) {
+    public VulkanVertexBuffer(float[] vertices, VertexBufferLayout layout, VulkanCommandPool commandPool) {
         this.layout = layout;
         this.length = vertices.length;
         this.dynamic = false;
@@ -44,7 +43,6 @@ public class VulkanVertexBuffer extends VertexBuffer {
         var sizeBytes = (long) vertices.length * Float.BYTES;
 
         var staging = new VulkanBuffer(
-                device,
                 sizeBytes,
                 VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
@@ -55,7 +53,6 @@ public class VulkanVertexBuffer extends VertexBuffer {
         });
 
         gpuBuffer = new VulkanBuffer(
-                device,
                 sizeBytes,
                 VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
@@ -78,11 +75,9 @@ public class VulkanVertexBuffer extends VertexBuffer {
         this.gpuBuffer = null;
 
         var sizeBytes = (long) maxFloats * Float.BYTES;
-        var device = VulkanContext.get().device();
         perFrameBuffers = new VulkanBuffer[FRAMES_IN_FLIGHT];
         for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
             perFrameBuffers[i] = new VulkanBuffer(
-                    device,
                     sizeBytes,
                     VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);

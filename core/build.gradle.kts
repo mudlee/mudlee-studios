@@ -52,10 +52,12 @@ dependencies {
 	implementation("org.lwjgl", "lwjgl-opengl")
 	implementation("org.lwjgl", "lwjgl-stb")
 	implementation("org.lwjgl", "lwjgl-vulkan")
+	implementation("org.lwjgl", "lwjgl-vma")
 	implementation("org.lwjgl", "lwjgl", classifier = lwjglNatives)
 	implementation("org.lwjgl", "lwjgl-glfw", classifier = lwjglNatives)
 	implementation("org.lwjgl", "lwjgl-opengl", classifier = lwjglNatives)
 	implementation("org.lwjgl", "lwjgl-stb", classifier = lwjglNatives)
+	implementation("org.lwjgl", "lwjgl-vma", classifier = lwjglNatives)
 	if (lwjglNatives.startsWith("natives-macos")) {
 		implementation("org.lwjgl", "lwjgl-vulkan", classifier = lwjglNatives)
 	}

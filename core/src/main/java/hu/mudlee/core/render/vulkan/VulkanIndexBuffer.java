@@ -21,17 +21,16 @@ public class VulkanIndexBuffer extends ElementBuffer {
     private final VulkanBuffer gpuBuffer;
     private final int length;
 
-    /** Convenience constructor — resolves device and command pool from the active VulkanContext. */
+    /** Convenience constructor — resolves command pool from the active VulkanContext. */
     public VulkanIndexBuffer(int[] indices) {
-        this(indices, VulkanContext.get().device(), VulkanContext.get().commandPool());
+        this(indices, VulkanContext.get().commandPool());
     }
 
-    public VulkanIndexBuffer(int[] indices, VulkanDevice device, VulkanCommandPool commandPool) {
+    public VulkanIndexBuffer(int[] indices, VulkanCommandPool commandPool) {
         this.length = indices.length;
         var sizeBytes = (long) indices.length * Integer.BYTES;
 
         var staging = new VulkanBuffer(
-                device,
                 sizeBytes,
                 VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
@@ -42,7 +41,6 @@ public class VulkanIndexBuffer extends ElementBuffer {
         });
 
         gpuBuffer = new VulkanBuffer(
-                device,
                 sizeBytes,
                 VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
