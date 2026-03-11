@@ -64,7 +64,7 @@ public class Window implements Disposable {
     }
 
     public static Vector2i getSize() {
-        return get().size;
+        return new Vector2i(get().size);
     }
 
     public static int getPixelRatio() {
