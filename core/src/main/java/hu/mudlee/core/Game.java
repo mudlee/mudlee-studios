@@ -86,6 +86,7 @@ public abstract class Game implements WindowEventListener {
         var totalNanos = 0L;
         var deltaNanos = 0L;
         var gameTime = new GameTime(0f, 0f, false);
+        var vSync = gdm.isVSync();
 
         while (!Window.shouldClose()) {
             InputSystem.update();
@@ -107,14 +108,19 @@ public abstract class Game implements WindowEventListener {
                 Renderer.swapBuffers(deltaSeconds);
             }
 
-            var elapsedNanos = System.nanoTime() - beginNanos;
-            while (elapsedNanos < TARGET_ELAPSED_NANOS) {
-                try {
-                    Thread.sleep(1);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
+            // When vSync is enabled, swapBuffers already blocks for the display refresh interval,
+            // so no additional sleep is needed. Sleep only when running uncapped to avoid
+            // Thread.sleep(1) overshooting on Windows and pulling FPS below 60.
+            if (!vSync) {
+                var elapsedNanos = System.nanoTime() - beginNanos;
+                while (elapsedNanos < TARGET_ELAPSED_NANOS) {
+                    try {
+                        Thread.sleep(1);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                    elapsedNanos = System.nanoTime() - beginNanos;
                 }
-                elapsedNanos = System.nanoTime() - beginNanos;
             }
 
             var endNanos = System.nanoTime();
