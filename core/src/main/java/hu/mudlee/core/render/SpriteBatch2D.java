@@ -45,6 +45,7 @@ public class SpriteBatch2D implements Disposable, RenderContext {
     private final VertexBuffer dynamicVbo;
     private final ElementBuffer indexBuffer;
     private final Matrix4f identityMatrix = new Matrix4f();
+    private final Matrix4f defaultOrthoMatrix = new Matrix4f();
 
     private final float[] vertexData = new float[MAX_FLOATS];
     private int spriteCount;
@@ -96,8 +97,8 @@ public class SpriteBatch2D implements Disposable, RenderContext {
 
     public void begin() {
         var size = Window.getSize();
-        var ortho = new Matrix4f().setOrtho(0f, size.x, 0f, size.y, -1f, 1f);
-        begin(ortho, identityMatrix);
+        defaultOrthoMatrix.setOrtho(0f, size.x, 0f, size.y, -1f, 1f);
+        begin(defaultOrthoMatrix, identityMatrix);
     }
 
     public void begin(Matrix4f transformMatrix) {

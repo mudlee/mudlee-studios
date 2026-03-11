@@ -108,7 +108,7 @@ The engine has a solid architectural foundation: clean HAL abstraction, modern E
 
 ---
 
-#### 9. `begin()` allocates `Matrix4f` every frame
+#### 9. `begin()` allocates `Matrix4f` every frame - DONE
 
 **File:** `SpriteBatch2D.java:75`
 
