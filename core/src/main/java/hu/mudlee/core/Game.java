@@ -53,16 +53,42 @@ public abstract class Game implements WindowEventListener {
         initialize();
         loadContent();
 
-        loop();
-
-        log.info("Game is shutting down");
-        Renderer.waitForGPU();
-        unloadContent();
-        for (var component : components) {
-            component.dispose();
+        try {
+            loop();
+        } finally {
+            shutdown();
         }
-        Renderer.dispose();
-        Window.remove();
+    }
+
+    private void shutdown() {
+        log.info("Game is shutting down");
+        try {
+            Renderer.waitForGPU();
+        } catch (Exception e) {
+            log.error("Error waiting for GPU", e);
+        }
+        try {
+            unloadContent();
+        } catch (Exception e) {
+            log.error("Error unloading content", e);
+        }
+        for (var component : components) {
+            try {
+                component.dispose();
+            } catch (Exception e) {
+                log.error("Error disposing component: {}", component.getClass().getSimpleName(), e);
+            }
+        }
+        try {
+            Renderer.dispose();
+        } catch (Exception e) {
+            log.error("Error disposing renderer", e);
+        }
+        try {
+            Window.remove();
+        } catch (Exception e) {
+            log.error("Error removing window", e);
+        }
         log.info("Terminated");
     }
 

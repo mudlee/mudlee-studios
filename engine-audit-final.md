@@ -54,7 +54,7 @@ The engine has a solid architectural foundation: clean HAL abstraction, modern E
 
 ---
 
-#### 4. Hierarchical transforms missing
+#### 4. Hierarchical transforms missing - SKIPPED
 
 **File:** `Transform2DComponent.java`
 
