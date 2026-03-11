@@ -9,9 +9,15 @@ public class ContentManager {
 
     private final String rootDirectory;
     private final Map<String, Object> cache = new HashMap<>();
+    private final Map<Class<?>, ContentLoader<?>> loaders = new HashMap<>();
 
     public ContentManager(String rootDirectory) {
         this.rootDirectory = rootDirectory;
+        registerDefaultLoaders();
+    }
+
+    public <T> void registerLoader(Class<T> type, ContentLoader<T> loader) {
+        loaders.put(type, loader);
     }
 
     @SuppressWarnings("unchecked")
@@ -35,17 +41,23 @@ public class ContentManager {
         cache.clear();
     }
 
+    @SuppressWarnings("unchecked")
     private <T> T resolve(Class<T> type, String assetName) {
-        if (type == Texture2D.class) {
-            return type.cast(Texture2D.create(buildPath(assetName, ".png")));
+        var loader = (ContentLoader<T>) loaders.get(type);
+        if (loader == null) {
+            throw new IllegalArgumentException("No loader registered for type: " + type.getName());
         }
-        throw new IllegalArgumentException("Unsupported content type: " + type.getName());
+        return loader.load(this, assetName);
     }
 
-    private String buildPath(String assetName, String extension) {
+    String buildPath(String assetName, String extension) {
         if (rootDirectory == null || rootDirectory.isEmpty()) {
             return "/" + assetName + extension;
         }
         return "/" + rootDirectory + "/" + assetName + extension;
+    }
+
+    private void registerDefaultLoaders() {
+        registerLoader(Texture2D.class, (manager, name) -> Texture2D.create(manager.buildPath(name, ".png")));
     }
 }

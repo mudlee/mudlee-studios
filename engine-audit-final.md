@@ -168,7 +168,7 @@ The engine has a solid architectural foundation: clean HAL abstraction, modern E
 
 ---
 
-#### 15. `ContentManager` hardcoded to `Texture2D`
+#### 15. `ContentManager` hardcoded to `Texture2D` - DONE
 
 **File:** `ContentManager.java:39-42`
 
