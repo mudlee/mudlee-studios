@@ -113,6 +113,7 @@ public class SpriteBatch2D implements Disposable, RenderContext {
         currentTexture = null;
         shader.setUniform(shader.getVertexProgramId(), ShaderProps.UNIFORM_PROJECTION_MATRIX.glslName, projection);
         shader.setUniform(shader.getVertexProgramId(), ShaderProps.UNIFORM_VIEW_MATRIX.glslName, view);
+        Renderer.setBlend(true, BlendFactor.SRC_ALPHA, BlendFactor.ONE_MINUS_SRC_ALPHA);
     }
 
     public void draw(Texture2D texture, Vector2f position, Color color) {
@@ -198,6 +199,7 @@ public class SpriteBatch2D implements Disposable, RenderContext {
             throw new IllegalStateException("SpriteBatch2D.end() called without a matching begin()");
         }
         flush();
+        Renderer.setBlend(false, BlendFactor.SRC_ALPHA, BlendFactor.ONE_MINUS_SRC_ALPHA);
         begun = false;
     }
 
@@ -267,10 +269,8 @@ public class SpriteBatch2D implements Disposable, RenderContext {
         var indexCount = spriteCount * INDICES_PER_SPRITE;
         dynamicVbo.update(vertexData, floatCount);
         currentTexture.bind();
-        Renderer.setBlend(true, BlendFactor.SRC_ALPHA, BlendFactor.ONE_MINUS_SRC_ALPHA);
         Renderer.incrementVertexCount(spriteCount * VERTICES_PER_SPRITE);
         Renderer.renderRaw(vertexArray, shader, RenderMode.TRIANGLES, PolygonMode.FILL, 0, indexCount);
-        Renderer.setBlend(false, BlendFactor.SRC_ALPHA, BlendFactor.ONE_MINUS_SRC_ALPHA);
         Renderer.incrementSpriteBatchFlushCount();
         spriteCount = 0;
         currentTexture = null;

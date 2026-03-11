@@ -98,7 +98,7 @@ The engine has a solid architectural foundation: clean HAL abstraction, modern E
 
 ---
 
-#### 8. Blend state toggled unconditionally per flush
+#### 8. Blend state toggled unconditionally per flush - DONE
 
 **File:** `SpriteBatch2D.java:244-246`
 
