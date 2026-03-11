@@ -20,6 +20,7 @@ subprojects {
 	}
 
 	configure<com.diffplug.gradle.spotless.SpotlessExtension> {
+		lineEndings = com.diffplug.spotless.LineEnding.UNIX
 		java {
 			target("src/**/*.java")
 			palantirJavaFormat("2.88.0")
