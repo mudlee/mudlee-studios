@@ -24,7 +24,7 @@ The engine has a solid architectural foundation: clean HAL abstraction, modern E
 
 ---
 
-#### 1. Polygon mode never updated after GL call (BUG)
+#### 1. Polygon mode never updated after GL call (BUG) - DONE
 
 **File:** `OpenGLGraphicsContext.java:27,93-95`
 
@@ -44,7 +44,7 @@ The engine has a solid architectural foundation: clean HAL abstraction, modern E
 
 ---
 
-#### 3. SpriteBatch2D: Non-indexed quads
+#### 3. SpriteBatch2D: Non-indexed quads - DONE
 
 **File:** `SpriteBatch2D.java`
 

@@ -1,5 +1,7 @@
 package hu.mudlee.core.render;
 
+import static org.lwjgl.opengl.GL15.GL_STATIC_DRAW;
+
 import hu.mudlee.core.Color;
 import hu.mudlee.core.Disposable;
 import hu.mudlee.core.Rectangle;
@@ -25,20 +27,23 @@ import org.joml.Vector2f;
  * spriteBatch.end();
  * </pre>
  *
- * <p>Internally uses 6 non-indexed vertices per sprite (two triangles). The dynamic VBO is updated
- * on {@link #end()} (or when the batch fills up or the texture changes).
+ * <p>Uses indexed rendering with 4 vertices per sprite and a static EBO containing the index
+ * pattern (0,1,2, 0,2,3) repeated for each quad. This reduces vertex buffer size by 33% compared
+ * to non-indexed rendering with 6 vertices per sprite.
  */
 public class SpriteBatch2D implements Disposable, RenderContext {
 
     private static final int MAX_SPRITES = 1000;
     private static final int FLOATS_PER_VERTEX = 9; // vec3 pos + vec4 color + vec2 uv
-    private static final int VERTICES_PER_SPRITE = 6; // two non-indexed triangles
+    private static final int VERTICES_PER_SPRITE = 4; // indexed quad
+    private static final int INDICES_PER_SPRITE = 6; // two triangles: 0,1,2, 0,2,3
     private static final int FLOATS_PER_SPRITE = VERTICES_PER_SPRITE * FLOATS_PER_VERTEX;
     private static final int MAX_FLOATS = MAX_SPRITES * FLOATS_PER_SPRITE;
 
     private final Shader shader;
     private final VertexArray vertexArray;
     private final VertexBuffer dynamicVbo;
+    private final ElementBuffer indexBuffer;
     private final Matrix4f identityMatrix = new Matrix4f();
 
     private final float[] vertexData = new float[MAX_FLOATS];
@@ -54,8 +59,10 @@ public class SpriteBatch2D implements Disposable, RenderContext {
                 new VertexLayoutAttribute(2, 2, ShaderTypes.FLOAT, false, stride, 7 * Float.BYTES));
 
         dynamicVbo = VertexBuffer.createDynamic(layout, MAX_FLOATS);
+        indexBuffer = createStaticIndexBuffer();
         vertexArray = VertexArray.create();
         vertexArray.addVBO(dynamicVbo);
+        vertexArray.setEBO(indexBuffer);
 
         var shaderDir =
                 switch (Renderer.activeBackend()) {
@@ -68,6 +75,23 @@ public class SpriteBatch2D implements Disposable, RenderContext {
         shader.createUniform(shader.getFragmentProgramId(), "TEX_SAMPLER");
         shader.setUniform(shader.getFragmentProgramId(), "TEX_SAMPLER", 0);
         shader.setUniform(shader.getVertexProgramId(), ShaderProps.UNIFORM_VIEW_MATRIX.glslName, identityMatrix);
+    }
+
+    private static ElementBuffer createStaticIndexBuffer() {
+        var indices = new int[MAX_SPRITES * INDICES_PER_SPRITE];
+        for (var i = 0; i < MAX_SPRITES; i++) {
+            var indexOffset = i * INDICES_PER_SPRITE;
+            var vertexOffset = i * VERTICES_PER_SPRITE;
+            // Triangle 1: BL, BR, TR
+            indices[indexOffset] = vertexOffset;
+            indices[indexOffset + 1] = vertexOffset + 1;
+            indices[indexOffset + 2] = vertexOffset + 2;
+            // Triangle 2: BL, TR, TL
+            indices[indexOffset + 3] = vertexOffset;
+            indices[indexOffset + 4] = vertexOffset + 2;
+            indices[indexOffset + 5] = vertexOffset + 3;
+        }
+        return ElementBuffer.create(indices, GL_STATIC_DRAW);
     }
 
     public void begin() {
@@ -180,6 +204,7 @@ public class SpriteBatch2D implements Disposable, RenderContext {
     @Override
     public void dispose() {
         shader.dispose();
+        indexBuffer.dispose();
         vertexArray.dispose();
     }
 
@@ -239,11 +264,12 @@ public class SpriteBatch2D implements Disposable, RenderContext {
             return;
         }
         var floatCount = spriteCount * FLOATS_PER_SPRITE;
+        var indexCount = spriteCount * INDICES_PER_SPRITE;
         dynamicVbo.update(vertexData, floatCount);
         currentTexture.bind();
         Renderer.setBlend(true, BlendFactor.SRC_ALPHA, BlendFactor.ONE_MINUS_SRC_ALPHA);
         Renderer.incrementVertexCount(spriteCount * VERTICES_PER_SPRITE);
-        Renderer.renderRaw(vertexArray, shader, RenderMode.TRIANGLES, PolygonMode.FILL);
+        Renderer.renderRaw(vertexArray, shader, RenderMode.TRIANGLES, PolygonMode.FILL, 0, indexCount);
         Renderer.setBlend(false, BlendFactor.SRC_ALPHA, BlendFactor.ONE_MINUS_SRC_ALPHA);
         Renderer.incrementSpriteBatchFlushCount();
         spriteCount = 0;
@@ -257,15 +283,11 @@ public class SpriteBatch2D implements Disposable, RenderContext {
         var b = color.b;
         var a = color.a;
 
-        // Triangle 1: BL, BR, TR
-        writeVertex(base, x, y, r, g, b, a, u0, v1);
-        writeVertex(base + FLOATS_PER_VERTEX, x + w, y, r, g, b, a, u1, v1);
-        writeVertex(base + FLOATS_PER_VERTEX * 2, x + w, y + h, r, g, b, a, u1, v0);
-
-        // Triangle 2: BL, TR, TL
-        writeVertex(base + FLOATS_PER_VERTEX * 3, x, y, r, g, b, a, u0, v1);
-        writeVertex(base + FLOATS_PER_VERTEX * 4, x + w, y + h, r, g, b, a, u1, v0);
-        writeVertex(base + FLOATS_PER_VERTEX * 5, x, y + h, r, g, b, a, u0, v0);
+        // 4 vertices: BL, BR, TR, TL (indexed as 0,1,2, 0,2,3)
+        writeVertex(base, x, y, r, g, b, a, u0, v1); // BL
+        writeVertex(base + FLOATS_PER_VERTEX, x + w, y, r, g, b, a, u1, v1); // BR
+        writeVertex(base + FLOATS_PER_VERTEX * 2, x + w, y + h, r, g, b, a, u1, v0); // TR
+        writeVertex(base + FLOATS_PER_VERTEX * 3, x, y + h, r, g, b, a, u0, v0); // TL
     }
 
     private void writeQuadRotated(
@@ -304,14 +326,11 @@ public class SpriteBatch2D implements Disposable, RenderContext {
         var tlX = px + (-ox) * cos - (h - oy) * sin;
         var tlY = py + (-ox) * sin + (h - oy) * cos;
 
-        // Triangle 1: BL, BR, TR
-        writeVertex(base, blX, blY, r, g, b, a, u0, v1);
-        writeVertex(base + FLOATS_PER_VERTEX, brX, brY, r, g, b, a, u1, v1);
-        writeVertex(base + FLOATS_PER_VERTEX * 2, trX, trY, r, g, b, a, u1, v0);
-        // Triangle 2: BL, TR, TL
-        writeVertex(base + FLOATS_PER_VERTEX * 3, blX, blY, r, g, b, a, u0, v1);
-        writeVertex(base + FLOATS_PER_VERTEX * 4, trX, trY, r, g, b, a, u1, v0);
-        writeVertex(base + FLOATS_PER_VERTEX * 5, tlX, tlY, r, g, b, a, u0, v0);
+        // 4 vertices: BL, BR, TR, TL (indexed as 0,1,2, 0,2,3)
+        writeVertex(base, blX, blY, r, g, b, a, u0, v1); // BL
+        writeVertex(base + FLOATS_PER_VERTEX, brX, brY, r, g, b, a, u1, v1); // BR
+        writeVertex(base + FLOATS_PER_VERTEX * 2, trX, trY, r, g, b, a, u1, v0); // TR
+        writeVertex(base + FLOATS_PER_VERTEX * 3, tlX, tlY, r, g, b, a, u0, v0); // TL
     }
 
     private void writeVertex(int offset, float x, float y, float r, float g, float b, float a, float u, float v) {
