@@ -26,13 +26,13 @@ Create a simplified recreation of the first screen of Super Mario Bros. When Mar
 
 ### ❌ What the Engine is Missing (Must Be Added)
 
-| Feature | Priority | Complexity | Notes |
-|---------|----------|------------|-------|
-| **Collision Detection** | 🔴 Critical | Medium | AABB-based collision for platforms, enemies, items, blocks |
-| **Physics/Gravity** | 🔴 Critical | Medium | Gravity acceleration, velocity integration, ground detection |
-| **Audio System** | 🔴 Critical | Medium-High | OpenAL integration for sound effects and music |
-| **Tilemap Rendering** | 🟡 High | Medium | Efficient rendering of tile-based levels |
-| **Camera Bounds** | 🟡 High | Low | Prevent camera from showing outside level |
+| Feature | Priority | Complexity | Technology Decision |
+|---------|----------|------------|---------------------|
+| **Collision Detection** | 🔴 Critical | Medium | Custom AABB — no library needed |
+| **Physics/Gravity** | 🔴 Critical | Medium | Custom kinematic — no library (dyn4j noted for future) |
+| **Audio System** | 🔴 Critical | Medium-High | Pure LWJGL: OpenAL + STBVorbis — zero new dependencies |
+| **Tilemap Rendering** | 🟡 High | Medium | Custom implementation — no Java TMX library is well-maintained |
+| **Camera Bounds** | 🟡 High | Low | ~50 lines in OrthographicCamera2D |
 
 ---
 
@@ -61,59 +61,71 @@ Create a simplified recreation of the first screen of Super Mario Bros. When Mar
 
 ### 2. Physics System
 
+**Decision: Custom implementation (no library)**
+
+A Mario platformer uses simple kinematic physics — gravity + velocity integration with AABB resolution. No rigid body simulation, no joints, no rotation. A dedicated physics library would add significant API surface overhead for what is essentially three lines of math per frame.
+
 **What's Needed:**
-- `RigidBody2DComponent` — velocity, gravity scale, grounded flag, kinematic flag
-- `PhysicsSystem` — Applies gravity, integrates velocity, updates position
-- Ground detection via downward collision check
+- `RigidBody2DComponent` — velocity (vx, vy), gravity scale, grounded flag, kinematic flag
+- `PhysicsSystem` — Applies gravity, integrates velocity, updates Transform position
+- Ground detection via downward collision check after `CollisionSystem` runs
 
 **Physics Values (typical Mario feel):**
 - Gravity: ~1500 pixels/sec²
 - Jump velocity: ~600 pixels/sec (initial upward)
 - Walk speed: ~200 pixels/sec
 - Max fall speed: ~800 pixels/sec (terminal velocity)
+- Ground friction: zero (Mario has no deceleration, only the player input stops him)
 
 **Implementation Notes:**
-- Fixed timestep recommended for deterministic physics
-- Collision resolution: Move entity out of overlap, zero velocity in that direction
+- Fixed timestep recommended for deterministic physics (`accumulator` pattern)
+- Collision resolution: move entity out of penetration depth, zero velocity in collision normal axis
+- Kinematic flag for entities that move but are not affected by gravity (Goombas have their own walk logic)
+
+> **Why not dyn4j?** dyn4j (v5.0.2, zero dependencies, actively maintained, Maven Central) is the best Java 2D physics library if you need realistic simulation. For this project, the overhead of mapping dyn4j bodies ↔ ECS components and keeping them in sync every frame adds complexity without any benefit. Revisit dyn4j if the engine needs realistic rigid-body simulation in the future.
 
 ### 3. Audio System
 
+**Decision: Pure LWJGL — OpenAL + STBVorbis (no new dependencies)**
+
+LWJGL already ships OpenAL bindings and STBVorbis. This is the standard approach for Java game audio in 2024 and requires zero additional dependencies.
+
+- **Sound effects (.wav / .ogg):** Load entire file into a single OpenAL buffer, play from a pooled source. STBVorbis decodes OGG to raw PCM; standard Java `AudioInputStream` handles WAV.
+- **Music streaming (.ogg):** Double/triple OpenAL buffer queue filled by STBVorbis on a dedicated background thread. As each buffer is consumed, it is unqueued, refilled with the next decoded chunk, and re-queued. Buffer size ~16 KB per buffer, 3 buffers → smooth playback with minimal latency.
+
 **What's Needed:**
-- `AudioDevice` — OpenAL context initialization
-- `SoundEffect` — Short audio clips (.wav/.ogg), playable with pitch/volume
-- `Music` — Streaming background audio, play/pause/stop/loop
-- `AudioService` or `AudioManager` — Global volume, category volumes (SFX, Music)
+- `AudioDevice` — `alcCreateContext`, device open/close, holds global volume state
+- `SoundEffect` — Wraps a pre-loaded OpenAL buffer. `play(volume, pitch)` grabs a free source from a pool (pool size ~16 sources).
+- `Music` — Owns a streaming decoder thread, 3-buffer queue, play/pause/stop/loop API
+- `AudioManager` (GameService) — Owns `AudioDevice`, exposes `playSfx()` / `playMusic()`, master + category volumes
 
 **Sounds Needed for Mario:**
-- Jump sound
-- Coin collect sound
-- Block hit sound
-- Goomba stomp sound
-- Death sound
-- Win jingle
-- Background music (level theme)
-- Game over music
+- Jump, coin collect, block hit, Goomba stomp, death (SFX — short, loaded fully)
+- Level theme, game over jingle, win jingle (Music — streamed)
 
 **Implementation Notes:**
-- OpenAL is already available via LWJGL
-- Consider pooling audio sources for concurrent sounds
+- Pool OpenAL sources for SFX: never allocate per-play, avoids GC during gameplay
+- Streaming thread uses `MemoryUtil.memAlloc` / `memFree` for PCM scratch buffer — no heap allocation
+- Call `alSourceStop` + `alDeleteSources` on all sources during cleanup to prevent AL leaks
 
-### 4. Tilemap System (Optional but Recommended)
+### 4. Tilemap System
+
+**Decision: Custom lightweight implementation (no library)**
+
+Available Java TMX-loading libraries are either tightly coupled to LibGDX (too heavy — pulls in the whole LibGDX runtime), poorly maintained, or not available on Maven Central. The only credible pure-Java option in 2024 is writing it yourself.
+
+For a two-screen Mario level this is entirely justified:
 
 **What's Needed:**
-- `Tilemap` — 2D array of tile IDs, tile size, layer support
-- `Tileset` — Texture atlas mapped to tile IDs
-- `TilemapRenderer` — Batch renders visible tiles efficiently
-- `TilemapCollider` — Generates collision boxes from solid tiles
+- `Tileset` — Wraps a `Texture2D`, maps tile IDs to UV regions (tile size, columns, rows)
+- `TilemapLayer` — 2D `int[][]` of tile IDs; `-1` = empty
+- `Tilemap` — Holds one or more `TilemapLayer`s (e.g. background + foreground), tile size, world dimensions
+- `TilemapRenderer` — Iterates visible tiles (camera frustum cull), issues one `SpriteBatch2D` draw call per tile. Uses the existing `SpriteBatch2D` so no new GL state needed.
+- `TilemapCollider` — Marks tiles as solid (by ID or a boolean layer). Generates `BoundingBox2DComponent` entities or a flat list of AABBs for the collision system to test against.
 
-**Benefits:**
-- Level design with tile-based tools (Tiled editor)
-- Memory-efficient level storage
-- Automatic collision from tile properties
+**Level data format:** Plain Java 2D int arrays hardcoded in the level class for two screens — no file parser needed. If the engine grows, JSON export from Tiled can be read with the standard `javax.json` or a minimal GSON dependency.
 
-**Alternative:**
-- Place each block/platform as individual entities
-- Works fine for two small screens but less scalable
+**Tile rendering tip:** Only iterate the tile range that falls within the camera viewport each frame. For a 64×14 map this is negligible, but the pattern scales.
 
 ### 5. Camera Bounds
 
@@ -241,8 +253,9 @@ These systems use the engine features but are specific to the Mario game:
 ### Phase 1: Engine Core Additions
 1. Collision system (BoundingBox2D, CollisionSystem, collision events)
 2. Physics system (RigidBody2D, gravity, velocity integration)
-3. Audio system (OpenAL, SoundEffect, Music)
-4. Camera bounds
+3. Audio system (AudioDevice, SoundEffect pool, Music streaming via STBVorbis)
+4. Tilemap system (Tileset, TilemapLayer, TilemapRenderer, TilemapCollider)
+5. Camera bounds
 
 ### Phase 2: Game Foundation
 5. Create sprite sheets for Mario, Goomba, tiles
@@ -305,11 +318,22 @@ These systems use the engine features but are specific to the Mario game:
 
 ## Summary
 
-The engine has **excellent 2D rendering, animation, input, and screen management** — all critical foundations for a Mario game. However, it is **missing collision detection, physics, and audio** which are essential for gameplay.
+The engine has **excellent 2D rendering, animation, input, and screen management** — all critical foundations for a Mario game. However, it is **missing collision detection, physics, audio, and tilemap rendering** which are essential for gameplay.
 
-**Verdict:** The engine requires three major additions before the Mario game can be built:
+**Technology Decisions:**
+
+| Feature | Approach | New Dependency |
+|---------|----------|----------------|
+| Collision | Custom AABB system | None |
+| Physics | Custom kinematic integration | None (`dyn4j` noted for future rigid-body needs) |
+| Audio | LWJGL OpenAL + STBVorbis streaming | None (already in LWJGL) |
+| Tilemap | Custom `Tilemap`/`TilemapRenderer` | None |
+| Camera Bounds | Extend `OrthographicCamera2D` | None |
+
+**Verdict:** The engine requires four additions before the Mario game can be built — all implemented with zero new library dependencies, using only existing LWJGL capabilities and custom code:
 1. ✅ Add collision detection system (AABB-based)
-2. ✅ Add physics system (gravity, velocity)
-3. ✅ Add audio system (OpenAL for SFX and music)
+2. ✅ Add physics system (custom kinematic gravity + velocity)
+3. ✅ Add audio system (OpenAL sources + STBVorbis OGG streaming)
+4. ✅ Add tilemap system (custom int-array tiles + SpriteBatch2D rendering)
 
 With these additions, the engine will be fully capable of supporting this classic Mario recreation and future 2D platformer games.
