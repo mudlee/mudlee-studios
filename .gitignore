@@ -3,3 +3,5 @@
 build
 core/build
 sandbox/build
+*.log
+hs_err_pid*.log
