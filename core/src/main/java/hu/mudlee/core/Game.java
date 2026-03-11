@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
 public abstract class Game implements WindowEventListener {
 
     private static final Logger log = LoggerFactory.getLogger(Game.class);
-    private static final float TARGET_ELAPSED_SECONDS = 1f / 60f;
+    private static final long TARGET_ELAPSED_NANOS = 1_000_000_000L / 60;
 
     public final List<GameService> components = new ArrayList<>();
     protected GraphicsDeviceManager gdm;
@@ -82,19 +82,20 @@ public abstract class Game implements WindowEventListener {
     protected void unloadContent() {}
 
     private void loop() {
-        var beginTime = Time.getTime();
-        var totalTime = 0f;
-        float endTime;
-        var deltaTime = 0f;
+        var beginNanos = System.nanoTime();
+        var totalNanos = 0L;
+        var deltaNanos = 0L;
         var gameTime = new GameTime(0f, 0f, false);
 
         while (!Window.shouldClose()) {
             InputSystem.update();
             Window.pollEvents();
 
-            if (deltaTime >= 0f) {
-                totalTime += deltaTime;
-                gameTime.set(deltaTime, totalTime, deltaTime > TARGET_ELAPSED_SECONDS);
+            if (deltaNanos >= 0L) {
+                totalNanos += deltaNanos;
+                var deltaSeconds = (float) (deltaNanos * 1e-9);
+                var totalSeconds = (float) (totalNanos * 1e-9);
+                gameTime.set(deltaSeconds, totalSeconds, deltaNanos > TARGET_ELAPSED_NANOS);
                 update(gameTime);
                 for (var component : components) {
                     component.update(gameTime);
@@ -103,23 +104,22 @@ public abstract class Game implements WindowEventListener {
                 for (var component : components) {
                     component.draw(gameTime);
                 }
+                Renderer.swapBuffers(deltaSeconds);
             }
 
-            Renderer.swapBuffers(deltaTime);
-
-            var elapsed = Time.getTime() - beginTime;
-            while (elapsed < TARGET_ELAPSED_SECONDS) {
+            var elapsedNanos = System.nanoTime() - beginNanos;
+            while (elapsedNanos < TARGET_ELAPSED_NANOS) {
                 try {
                     Thread.sleep(1);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                 }
-                elapsed = Time.getTime() - beginTime;
+                elapsedNanos = System.nanoTime() - beginNanos;
             }
 
-            endTime = Time.getTime();
-            deltaTime = endTime - beginTime;
-            beginTime = endTime;
+            var endNanos = System.nanoTime();
+            deltaNanos = endNanos - beginNanos;
+            beginNanos = endNanos;
         }
     }
 

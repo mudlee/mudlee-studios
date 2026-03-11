@@ -3,7 +3,7 @@ package hu.mudlee.core;
 public class Time {
     public static long timeStarted = System.nanoTime();
 
-    public static float getTime() {
-        return (float) ((System.nanoTime() - timeStarted) * 1E-9);
+    public static double getTime() {
+        return (System.nanoTime() - timeStarted) * 1e-9;
     }
 }

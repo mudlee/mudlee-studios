@@ -208,7 +208,7 @@ The engine has a solid architectural foundation: clean HAL abstraction, modern E
 
 ---
 
-#### 19. `Window.getSize()` returns mutable internal state
+#### 19. `Window.getSize()` returns mutable internal state - DONE
 
 **File:** `Window.java:66-68`
 
@@ -218,7 +218,7 @@ The engine has a solid architectural foundation: clean HAL abstraction, modern E
 
 ---
 
-#### 20. Service ordering is order-sensitive and loosely encapsulated
+#### 20. Service ordering is order-sensitive and loosely encapsulated - SKIPPED
 
 **File:** `Game.java:23, 105-110`
 
@@ -228,7 +228,7 @@ The engine has a solid architectural foundation: clean HAL abstraction, modern E
 
 ---
 
-#### 21. Render abstraction is too thin for engine growth
+#### 21. Render abstraction is too thin for engine growth - SKIPPED
 
 **Files:** `RenderContext.java:20`, `SpriteRender2DSystem.java:30-33`
 
