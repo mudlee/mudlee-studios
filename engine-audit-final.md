@@ -68,7 +68,7 @@ The engine has a solid architectural foundation: clean HAL abstraction, modern E
 
 ---
 
-#### 5. No try-finally around game loop
+#### 5. No try-finally around game loop - DONE
 
 **File:** `Game.java:90-130`
 

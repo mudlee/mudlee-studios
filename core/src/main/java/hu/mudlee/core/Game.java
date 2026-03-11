@@ -17,10 +17,10 @@ public abstract class Game implements WindowEventListener {
     private static final Logger log = LoggerFactory.getLogger(Game.class);
     private static final float TARGET_ELAPSED_SECONDS = 1f / 60f;
 
+    public final List<GameService> components = new ArrayList<>();
     protected GraphicsDeviceManager gdm;
     protected GraphicsDevice graphicsDevice;
     protected ContentManager content;
-    public final List<GameService> components = new ArrayList<>();
 
     protected Game() {}
 
@@ -58,38 +58,6 @@ public abstract class Game implements WindowEventListener {
         } finally {
             shutdown();
         }
-    }
-
-    private void shutdown() {
-        log.info("Game is shutting down");
-        try {
-            Renderer.waitForGPU();
-        } catch (Exception e) {
-            log.error("Error waiting for GPU", e);
-        }
-        try {
-            unloadContent();
-        } catch (Exception e) {
-            log.error("Error unloading content", e);
-        }
-        for (var component : components) {
-            try {
-                component.dispose();
-            } catch (Exception e) {
-                log.error("Error disposing component: {}", component.getClass().getSimpleName(), e);
-            }
-        }
-        try {
-            Renderer.dispose();
-        } catch (Exception e) {
-            log.error("Error disposing renderer", e);
-        }
-        try {
-            Window.remove();
-        } catch (Exception e) {
-            log.error("Error removing window", e);
-        }
-        log.info("Terminated");
     }
 
     public final void exit() {
@@ -153,5 +121,37 @@ public abstract class Game implements WindowEventListener {
             deltaTime = endTime - beginTime;
             beginTime = endTime;
         }
+    }
+
+    private void shutdown() {
+        log.info("Game is shutting down");
+        try {
+            Renderer.waitForGPU();
+        } catch (Exception e) {
+            log.error("Error waiting for GPU", e);
+        }
+        try {
+            unloadContent();
+        } catch (Exception e) {
+            log.error("Error unloading content", e);
+        }
+        for (var component : components) {
+            try {
+                component.dispose();
+            } catch (Exception e) {
+                log.error("Error disposing component: {}", component.getClass().getSimpleName(), e);
+            }
+        }
+        try {
+            Renderer.dispose();
+        } catch (Exception e) {
+            log.error("Error disposing renderer", e);
+        }
+        try {
+            Window.remove();
+        } catch (Exception e) {
+            log.error("Error removing window", e);
+        }
+        log.info("Terminated");
     }
 }
