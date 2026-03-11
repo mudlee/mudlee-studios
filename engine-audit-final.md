@@ -198,7 +198,7 @@ The engine has a solid architectural foundation: clean HAL abstraction, modern E
 
 ---
 
-#### 18. `renderRaw()` issues one draw call per VBO
+#### 18. `renderRaw()` issues one draw call per VBO - DONE
 
 **File:** `OpenGLGraphicsContext.java:112-118`
 

@@ -85,6 +85,11 @@ public class OpenGLGraphicsContext implements GraphicsContext {
         glClear(clearFlags);
     }
 
+    /**
+     * A VAO with multiple VBOs describes a single mesh whose attributes are split across streams
+     * (e.g. positions in VBO 0, UVs in VBO 1). The GPU reads all streams in parallel during one
+     * draw call, so only a single {@code glDrawArrays} / {@code glDrawElements} is ever needed.
+     */
     @Override
     public void renderRaw(VertexArray vao, Shader shader, RenderMode renderMode, PolygonMode polygonMode) {
         shader.bind();
@@ -100,22 +105,14 @@ public class OpenGLGraphicsContext implements GraphicsContext {
                 glDrawElementsInstanced(
                         renderMode.glRef, vao.getEBO().get().getLength(), GL_UNSIGNED_INT, 0, vao.getInstanceCount());
             } else {
-                var vbos = vao.getVBOs();
-                for (int i = 0; i < vbos.size(); i++) {
-                    var vbo = vbos.get(i);
-                    var vertexCount = vertexCount(vbo);
-                    glDrawArraysInstanced(renderMode.glRef, 0, vertexCount, vao.getInstanceCount());
-                }
+                glDrawArraysInstanced(
+                        renderMode.glRef, 0, vertexCount(vao.getVBOs().get(0)), vao.getInstanceCount());
             }
         } else {
             if (vao.getEBO().isPresent()) {
                 glDrawElements(renderMode.glRef, vao.getEBO().get().getLength(), GL_UNSIGNED_INT, 0);
             } else {
-                var vbos = vao.getVBOs();
-                for (int i = 0; i < vbos.size(); i++) {
-                    var vbo = vbos.get(i);
-                    glDrawArrays(renderMode.glRef, 0, vertexCount(vbo));
-                }
+                glDrawArrays(renderMode.glRef, 0, vertexCount(vao.getVBOs().get(0)));
             }
         }
 
