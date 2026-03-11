@@ -128,7 +128,7 @@ The engine has a solid architectural foundation: clean HAL abstraction, modern E
 
 ---
 
-#### 11. `computeVector2()` allocates `Vector2f` per frame
+#### 11. `computeVector2()` allocates `Vector2f` per frame - DONE
 
 **File:** `InputSystem.java:291-321`
 
@@ -138,7 +138,7 @@ The engine has a solid architectural foundation: clean HAL abstraction, modern E
 
 ---
 
-#### 12. Stream allocation on key/button release
+#### 12. Stream allocation on key/button release - DONE
 
 **File:** `InputSystem.java:150-151, 191-192, 269-270`
 

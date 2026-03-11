@@ -24,6 +24,7 @@ public final class InputSystem {
     private static final boolean[] PREV_GAMEPAD_BUTTON_STATE = new boolean[15];
     private static final float[] GAMEPAD_AXIS_STATE = new float[6];
     private static final float STICK_DEADZONE = 0.15f;
+    private static final Vector2f REUSABLE_VECTOR2 = new Vector2f();
 
     private static float mouseX;
     private static float mouseY;
@@ -149,9 +150,7 @@ public final class InputSystem {
                 if (phase != ActionPhase.STARTED && phase != ActionPhase.PERFORMED) {
                     continue;
                 }
-                var boundToThisKey = action.bindings().stream()
-                        .anyMatch(b -> b instanceof InputBinding.KeyBinding kb && kb.key() == key);
-                if (boundToThisKey && !isAnyBindingActive(action)) {
+                if (isBoundToKey(action, key) && !isAnyBindingActive(action)) {
                     action.transitionTo(ActionPhase.CANCELED);
                     action.transitionTo(ActionPhase.WAITING);
                 }
@@ -190,9 +189,7 @@ public final class InputSystem {
                 if (phase != ActionPhase.STARTED && phase != ActionPhase.PERFORMED) {
                     continue;
                 }
-                var boundToThisButton = action.bindings().stream()
-                        .anyMatch(b -> b instanceof InputBinding.MouseButtonBinding mb && mb.button() == button);
-                if (boundToThisButton && !isAnyBindingActive(action)) {
+                if (isBoundToMouseButton(action, button) && !isAnyBindingActive(action)) {
                     action.transitionTo(ActionPhase.CANCELED);
                     action.transitionTo(ActionPhase.WAITING);
                 }
@@ -268,9 +265,7 @@ public final class InputSystem {
             if (phase != ActionPhase.STARTED && phase != ActionPhase.PERFORMED) {
                 continue;
             }
-            var boundToThisButton = action.bindings().stream()
-                    .anyMatch(b -> b instanceof InputBinding.GamepadButtonBinding gb && gb.button() == button);
-            if (boundToThisButton && !isAnyBindingActive(action)) {
+            if (isBoundToGamepadButton(action, button) && !isAnyBindingActive(action)) {
                 action.transitionTo(ActionPhase.CANCELED);
                 action.transitionTo(ActionPhase.WAITING);
             }
@@ -308,18 +303,18 @@ public final class InputSystem {
                     y -= 1f;
                 }
                 if (x != 0f || y != 0f) {
-                    return new Vector2f(x, y);
+                    return REUSABLE_VECTOR2.set(x, y);
                 }
             }
             if (binding instanceof InputBinding.GamepadStickCompositeBinding stick) {
                 var x = GAMEPAD_AXIS_STATE[stick.xAxis().glfwCode()];
                 var y = -GAMEPAD_AXIS_STATE[stick.yAxis().glfwCode()]; // invert GLFW Y convention
                 if (x != 0f || y != 0f) {
-                    return new Vector2f(x, y);
+                    return REUSABLE_VECTOR2.set(x, y);
                 }
             }
         }
-        return new Vector2f(0f, 0f);
+        return REUSABLE_VECTOR2.set(0f, 0f);
     }
 
     private static boolean isAnyBindingActive(InputAction action) {
@@ -334,6 +329,33 @@ public final class InputSystem {
             }
             if (binding instanceof InputBinding.GamepadButtonBinding gb
                     && GAMEPAD_BUTTON_STATE[gb.button().glfwCode()]) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean isBoundToKey(InputAction action, Keys key) {
+        for (var binding : action.bindings()) {
+            if (binding instanceof InputBinding.KeyBinding kb && kb.key() == key) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean isBoundToMouseButton(InputAction action, MouseButton button) {
+        for (var binding : action.bindings()) {
+            if (binding instanceof InputBinding.MouseButtonBinding mb && mb.button() == button) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean isBoundToGamepadButton(InputAction action, GamepadButton button) {
+        for (var binding : action.bindings()) {
+            if (binding instanceof InputBinding.GamepadButtonBinding gb && gb.button() == button) {
                 return true;
             }
         }
