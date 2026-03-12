@@ -248,7 +248,7 @@ The engine has a solid architectural foundation: clean HAL abstraction, modern E
 
 ---
 
-#### 23. Module encapsulation exports Vulkan internals
+#### 23. Module encapsulation exports Vulkan internals - DONE
 
 **File:** `module-info.java:30`
 

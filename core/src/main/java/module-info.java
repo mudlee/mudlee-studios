@@ -29,6 +29,5 @@ module hu.mudlee.core {
     exports hu.mudlee.core.render.font;
     exports hu.mudlee.core.settings;
     exports hu.mudlee.core.window;
-    exports hu.mudlee.core.render.vulkan;
     exports hu.mudlee.core.ui;
 }
