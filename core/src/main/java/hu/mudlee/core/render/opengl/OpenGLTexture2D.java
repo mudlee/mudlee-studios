@@ -52,6 +52,15 @@ public class OpenGLTexture2D extends Texture2D {
         Renderer.incrementTextureCount();
     }
 
+    /** Wraps an existing GL texture (e.g. an FBO color attachment). Does not upload any pixels. */
+    OpenGLTexture2D(int textureId, int width, int height) {
+        this.path = null;
+        this.textureId = textureId;
+        this.width = width;
+        this.height = height;
+        Renderer.incrementTextureCount();
+    }
+
     /** Creates a texture directly from raw RGBA8 pixel data (e.g. font atlas or procedural textures). */
     public OpenGLTexture2D(ByteBuffer pixels, int width, int height, boolean pixelPerfect) {
         // TODO: I don't like when somewhere it can be null.

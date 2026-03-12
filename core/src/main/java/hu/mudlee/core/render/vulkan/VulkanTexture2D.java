@@ -96,7 +96,7 @@ public class VulkanTexture2D extends Texture2D {
     /** Informs VulkanContext that this is the texture to bind for the next draw call(s). */
     @Override
     public void bind() {
-        VulkanContext.get().setActiveTexture(this);
+        VulkanContext.get().setActiveDescriptorSet(descriptorSet);
     }
 
     @Override

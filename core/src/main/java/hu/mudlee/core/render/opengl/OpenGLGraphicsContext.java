@@ -5,6 +5,7 @@ import static org.lwjgl.opengl.GL.createCapabilities;
 import static org.lwjgl.opengl.GL41.*;
 
 import hu.mudlee.core.render.GraphicsContext;
+import hu.mudlee.core.render.RenderTarget;
 import hu.mudlee.core.render.Shader;
 import hu.mudlee.core.render.VertexArray;
 import hu.mudlee.core.render.types.BlendFactor;
@@ -24,6 +25,8 @@ public class OpenGLGraphicsContext implements GraphicsContext {
     private final boolean debug;
     private int clearFlags = 0;
     private long windowId;
+    private int windowWidth;
+    private int windowHeight;
     private PolygonMode prevPolygonMode = PolygonMode.FILL;
     private String rendererInfo = "";
     private boolean blendEnabled = false;
@@ -49,6 +52,8 @@ public class OpenGLGraphicsContext implements GraphicsContext {
     public void windowCreated(long windowId, int windowWidth, int windowHeight, boolean vSync) {
         log.debug("Initializing OpenGL context...");
         this.windowId = windowId;
+        this.windowWidth = windowWidth;
+        this.windowHeight = windowHeight;
 
         glfwMakeContextCurrent(this.windowId);
 
@@ -194,7 +199,20 @@ public class OpenGLGraphicsContext implements GraphicsContext {
 
     @Override
     public void windowResized(int newWidth, int newHeight) {
+        windowWidth = newWidth;
+        windowHeight = newHeight;
         glViewport(0, 0, newWidth, newHeight);
+    }
+
+    @Override
+    public void setRenderTarget(RenderTarget renderTarget) {
+        if (renderTarget instanceof OpenGLRenderTarget rt) {
+            glBindFramebuffer(GL_FRAMEBUFFER, rt.fboId());
+            glViewport(0, 0, rt.getWidth(), rt.getHeight());
+        } else {
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            glViewport(0, 0, windowWidth, windowHeight);
+        }
     }
 
     @Override

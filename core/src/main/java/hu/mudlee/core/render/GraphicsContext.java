@@ -37,6 +37,13 @@ public interface GraphicsContext extends Disposable {
 
     default void setScissor(boolean enable, int x, int y, int width, int height) {}
 
+    /**
+     * Redirects subsequent draw calls to {@code renderTarget}, or to the backbuffer if {@code null}.
+     * Must be called while a frame is in progress (after {@link #clear()} and before
+     * {@link #swapBuffers(float)}).
+     */
+    default void setRenderTarget(RenderTarget renderTarget) {}
+
     /** Block until the GPU has finished all in-flight work. No-op for stateless backends. */
     default void waitIdle() {}
 

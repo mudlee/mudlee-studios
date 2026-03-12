@@ -8,6 +8,7 @@ import static org.lwjgl.vulkan.KHRSwapchain.*;
 import static org.lwjgl.vulkan.VK12.*;
 
 import hu.mudlee.core.render.GraphicsContext;
+import hu.mudlee.core.render.RenderTarget;
 import hu.mudlee.core.render.Shader;
 import hu.mudlee.core.render.VertexArray;
 import hu.mudlee.core.render.VertexBuffer;
@@ -70,9 +71,11 @@ public class VulkanContext implements GraphicsContext {
     private boolean swapchainOutOfDate = false;
     private boolean vSync = true;
     private long windowId = 0;
+    private boolean renderPassActive = false;
+    private VulkanRenderTarget activeRenderTarget = null;
 
     private final float[] clearColor = {0f, 0f, 0f, 1f};
-    private VulkanTexture2D activeTexture;
+    private long activeDescriptorSet = VK_NULL_HANDLE;
     private String rendererInfo = "";
 
     public VulkanContext(boolean debug) {
@@ -123,8 +126,8 @@ public class VulkanContext implements GraphicsContext {
         return swapChain.extent();
     }
 
-    void setActiveTexture(VulkanTexture2D texture) {
-        activeTexture = texture;
+    void setActiveDescriptorSet(long descriptorSet) {
+        activeDescriptorSet = descriptorSet;
     }
 
     /**
@@ -204,9 +207,9 @@ public class VulkanContext implements GraphicsContext {
     }
 
     /**
-     * Begins a new frame: – Waits for this frame slot's GPU fence (CPU/GPU sync). – Acquires the next
-     * swap chain image. – Resets and begins recording the command buffer. – Starts the render pass
-     * with the stored clear colour. – Sets dynamic viewport and scissor.
+     * Begins a new frame: waits for the GPU fence, acquires the next swap chain image, resets and
+     * begins recording the command buffer, then starts the render pass targeting the current render
+     * target (or the swapchain backbuffer if none is set).
      */
     @Override
     public void clear() {
@@ -246,48 +249,20 @@ public class VulkanContext implements GraphicsContext {
             if (vkBeginCommandBuffer(cmdBuf, beginInfo) != VK_SUCCESS) {
                 throw new RuntimeException("Failed to begin command buffer");
             }
-
-            var clearValues = VkClearValue.calloc(1, stack);
-            clearValues
-                    .get(0)
-                    .color()
-                    .float32(0, clearColor[0])
-                    .float32(1, clearColor[1])
-                    .float32(2, clearColor[2])
-                    .float32(3, clearColor[3]);
-
-            var rpBeginInfo = VkRenderPassBeginInfo.calloc(stack)
-                    .sType(VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO)
-                    .renderPass(renderPass.handle())
-                    .framebuffer(swapChain.framebuffer(currentImageIndex))
-                    .pClearValues(clearValues);
-            rpBeginInfo.renderArea().offset().x(0).y(0);
-            rpBeginInfo
-                    .renderArea()
-                    .extent()
-                    .width(swapChain.extent().width())
-                    .height(swapChain.extent().height());
-
-            vkCmdBeginRenderPass(cmdBuf, rpBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-            // Negative height + y=height flips the Vulkan Y-axis to match OpenGL conventions.
-            // JOML's setOrtho produces matrices expecting Y-up (OpenGL), so we compensate here.
-            var viewport = VkViewport.calloc(1, stack)
-                    .x(0f)
-                    .y((float) swapChain.extent().height())
-                    .width((float) swapChain.extent().width())
-                    .height(-(float) swapChain.extent().height())
-                    .minDepth(0f)
-                    .maxDepth(1f);
-            vkCmdSetViewport(cmdBuf, 0, viewport);
-
-            var scissor = VkRect2D.calloc(1, stack);
-            scissor.offset().x(0).y(0);
-            scissor.extent()
-                    .width(swapChain.extent().width())
-                    .height(swapChain.extent().height());
-            vkCmdSetScissor(cmdBuf, 0, scissor);
         }
+
+        beginCurrentRenderPass();
+    }
+
+    @Override
+    public void setRenderTarget(RenderTarget renderTarget) {
+        var cmdBuf = commandPool.commandBuffer(currentFrame);
+        if (renderPassActive) {
+            vkCmdEndRenderPass(cmdBuf);
+            renderPassActive = false;
+        }
+        activeRenderTarget = (renderTarget instanceof VulkanRenderTarget vrt) ? vrt : null;
+        beginCurrentRenderPass();
     }
 
     /**
@@ -326,9 +301,11 @@ public class VulkanContext implements GraphicsContext {
 
         var cmdBuf = commandPool.commandBuffer(currentFrame);
 
-        // Create the VkPipeline lazily with the actual vertex layout (now known)
+        // Create the VkPipeline lazily using the currently active render pass and extent
         var firstVbo = va.getVBOs().get(0);
-        var pipeline = vs.getOrCreatePipeline(firstVbo.getLayout(), renderPass.handle(), swapChain.extent());
+        var currentRpHandle = activeRenderTarget != null ? activeRenderTarget.renderPassHandle() : renderPass.handle();
+        var currentExtent = activeRenderTarget != null ? activeRenderTarget.extent() : swapChain.extent();
+        var pipeline = vs.getOrCreatePipeline(firstVbo.getLayout(), currentRpHandle, currentExtent);
 
         vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
@@ -339,8 +316,8 @@ public class VulkanContext implements GraphicsContext {
             vkCmdPushConstants(cmdBuf, vs.pipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, pushData);
 
             // Bind texture descriptor set (set=0)
-            if (activeTexture != null) {
-                var pSet = stack.longs(activeTexture.descriptorSet());
+            if (activeDescriptorSet != VK_NULL_HANDLE) {
+                var pSet = stack.longs(activeDescriptorSet);
                 vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, vs.pipelineLayout(), 0, pSet, null);
             }
 
@@ -378,7 +355,10 @@ public class VulkanContext implements GraphicsContext {
         try (MemoryStack stack = stackPush()) {
             var cmdBuf = commandPool.commandBuffer(currentFrame);
 
-            vkCmdEndRenderPass(cmdBuf);
+            if (renderPassActive) {
+                vkCmdEndRenderPass(cmdBuf);
+                renderPassActive = false;
+            }
             if (vkEndCommandBuffer(cmdBuf) != VK_SUCCESS) {
                 throw new RuntimeException("Failed to end command buffer");
             }
@@ -454,6 +434,63 @@ public class VulkanContext implements GraphicsContext {
     // -------------------------------------------------------------------------
     // Internal helpers
     // -------------------------------------------------------------------------
+
+    private void beginCurrentRenderPass() {
+        try (MemoryStack stack = stackPush()) {
+            var cmdBuf = commandPool.commandBuffer(currentFrame);
+
+            var clearValues = VkClearValue.calloc(1, stack);
+            clearValues
+                    .get(0)
+                    .color()
+                    .float32(0, clearColor[0])
+                    .float32(1, clearColor[1])
+                    .float32(2, clearColor[2])
+                    .float32(3, clearColor[3]);
+
+            long rpHandle;
+            long fbHandle;
+            int w, h;
+
+            if (activeRenderTarget != null) {
+                rpHandle = activeRenderTarget.renderPassHandle();
+                fbHandle = activeRenderTarget.framebufferHandle();
+                w = activeRenderTarget.vkWidth();
+                h = activeRenderTarget.vkHeight();
+            } else {
+                rpHandle = renderPass.handle();
+                fbHandle = swapChain.framebuffer(currentImageIndex);
+                w = swapChain.extent().width();
+                h = swapChain.extent().height();
+            }
+
+            var rpBeginInfo = VkRenderPassBeginInfo.calloc(stack)
+                    .sType(VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO)
+                    .renderPass(rpHandle)
+                    .framebuffer(fbHandle)
+                    .pClearValues(clearValues);
+            rpBeginInfo.renderArea().offset().x(0).y(0);
+            rpBeginInfo.renderArea().extent().width(w).height(h);
+
+            vkCmdBeginRenderPass(cmdBuf, rpBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+            renderPassActive = true;
+
+            // Negative height + y=height flips the Vulkan Y-axis to match OpenGL conventions.
+            var viewport = VkViewport.calloc(1, stack)
+                    .x(0f)
+                    .y((float) h)
+                    .width((float) w)
+                    .height(-(float) h)
+                    .minDepth(0f)
+                    .maxDepth(1f);
+            vkCmdSetViewport(cmdBuf, 0, viewport);
+
+            var scissor = VkRect2D.calloc(1, stack);
+            scissor.offset().x(0).y(0);
+            scissor.extent().width(w).height(h);
+            vkCmdSetScissor(cmdBuf, 0, scissor);
+        }
+    }
 
     private void recreateSwapChain() {
         device.waitIdle();

@@ -79,6 +79,10 @@ public class Renderer implements WindowEventListener {
         get().context.renderRaw(vao, shader, renderMode, polygonMode, elementOffset, elementCount);
     }
 
+    public static void setRenderTarget(RenderTarget renderTarget) {
+        get().context.setRenderTarget(renderTarget);
+    }
+
     public static void setViewport(int x, int y, int width, int height) {
         get().context.setViewport(x, y, width, height);
     }

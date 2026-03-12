@@ -412,7 +412,7 @@ The engine has a solid architectural foundation: clean HAL abstraction, modern E
 
 ---
 
-#### 39. No render pass abstraction
+#### 39. No render pass abstraction - DONE
 
 **Problem:** The engine renders directly to the backbuffer. No `RenderTarget` or `Framebuffer` abstraction.
 
