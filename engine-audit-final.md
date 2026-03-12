@@ -272,7 +272,7 @@ The engine has a solid architectural foundation: clean HAL abstraction, modern E
 
 ---
 
-#### 25. `GamepadButton.values()` inside poll loop
+#### 25. `GamepadButton.values()` inside poll loop - DONE
 
 **File:** `InputSystem.java:236`
 

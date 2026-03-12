@@ -16,6 +16,7 @@ public abstract class Game implements WindowEventListener {
 
     private static final Logger log = LoggerFactory.getLogger(Game.class);
     private static final long TARGET_ELAPSED_NANOS = 1_000_000_000L / 60;
+    private static final long MAX_DELTA_NANOS = 100_000_000L;
 
     public final List<GameService> components = new ArrayList<>();
     protected GraphicsDeviceManager gdm;
@@ -92,21 +93,20 @@ public abstract class Game implements WindowEventListener {
             InputSystem.update();
             Window.pollEvents();
 
-            if (deltaNanos >= 0L) {
-                totalNanos += deltaNanos;
-                var deltaSeconds = (float) (deltaNanos * 1e-9);
-                var totalSeconds = (float) (totalNanos * 1e-9);
-                gameTime.set(deltaSeconds, totalSeconds, deltaNanos > TARGET_ELAPSED_NANOS);
-                update(gameTime);
-                for (var component : components) {
-                    component.update(gameTime);
-                }
-                draw(gameTime);
-                for (var component : components) {
-                    component.draw(gameTime);
-                }
-                Renderer.swapBuffers(deltaSeconds);
+            var clampedDeltaNanos = Math.min(deltaNanos, MAX_DELTA_NANOS);
+            totalNanos += clampedDeltaNanos;
+            var deltaSeconds = (float) (clampedDeltaNanos * 1e-9);
+            var totalSeconds = (float) (totalNanos * 1e-9);
+            gameTime.set(deltaSeconds, totalSeconds, clampedDeltaNanos > TARGET_ELAPSED_NANOS);
+            update(gameTime);
+            for (var component : components) {
+                component.update(gameTime);
             }
+            draw(gameTime);
+            for (var component : components) {
+                component.draw(gameTime);
+            }
+            Renderer.swapBuffers(deltaSeconds);
 
             // When vSync is enabled, swapBuffers already blocks for the display refresh interval,
             // so no additional sleep is needed. Sleep only when running uncapped to avoid
