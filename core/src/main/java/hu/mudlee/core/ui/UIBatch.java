@@ -75,17 +75,18 @@ public final class UIBatch implements Disposable {
     }
 
     private void drawTextRaw(BitmapFont font, String text, float x, float y, Color color, STBTTAlignedQuad quad) {
-        xCursor[0] = x;
-        yCursor[0] = y + font.getAscent();
+        var pr = font.getPixelRatio();
+        xCursor[0] = x * pr;
+        yCursor[0] = (y + font.getAscent()) * pr;
         var atlas = font.getAtlasTexture();
 
         for (int i = 0; i < text.length(); i++) {
             font.getQuad(text.charAt(i), xCursor, yCursor, quad);
 
-            float qx = quad.x0();
-            float qy = quad.y0();
-            float qw = quad.x1() - quad.x0();
-            float qh = quad.y1() - quad.y0();
+            float qx = quad.x0() / pr;
+            float qy = quad.y0() / pr;
+            float qw = (quad.x1() - quad.x0()) / pr;
+            float qh = (quad.y1() - quad.y0()) / pr;
             float u0 = quad.s0();
             float u1 = quad.s1();
             // SpriteBatch.writeQuad swaps v0/v1 (designed for y-up screens).

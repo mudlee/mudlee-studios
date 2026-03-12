@@ -60,9 +60,8 @@ public class VulkanTexture2D extends Texture2D {
     }
 
     /** Creates a texture from raw RGBA8 pixel data (e.g. a font atlas). */
-    // TODO: do not refer like java.nio... import it at the top.
     public VulkanTexture2D(ByteBuffer pixels, int width, int height, boolean pixelPerfect) {
-        this.path = "<pixels>"; // TODO: what is this?
+        this.path = "<pixels>"; // TODO: what is this hacky solution?
         this.pixelPerfect = pixelPerfect;
         var ctx = VulkanContext.get();
         this.device = ctx.device();

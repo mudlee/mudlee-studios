@@ -342,7 +342,7 @@ The engine has a solid architectural foundation: clean HAL abstraction, modern E
 
 ---
 
-#### 32. `BitmapFont` atlas not DPI-aware
+#### 32. `BitmapFont` atlas not DPI-aware - DONE
 
 **File:** `BitmapFont.java:54`
 
@@ -352,7 +352,7 @@ The engine has a solid architectural foundation: clean HAL abstraction, modern E
 
 ---
 
-#### 33. Entity IDs never recycled
+#### 33. Entity IDs never recycled - DONE
 
 **File:** `EntityManager.java:14,21`
 
@@ -372,7 +372,7 @@ The engine has a solid architectural foundation: clean HAL abstraction, modern E
 
 ---
 
-#### 35. `BitmapFont` loads TTF file twice
+#### 35. `BitmapFont` loads TTF file twice - DONE
 
 **File:** `BitmapFont.java:51,78`
 
@@ -382,7 +382,7 @@ The engine has a solid architectural foundation: clean HAL abstraction, modern E
 
 ---
 
-#### 36. `ScreenManager` doesn't call `resize()` on newly shown screens
+#### 36. `ScreenManager` doesn't call `resize()` on newly shown screens - DONE
 
 **File:** `ScreenManager.java:45-46,58-59`
 

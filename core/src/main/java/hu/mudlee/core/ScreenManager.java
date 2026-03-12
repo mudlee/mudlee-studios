@@ -1,5 +1,6 @@
 package hu.mudlee.core;
 
+import hu.mudlee.core.window.Window;
 import java.util.ArrayDeque;
 import java.util.Deque;
 
@@ -44,6 +45,8 @@ public final class ScreenManager extends GameService {
         }
         stack.push(screen);
         screen.show();
+        var size = Window.getSize();
+        screen.resize(size.x, size.y);
     }
 
     /**
@@ -56,6 +59,8 @@ public final class ScreenManager extends GameService {
         }
         stack.push(screen);
         screen.show();
+        var size = Window.getSize();
+        screen.resize(size.x, size.y);
     }
 
     /** Pops and disposes the top screen. The screen underneath is shown again. */

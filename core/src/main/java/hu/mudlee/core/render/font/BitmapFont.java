@@ -7,6 +7,7 @@ import static org.lwjgl.system.MemoryUtil.*;
 import hu.mudlee.core.Disposable;
 import hu.mudlee.core.io.ResourceLoader;
 import hu.mudlee.core.render.texture.Texture2D;
+import hu.mudlee.core.window.Window;
 import java.nio.FloatBuffer;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.stb.STBTTAlignedQuad;
@@ -39,6 +40,7 @@ public final class BitmapFont implements Disposable {
     private final Texture2D atlasTexture;
     private final float ascent;
     private final float ptSize;
+    private final float pixelRatio;
     private final FloatBuffer quadXBuf = BufferUtils.createFloatBuffer(1);
     private final FloatBuffer quadYBuf = BufferUtils.createFloatBuffer(1);
     private final STBTTAlignedQuad measureQuad = STBTTAlignedQuad.malloc();
@@ -47,11 +49,24 @@ public final class BitmapFont implements Disposable {
 
     public BitmapFont(String ttfResourcePath, float ptSize) {
         this.ptSize = ptSize;
+        this.pixelRatio = Window.getPixelRatio();
+        var bakePtSize = ptSize * pixelRatio;
 
         var ttfBytes = ResourceLoader.loadToDirectByteBuffer(ttfResourcePath);
 
+        try (var stack = stackPush()) {
+            var ascentBuf = stack.mallocInt(1);
+            var descentBuf = stack.mallocInt(1);
+            var lineGapBuf = stack.mallocInt(1);
+            var info = org.lwjgl.stb.STBTTFontinfo.malloc(stack);
+            stbtt_InitFont(info, ttfBytes);
+            stbtt_GetFontVMetrics(info, ascentBuf, descentBuf, lineGapBuf);
+            float scale = stbtt_ScaleForPixelHeight(info, bakePtSize);
+            ascent = (ascentBuf.get(0) * scale) / pixelRatio;
+        }
+
         var bitmap = memAlloc(ATLAS_SIZE * ATLAS_SIZE);
-        stbtt_BakeFontBitmap(ttfBytes, ptSize, bitmap, ATLAS_SIZE, ATLAS_SIZE, FIRST_CHAR, charData);
+        stbtt_BakeFontBitmap(ttfBytes, bakePtSize, bitmap, ATLAS_SIZE, ATLAS_SIZE, FIRST_CHAR, charData);
         memFree(ttfBytes);
 
         // Convert single-channel alpha bitmap to RGBA for Texture2D.createFromPixels
@@ -69,20 +84,6 @@ public final class BitmapFont implements Disposable {
         atlasTexture = Texture2D.createFromPixels(rgba, ATLAS_SIZE, ATLAS_SIZE);
         memFree(rgba);
 
-        try (var stack = stackPush()) {
-            var ascentBuf = stack.mallocInt(1);
-            var descentBuf = stack.mallocInt(1);
-            var lineGapBuf = stack.mallocInt(1);
-            // Re-load font info just to get ascent — small cost, only at construction
-            var info = org.lwjgl.stb.STBTTFontinfo.malloc(stack);
-            var reloaded = ResourceLoader.loadToDirectByteBuffer(ttfResourcePath);
-            stbtt_InitFont(info, reloaded);
-            stbtt_GetFontVMetrics(info, ascentBuf, descentBuf, lineGapBuf);
-            float scale = stbtt_ScaleForPixelHeight(info, ptSize);
-            ascent = ascentBuf.get(0) * scale;
-            memFree(reloaded);
-        }
-
         log.debug("BitmapFont '{}' @ {}pt baked onto {}×{} atlas", ttfResourcePath, ptSize, ATLAS_SIZE, ATLAS_SIZE);
     }
 
@@ -97,6 +98,10 @@ public final class BitmapFont implements Disposable {
 
     public float getPtSize() {
         return ptSize;
+    }
+
+    public float getPixelRatio() {
+        return pixelRatio;
     }
 
     /**
@@ -130,7 +135,7 @@ public final class BitmapFont implements Disposable {
         for (int i = 0; i < text.length(); i++) {
             getQuad(text.charAt(i), measureX, measureY, measureQuad);
         }
-        return measureX[0];
+        return measureX[0] / pixelRatio;
     }
 
     @Override

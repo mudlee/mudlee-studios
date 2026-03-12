@@ -1,8 +1,10 @@
 package hu.mudlee.core.ecs;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -13,15 +15,16 @@ public final class EntityManager {
 
     private int nextId = 0;
     private long structureVersion = 0;
+    private final Deque<Integer> freeIds = new ArrayDeque<>();
 
     private final Map<Class<? extends Component>, Map<Integer, Component>> byType = new HashMap<>();
     private final Map<Integer, Set<Class<? extends Component>>> byEntity = new HashMap<>();
     private final Map<AspectKey, CachedQuery> queryCache = new HashMap<>();
 
     public Entity createEntity() {
-        var e = new Entity(nextId++);
-        byEntity.put(e.id(), new HashSet<>());
-        return e;
+        int id = freeIds.isEmpty() ? nextId++ : freeIds.pop();
+        byEntity.put(id, new HashSet<>());
+        return new Entity(id);
     }
 
     public void destroyEntity(Entity entity) {
@@ -31,6 +34,7 @@ public final class EntityManager {
                 byType.get(type).remove(entity.id());
             }
         }
+        freeIds.push(entity.id());
         structureVersion++;
     }
 
