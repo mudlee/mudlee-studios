@@ -282,7 +282,7 @@ The engine has a solid architectural foundation: clean HAL abstraction, modern E
 
 ---
 
-#### 26. `deltaTime >= 0f` always true — no delta cap
+#### 26. `deltaTime >= 0f` always true — no delta cap - DONE
 
 **File:** `Game.java:101`
 
@@ -292,7 +292,7 @@ The engine has a solid architectural foundation: clean HAL abstraction, modern E
 
 ---
 
-#### 27. `Time.timeStarted` is public and mutable
+#### 27. `Time.timeStarted` is public and mutable - DONE
 
 **File:** `Time.java:4`
 
@@ -302,7 +302,7 @@ The engine has a solid architectural foundation: clean HAL abstraction, modern E
 
 ---
 
-#### 28. `ComponentMapperService` does not cache mappers
+#### 28. `ComponentMapperService` does not cache mappers - DONE
 
 **File:** `ComponentMapperService.java`
 
@@ -312,7 +312,7 @@ The engine has a solid architectural foundation: clean HAL abstraction, modern E
 
 ---
 
-#### 29. OpenGL render state cache (blend)
+#### 29. OpenGL render state cache (blend) - DONE
 
 **File:** `OpenGLGraphicsContext.java`
 
@@ -322,7 +322,7 @@ The engine has a solid architectural foundation: clean HAL abstraction, modern E
 
 ---
 
-#### 30. `SpriteRender2DSystem` comparator lambda per frame
+#### 30. `SpriteRender2DSystem` comparator lambda per frame - DONE
 
 **File:** `SpriteRender2DSystem.java:37`
 
@@ -332,7 +332,7 @@ The engine has a solid architectural foundation: clean HAL abstraction, modern E
 
 ---
 
-#### 31. `VelocityComponent` is dead code
+#### 31. `VelocityComponent` is dead code - DONE
 
 **File:** `VelocityComponent.java`
 

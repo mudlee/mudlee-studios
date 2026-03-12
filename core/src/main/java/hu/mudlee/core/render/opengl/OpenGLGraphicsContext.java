@@ -26,6 +26,9 @@ public class OpenGLGraphicsContext implements GraphicsContext {
     private long windowId;
     private PolygonMode prevPolygonMode = PolygonMode.FILL;
     private String rendererInfo = "";
+    private boolean blendEnabled = false;
+    private BlendFactor blendSrc = null;
+    private BlendFactor blendDst = null;
 
     public OpenGLGraphicsContext(boolean debug) {
         this.debug = debug;
@@ -133,11 +136,21 @@ public class OpenGLGraphicsContext implements GraphicsContext {
     @Override
     public void setBlend(boolean enable, BlendFactor src, BlendFactor dst) {
         if (enable) {
-            glEnable(GL_BLEND);
-            glBlendEquation(GL_FUNC_ADD);
-            glBlendFunc(toGL(src), toGL(dst));
+            if (!blendEnabled) {
+                glEnable(GL_BLEND);
+                glBlendEquation(GL_FUNC_ADD);
+                blendEnabled = true;
+            }
+            if (src != blendSrc || dst != blendDst) {
+                glBlendFunc(toGL(src), toGL(dst));
+                blendSrc = src;
+                blendDst = dst;
+            }
         } else {
-            glDisable(GL_BLEND);
+            if (blendEnabled) {
+                glDisable(GL_BLEND);
+                blendEnabled = false;
+            }
         }
     }
 

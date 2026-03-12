@@ -17,6 +17,7 @@ public final class SpriteRender2DSystem extends RenderSystemBase {
     private ComponentMapper<Transform2DComponent> transformMapper;
     private ComponentMapper<Sprite2DComponent> spriteMapper;
     private final List<Entity> sortBuffer = new ArrayList<>();
+    private Comparator<Entity> zComparator;
 
     public SpriteRender2DSystem() {}
 
@@ -24,6 +25,7 @@ public final class SpriteRender2DSystem extends RenderSystemBase {
     public void initialize(ComponentMapperService mappers) {
         transformMapper = mappers.getMapper(Transform2DComponent.class);
         spriteMapper = mappers.getMapper(Sprite2DComponent.class);
+        zComparator = Comparator.comparingInt(e -> transformMapper.get(e).z);
     }
 
     @Override
@@ -34,7 +36,7 @@ public final class SpriteRender2DSystem extends RenderSystemBase {
 
         sortBuffer.clear();
         sortBuffer.addAll(em.getEntitiesWith(Transform2DComponent.class, Sprite2DComponent.class));
-        sortBuffer.sort(Comparator.comparingInt(e -> transformMapper.get(e).z));
+        sortBuffer.sort(zComparator);
 
         for (int i = 0; i < sortBuffer.size(); i++) {
             var entity = sortBuffer.get(i);
