@@ -18,6 +18,7 @@ import org.lwjgl.system.MemoryStack;
  */
 public final class InputSystem {
 
+    private static final GamepadButton[] GAMEPAD_BUTTONS = GamepadButton.values();
     private static final boolean[] KEY_STATE = new boolean[Keys.values().length];
     private static final boolean[] MOUSE_STATE = new boolean[MouseButton.values().length];
     private static final boolean[] GAMEPAD_BUTTON_STATE = new boolean[15];
@@ -232,7 +233,7 @@ public final class InputSystem {
                 if (pressed == wasPressed) {
                     continue;
                 }
-                var button = GamepadButton.values()[i];
+                var button = GAMEPAD_BUTTONS[i];
                 if (pressed) {
                     processGamepadButtonPressed(button);
                 } else {
