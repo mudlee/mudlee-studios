@@ -35,7 +35,10 @@
       "WebFetch(domain:www.glfw.org)",
       "WebFetch(domain:javadoc.lwjgl.org)",
       "Bash(./gradlew :sandbox:compileJava 2>&1 | tail -20)",
-      "Bash(./gradlew :sandbox:compileJava 2>&1 | tail -10)"
+      "Bash(./gradlew :sandbox:compileJava 2>&1 | tail -10)",
+      "Bash(./gradlew run:*)",
+      "Bash(./gradlew spotlessCheck 2>&1 | tail -50)",
+      "Bash(./gradlew --version)"
     ]
   }
 }

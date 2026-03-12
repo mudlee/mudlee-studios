@@ -103,8 +103,6 @@ public final class DebugStatsComponent extends UIComponent {
     private int vertexCount = 0;
     private int textureCount = 0;
 
-    // Uptime formatting (updated once per second to avoid per-frame string alloc)
-    private float uptimeAccum = 0f;
     private String uptimeStr = "00:00:00";
 
     // Heap allocation rate tracking
@@ -116,6 +114,9 @@ public final class DebugStatsComponent extends UIComponent {
     private long prevGcCount = 0;
     private float gcAccum = 0f;
     private int gcPausesAccum = 0;
+
+    // Display refresh interval (1 second)
+    private float displayRefreshAccum = 1f; // start at 1 so first frame populates immediately
 
     // Cached display strings
     private String fpsStr = "";
@@ -218,14 +219,9 @@ public final class DebugStatsComponent extends UIComponent {
         minFps = maxFrameTime > 0f ? 1f / maxFrameTime : 0f;
         maxFps = minFrameTime > 0f ? 1f / minFrameTime : 0f;
 
-        // Heap
+        // Heap allocation rate tracking (must run every frame)
         var rt = Runtime.getRuntime();
         var heapUsedBytes = rt.totalMemory() - rt.freeMemory();
-        heapUsedMb = heapUsedBytes / (1024f * 1024f);
-        heapMaxMb = rt.maxMemory() / (1024f * 1024f);
-        heapPct = heapMaxMb > 0f ? (heapUsedMb / heapMaxMb) * 100f : 0f;
-
-        // Allocation rate (accumulated over 1 second)
         allocAccum += dt;
         var heapDeltaBytes = Math.max(0L, heapUsedBytes - prevHeapUsedBytes);
         prevHeapUsedBytes = heapUsedBytes;
@@ -236,7 +232,7 @@ public final class DebugStatsComponent extends UIComponent {
             allocAccum = 0f;
         }
 
-        // GC pause count (smoothed over 1 second)
+        // GC pause count tracking (must run every frame)
         gcAccum += dt;
         var currentGcCount = 0L;
         for (var bean : gcBeans) {
@@ -249,6 +245,18 @@ public final class DebugStatsComponent extends UIComponent {
             gcPausesAccum = 0;
             gcAccum = 0f;
         }
+
+        // Refresh display values once per second
+        displayRefreshAccum += dt;
+        if (displayRefreshAccum < 1f) {
+            return;
+        }
+        displayRefreshAccum = 0f;
+
+        // Heap
+        heapUsedMb = heapUsedBytes / (1024f * 1024f);
+        heapMaxMb = rt.maxMemory() / (1024f * 1024f);
+        heapPct = heapMaxMb > 0f ? (heapUsedMb / heapMaxMb) * 100f : 0f;
 
         // Off-heap direct memory
         var directUsed = 0L;
@@ -267,17 +275,13 @@ public final class DebugStatsComponent extends UIComponent {
         textureCount = Renderer.getTextureCount();
         flushCount = Renderer.getSpriteBatchFlushCount();
 
-        // Uptime (formatted once per second)
-        uptimeAccum += dt;
-        if (uptimeAccum >= 1f) {
-            uptimeAccum -= 1f;
-            var total = (int) gameTime.totalSeconds();
-            var h = total / 3600;
-            var m = (total % 3600) / 60;
-            var s = total % 60;
-            uptimeStr = String.format("%02d:%02d:%02d", h, m, s);
-            windowStr = buildWindowStr();
-        }
+        // Uptime
+        var total = (int) gameTime.totalSeconds();
+        var h = total / 3600;
+        var m = (total % 3600) / 60;
+        var s = total % 60;
+        uptimeStr = String.format("%02d:%02d:%02d", h, m, s);
+        windowStr = buildWindowStr();
 
         // Build display strings
         fpsStr = String.format("%.1f", averageFps);
