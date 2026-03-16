@@ -17,7 +17,7 @@
 | 6  | High     | API         | Done   | Input APIs expose shared mutable state instead of stable snapshots                                   |
 | 7  | High     | Design      | Done   | Screen lifecycle is unsafe: `show()` doubles as resume and transitions are immediate                 |
 | 8  | High     | Design      | Done   | `Game.components` is a public mutable service list with hidden ordering and mutation hazards         |
-| 9  | High     | Correctness | Open   | ECS entity handles are raw ids with no liveness or ownership validation                              |
+| 9  | High     | Correctness | Done   | ECS entity handles are raw ids with no liveness or ownership validation                              |
 | 10 | High     | Bug         | Open   | `Window.dispose()` calls GLFW after `glfwTerminate()`                                                |
 | 11 | High     | Correctness | Open   | Vulkan sync objects are not recreated if swapchain image count changes                               |
 | 12 | Medium   | Correctness | Open   | Vulkan `vSync=false` silently falls back to FIFO on Linux                                            |

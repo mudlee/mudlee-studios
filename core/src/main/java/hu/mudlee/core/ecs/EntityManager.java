@@ -27,37 +27,42 @@ public final class EntityManager {
         return new Entity(id);
     }
 
+    public boolean isAlive(Entity entity) {
+        return byEntity.containsKey(entity.id());
+    }
+
     public void destroyEntity(Entity entity) {
         var types = byEntity.remove(entity.id());
-        if (types != null) {
-            for (var type : types) {
-                byType.get(type).remove(entity.id());
-            }
+        if (types == null) {
+            throw new IllegalStateException("Entity " + entity.id() + " is not alive or was already destroyed");
+        }
+        for (var type : types) {
+            byType.get(type).remove(entity.id());
         }
         freeIds.push(entity.id());
         structureVersion++;
     }
 
     public <T extends Component> void addComponent(Entity entity, T component) {
+        requireAlive(entity);
         byType.computeIfAbsent(component.getClass(), k -> new HashMap<>()).put(entity.id(), component);
         byEntity.get(entity.id()).add(component.getClass());
         structureVersion++;
     }
 
     public void removeComponent(Entity entity, Class<? extends Component> type) {
+        requireAlive(entity);
         var map = byType.get(type);
         if (map != null) {
             map.remove(entity.id());
         }
-        var types = byEntity.get(entity.id());
-        if (types != null) {
-            types.remove(type);
-        }
+        byEntity.get(entity.id()).remove(type);
         structureVersion++;
     }
 
     @SuppressWarnings("unchecked")
     public <T extends Component> T getComponent(Entity entity, Class<T> type) {
+        requireAlive(entity);
         var map = byType.get(type);
         var result = map == null ? null : (T) map.get(entity.id());
         if (result == null) {
@@ -68,6 +73,7 @@ public final class EntityManager {
     }
 
     public boolean hasComponent(Entity entity, Class<? extends Component> type) {
+        requireAlive(entity);
         var map = byType.get(type);
         return map != null && map.containsKey(entity.id());
     }
@@ -109,6 +115,12 @@ public final class EntityManager {
             result.add(new Entity(id));
         }
         return Collections.unmodifiableList(result);
+    }
+
+    private void requireAlive(Entity entity) {
+        if (!byEntity.containsKey(entity.id())) {
+            throw new IllegalStateException("Entity " + entity.id() + " is not alive");
+        }
     }
 
     private static final class AspectKey {
