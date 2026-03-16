@@ -45,7 +45,15 @@ public final class SpriteRender2DSystem extends RenderSystemBase {
             if (s.region == null) {
                 continue;
             }
-            batch.draw(s.region, t.position, s.tint, t.rotation, s.origin, s.scale * t.scale.x, s.flipX, s.flipY);
+            batch.draw(
+                    s.region,
+                    t.getWorldPosition(),
+                    s.tint,
+                    t.getWorldRotation(),
+                    s.origin,
+                    s.scale * t.getWorldScale().x,
+                    s.flipX,
+                    s.flipY);
         }
     }
 }
