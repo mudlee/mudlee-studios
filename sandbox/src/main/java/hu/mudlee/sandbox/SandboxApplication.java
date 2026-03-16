@@ -22,12 +22,12 @@ public class SandboxApplication extends Game {
     @Override
     protected void loadContent() {
         var screenManager = new ScreenManager();
-        components.add(screenManager);
+        addService(screenManager);
         screenManager.set(new PlayerScene(this, graphicsDevice));
 
         // UIService must be added after ScreenManager so it renders on top of the scene.
         var uiService = new UIService();
-        components.add(uiService);
+        addService(uiService);
         uiService.getCanvas().create().addComponent(new DebugStatsComponent(uiService.getDefaultFont()));
     }
 

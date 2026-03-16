@@ -18,7 +18,10 @@ public abstract class Game implements WindowEventListener {
     private static final long TARGET_ELAPSED_NANOS = 1_000_000_000L / 60;
     private static final long MAX_DELTA_NANOS = 100_000_000L;
 
-    public final List<GameService> components = new ArrayList<>();
+    private final List<GameService> services = new ArrayList<>();
+    private final List<GameService> pendingAdds = new ArrayList<>();
+    private final List<GameService> pendingRemoves = new ArrayList<>();
+    private boolean iteratingServices;
     protected GraphicsDeviceManager gdm;
     protected GraphicsDevice graphicsDevice;
     protected ContentManager content;
@@ -65,10 +68,26 @@ public abstract class Game implements WindowEventListener {
         Window.close();
     }
 
+    public void addService(GameService service) {
+        if (iteratingServices) {
+            pendingAdds.add(service);
+        } else {
+            services.add(service);
+        }
+    }
+
+    public void removeService(GameService service) {
+        if (iteratingServices) {
+            pendingRemoves.add(service);
+        } else {
+            services.remove(service);
+        }
+    }
+
     @Override
     public void onWindowResized(int width, int height) {
-        for (var component : components) {
-            component.resize(width, height);
+        for (var service : services) {
+            service.resize(width, height);
         }
     }
 
@@ -99,13 +118,16 @@ public abstract class Game implements WindowEventListener {
             var totalSeconds = (float) (totalNanos * 1e-9);
             gameTime.set(deltaSeconds, totalSeconds, clampedDeltaNanos > TARGET_ELAPSED_NANOS);
             update(gameTime);
-            for (var component : components) {
-                component.update(gameTime);
+            iteratingServices = true;
+            for (var service : services) {
+                service.update(gameTime);
             }
             draw(gameTime);
-            for (var component : components) {
-                component.draw(gameTime);
+            for (var service : services) {
+                service.draw(gameTime);
             }
+            iteratingServices = false;
+            applyPendingServiceChanges();
             Renderer.swapBuffers(deltaSeconds);
 
             // When vSync is enabled, swapBuffers already blocks for the display refresh interval,
@@ -141,11 +163,11 @@ public abstract class Game implements WindowEventListener {
         } catch (Exception e) {
             log.error("Error unloading content", e);
         }
-        for (var component : components) {
+        for (var service : services) {
             try {
-                component.dispose();
+                service.dispose();
             } catch (Exception e) {
-                log.error("Error disposing component: {}", component.getClass().getSimpleName(), e);
+                log.error("Error disposing service: {}", service.getClass().getSimpleName(), e);
             }
         }
         try {
@@ -159,5 +181,16 @@ public abstract class Game implements WindowEventListener {
             log.error("Error removing window", e);
         }
         log.info("Terminated");
+    }
+
+    private void applyPendingServiceChanges() {
+        if (!pendingAdds.isEmpty()) {
+            services.addAll(pendingAdds);
+            pendingAdds.clear();
+        }
+        if (!pendingRemoves.isEmpty()) {
+            services.removeAll(pendingRemoves);
+            pendingRemoves.clear();
+        }
     }
 }

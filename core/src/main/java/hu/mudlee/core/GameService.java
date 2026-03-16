@@ -7,7 +7,7 @@ package hu.mudlee.core;
  * {@link #resize}, and {@link #dispose} automatically. Override only the methods you need.
  *
  * <pre>
- * game.components.add(new ScreenManager());
+ * game.addService(new ScreenManager());
  * </pre>
  */
 public abstract class GameService {

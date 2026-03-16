@@ -8,7 +8,7 @@ package hu.mudlee.core;
  *
  * <pre>
  * var sm = new ScreenManager();
- * game.components.add(sm);
+ * game.addService(sm);
  * sm.set(new MainMenuScreen(game));
  * </pre>
  */
