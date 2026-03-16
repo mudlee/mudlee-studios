@@ -14,6 +14,7 @@ import hu.mudlee.core.ecs.component.Sprite2DComponent;
 import hu.mudlee.core.ecs.component.Transform2DComponent;
 import hu.mudlee.core.ecs.system.Animation2DSystem;
 import hu.mudlee.core.ecs.system.SpriteRender2DSystem;
+import hu.mudlee.core.ecs.system.Transform2DPropagationSystem;
 import hu.mudlee.core.input.ActionType;
 import hu.mudlee.core.input.GamepadAxis;
 import hu.mudlee.core.input.GamepadButton;
@@ -48,6 +49,7 @@ public class PlayerScene implements Screen {
         spriteBatch = new SpriteBatch2D();
         cameraEntity = world.entities.createEntity();
         world.entities.addComponent(cameraEntity, new CameraComponent(new OrthographicCamera2D()));
+        world.addSystem(new Transform2DPropagationSystem());
         world.addSystem(new Animation2DSystem());
         world.addSystem(new SpriteRender2DSystem());
 
