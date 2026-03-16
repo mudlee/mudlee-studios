@@ -14,7 +14,7 @@ always screen-space quads regardless of whether the scene is 2D or 3D. When 3D i
 
 - The 3D scene renders normally (perspective projection, depth test on)
 - The UI layer renders after, in its own pass, with a screen-space ortho matrix and depth test disabled
-- SpriteBatch2D is already backend-agnostic (it picks OpenGL or Vulkan shaders via `Shader.create()`)
+- SpriteBatch2D is already backend-agnostic (it picks Vulkan shaders via `Shader.create()`)
 
 Nothing about SpriteBatch2D needs to change for 3D. The UI layer just needs to own its own
 SpriteBatch instance and render it last.
@@ -70,10 +70,7 @@ SpriteBatch instance and render it last.
 |-------------------------------------------------|----------------------------------|
 | `NuklearUIRenderer.java`                        | Entire Nuklear base class        |
 | `NuklearRenderer.java`                          | HAL-backed Nuklear renderer      |
-| `NuklearOpenGLRenderer.java`                    | OpenGL-specific Nuklear renderer |
 | `UIRenderer.java`                               | Interface only used by Nuklear   |
-| `resources/shaders/opengl/2d/nuklear.vert.glsl` | Nuklear vertex shader            |
-| `resources/shaders/opengl/2d/nuklear.frag.glsl` | Nuklear fragment shader          |
 
 ### Dependency removals
 

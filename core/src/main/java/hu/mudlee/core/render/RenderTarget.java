@@ -1,7 +1,6 @@
 package hu.mudlee.core.render;
 
 import hu.mudlee.core.Disposable;
-import hu.mudlee.core.render.opengl.OpenGLRenderTarget;
 import hu.mudlee.core.render.texture.Texture2D;
 import hu.mudlee.core.render.vulkan.VulkanRenderTarget;
 
@@ -24,10 +23,7 @@ import hu.mudlee.core.render.vulkan.VulkanRenderTarget;
 public abstract class RenderTarget implements Disposable {
 
     public static RenderTarget create(int width, int height) {
-        return switch (Renderer.activeBackend()) {
-            case OPENGL -> new OpenGLRenderTarget(width, height);
-            case VULKAN -> new VulkanRenderTarget(width, height);
-        };
+        return new VulkanRenderTarget(width, height);
     }
 
     public abstract int getWidth();

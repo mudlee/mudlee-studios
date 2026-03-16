@@ -11,7 +11,7 @@ dependencies {
 }
 
 val currentOs: DefaultOperatingSystem = DefaultNativePlatform.getCurrentOperatingSystem()
-var engineJvmArgs = listOf("-Dorg.lwjgl.system.allocator=system", "-Dorg.lwjgl.util.DebugLoader=true", "-Dorg.lwjgl.util.Debug=true", "-Dorg.lwjgl.opengl.Display.enableHighDPI=true", "-Dorg.lwjgl.opengl.Display.enableOSXFullscreenModeAPI=true")
+var engineJvmArgs = listOf("-Dorg.lwjgl.system.allocator=system", "-Dorg.lwjgl.util.DebugLoader=true", "-Dorg.lwjgl.util.Debug=true")
 if(currentOs.isMacOsX) {
 	engineJvmArgs = engineJvmArgs.plus(listOf("-XstartOnFirstThread"))
 }

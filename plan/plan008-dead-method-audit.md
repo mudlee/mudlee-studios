@@ -24,11 +24,10 @@ public abstract void unBind();
 ```
 
 `bind()` is called in many places; `unBind()` is declared but never invoked anywhere in
-the codebase. Both `OpenGLTexture2D` and `VulkanTexture2D` implement it, but nothing
-calls it. OpenGL texture binding is managed by state, not explicit unbind calls.
+the codebase. `VulkanTexture2D` implements it, but nothing calls it.
 
-**Cascade:** Removing the abstract declaration also removes the overrides in
-`OpenGLTexture2D` and `VulkanTexture2D`.
+**Cascade:** Removing the abstract declaration also removes the override in
+`VulkanTexture2D`.
 
 ---
 
@@ -40,11 +39,11 @@ calls it. OpenGL texture binding is managed by state, not explicit unbind calls.
 public abstract void setEBO(ElementBuffer elementBuffer);
 ```
 
-EBOs are always passed at construction time in `OpenGLVertexArray` and `VulkanVertexArray`.
+EBOs are always passed at construction time in `VulkanVertexArray`.
 The setter abstraction is never used from outside.
 
-**Cascade:** Removing the abstract declaration removes the implementations in
-`OpenGLVertexArray` and `VulkanVertexArray`.
+**Cascade:** Removing the abstract declaration removes the implementation in
+`VulkanVertexArray`.
 
 ---
 
@@ -60,8 +59,7 @@ GPU instancing infrastructure exists (`getInstanceCount()`, `isInstanced()` are 
 the rendering context), but the setter is never called — instance count is never changed
 from outside.
 
-**Cascade:** Removes the implementations in `OpenGLVertexArray:76` and
-`VulkanVertexArray:67`.
+**Cascade:** Removes the implementation in `VulkanVertexArray:67`.
 
 ---
 
@@ -76,10 +74,9 @@ public void update(ByteBuffer data, int byteCount) {
 ```
 
 The `float[]` overload `update(float[], int)` is used by `SpriteBatch2D`. The
-`ByteBuffer` overload is never called. Both `OpenGLVertexBuffer:54` and
-`VulkanVertexBuffer:108` override it.
+`ByteBuffer` overload is never called. `VulkanVertexBuffer:108` overrides it.
 
-**Cascade:** Removing the base declaration and both overrides is safe.
+**Cascade:** Removing the base declaration and the override is safe.
 
 ---
 
@@ -93,9 +90,9 @@ public void update(ByteBuffer data, int byteCount) {
 }
 ```
 
-Never called. `OpenGLElementBuffer:47` overrides it but that override is equally dead.
+Never called.
 
-**Cascade:** Removes `OpenGLElementBuffer.update(ByteBuffer, int)`.
+**Cascade:** None.
 
 ---
 
@@ -121,10 +118,10 @@ No caller anywhere in core or sandbox.
 public abstract int getNativeHandle();
 ```
 
-Declared in the abstract class and implemented in both `OpenGLTexture2D:77` and
-`VulkanTexture2D:82`, but never called from any consumer code.
+Declared in the abstract class and implemented in `VulkanTexture2D:82`, but never called
+from any consumer code.
 
-**Cascade:** Removing the declaration removes both overrides.
+**Cascade:** Removing the declaration removes the override.
 
 ---
 

@@ -1,7 +1,5 @@
 package hu.mudlee.core.render;
 
-import static org.lwjgl.opengl.GL15.GL_STATIC_DRAW;
-
 import hu.mudlee.core.Color;
 import hu.mudlee.core.Disposable;
 import hu.mudlee.core.Rectangle;
@@ -65,17 +63,12 @@ public class SpriteBatch2D implements Disposable, RenderContext {
         vertexArray.addVBO(dynamicVbo);
         vertexArray.setEBO(indexBuffer);
 
-        var shaderDir =
-                switch (Renderer.activeBackend()) {
-                    case OPENGL -> "opengl/2d";
-                    case VULKAN -> "vulkan/2d";
-                };
-        shader = Shader.create(shaderDir + "/vert.glsl", shaderDir + "/frag.glsl");
-        shader.createUniform(shader.getVertexProgramId(), ShaderProps.UNIFORM_PROJECTION_MATRIX.glslName);
-        shader.createUniform(shader.getVertexProgramId(), ShaderProps.UNIFORM_VIEW_MATRIX.glslName);
-        shader.createUniform(shader.getFragmentProgramId(), "TEX_SAMPLER");
-        shader.setUniform(shader.getFragmentProgramId(), "TEX_SAMPLER", 0);
-        shader.setUniform(shader.getVertexProgramId(), ShaderProps.UNIFORM_VIEW_MATRIX.glslName, identityMatrix);
+        shader = Shader.create("vulkan/2d/vert.glsl", "vulkan/2d/frag.glsl");
+        shader.createUniform(ShaderProps.UNIFORM_PROJECTION_MATRIX.glslName);
+        shader.createUniform(ShaderProps.UNIFORM_VIEW_MATRIX.glslName);
+        shader.createUniform("TEX_SAMPLER");
+        shader.setUniform("TEX_SAMPLER", 0);
+        shader.setUniform(ShaderProps.UNIFORM_VIEW_MATRIX.glslName, identityMatrix);
     }
 
     private static ElementBuffer createStaticIndexBuffer() {
@@ -92,7 +85,7 @@ public class SpriteBatch2D implements Disposable, RenderContext {
             indices[indexOffset + 4] = vertexOffset + 2;
             indices[indexOffset + 5] = vertexOffset + 3;
         }
-        return ElementBuffer.create(indices, GL_STATIC_DRAW);
+        return ElementBuffer.create(indices);
     }
 
     public void begin() {
@@ -112,8 +105,8 @@ public class SpriteBatch2D implements Disposable, RenderContext {
         begun = true;
         spriteCount = 0;
         currentTexture = null;
-        shader.setUniform(shader.getVertexProgramId(), ShaderProps.UNIFORM_PROJECTION_MATRIX.glslName, projection);
-        shader.setUniform(shader.getVertexProgramId(), ShaderProps.UNIFORM_VIEW_MATRIX.glslName, view);
+        shader.setUniform(ShaderProps.UNIFORM_PROJECTION_MATRIX.glslName, projection);
+        shader.setUniform(ShaderProps.UNIFORM_VIEW_MATRIX.glslName, view);
         Renderer.setBlend(true, BlendFactor.SRC_ALPHA, BlendFactor.ONE_MINUS_SRC_ALPHA);
     }
 

@@ -6,6 +6,7 @@ import static org.lwjgl.vulkan.VK12.*;
 import hu.mudlee.core.io.ResourceLoader;
 import hu.mudlee.core.render.Shader;
 import hu.mudlee.core.render.VertexBufferLayout;
+import hu.mudlee.core.render.types.ShaderTypes;
 import org.joml.Matrix4f;
 import org.joml.Vector4f;
 import org.lwjgl.system.MemoryStack;
@@ -38,9 +39,6 @@ import org.slf4j.LoggerFactory;
  * resources/shaders/vulkan/2d/frag.spv
  */
 public class VulkanShader extends Shader {
-
-    /** GL_FLOAT value (5126) — kept here to avoid importing OpenGL bindings in a Vulkan class. */
-    private static final int GL_FLOAT = 5126;
 
     /** Push constant size: mat4 projection (64 bytes) + mat4 view (64 bytes). */
     static final int PUSH_CONSTANT_SIZE = 128;
@@ -139,22 +137,12 @@ public class VulkanShader extends Shader {
     }
 
     @Override
-    public int getVertexProgramId() {
-        return 0;
-    }
-
-    @Override
-    public int getFragmentProgramId() {
-        return 0;
-    }
-
-    @Override
-    public void createUniform(int programId, String name) {
+    public void createUniform(String name) {
         // No-op: Vulkan uniforms are push constants or descriptor sets — no named locations
     }
 
     @Override
-    public void setUniform(int programId, String name, Matrix4f value) {
+    public void setUniform(String name, Matrix4f value) {
         switch (name) {
             case "uProjection" -> value.get(projectionData);
             case "uView" -> value.get(viewData);
@@ -163,17 +151,17 @@ public class VulkanShader extends Shader {
     }
 
     @Override
-    public void setUniform(int programId, String name, Vector4f value) {
+    public void setUniform(String name, Vector4f value) {
         // No-op until additional vec4 uniforms are needed
     }
 
     @Override
-    public void setUniform(int programId, String name, float value) {
+    public void setUniform(String name, float value) {
         // No-op
     }
 
     @Override
-    public void setUniform(int programId, String name, int value) {
+    public void setUniform(String name, int value) {
         // "TEX_SAMPLER" sampler-unit assignments are meaningless in Vulkan:
         // textures are bound via VkDescriptorSets in VulkanContext.renderRaw()
     }
@@ -363,19 +351,25 @@ public class VulkanShader extends Shader {
         }
     }
 
-    /**
-     * Converts a GL_FLOAT-typed VertexLayoutAttribute component count to the corresponding VkFormat.
-     */
-    private int toVulkanFormat(int glDataType, int componentCount) {
-        if (glDataType != GL_FLOAT) {
-            throw new RuntimeException("Unsupported vertex attribute type (only GL_FLOAT is supported): " + glDataType);
-        }
-        return switch (componentCount) {
-            case 1 -> VK_FORMAT_R32_SFLOAT;
-            case 2 -> VK_FORMAT_R32G32_SFLOAT;
-            case 3 -> VK_FORMAT_R32G32B32_SFLOAT;
-            case 4 -> VK_FORMAT_R32G32B32A32_SFLOAT;
-            default -> throw new RuntimeException("Unsupported float component count: " + componentCount);
+    private int toVulkanFormat(ShaderTypes dataType, int componentCount) {
+        return switch (dataType) {
+            case FLOAT ->
+                switch (componentCount) {
+                    case 1 -> VK_FORMAT_R32_SFLOAT;
+                    case 2 -> VK_FORMAT_R32G32_SFLOAT;
+                    case 3 -> VK_FORMAT_R32G32B32_SFLOAT;
+                    case 4 -> VK_FORMAT_R32G32B32A32_SFLOAT;
+                    default -> throw new RuntimeException("Unsupported float component count: " + componentCount);
+                };
+            case UNSIGNED_BYTE ->
+                switch (componentCount) {
+                    case 1 -> VK_FORMAT_R8_UINT;
+                    case 2 -> VK_FORMAT_R8G8_UINT;
+                    case 3 -> VK_FORMAT_R8G8B8_UINT;
+                    case 4 -> VK_FORMAT_R8G8B8A8_UINT;
+                    default ->
+                        throw new RuntimeException("Unsupported unsigned byte component count: " + componentCount);
+                };
         };
     }
 }

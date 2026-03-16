@@ -1,8 +1,6 @@
 module hu.mudlee.core {
     requires org.lwjgl;
     requires org.lwjgl.natives;
-    requires org.lwjgl.opengl;
-    requires org.lwjgl.opengl.natives;
     requires transitive org.lwjgl.glfw;
     requires org.lwjgl.glfw.natives;
     requires org.slf4j;

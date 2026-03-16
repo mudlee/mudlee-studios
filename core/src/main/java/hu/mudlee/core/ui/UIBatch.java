@@ -45,7 +45,7 @@ public final class UIBatch implements Disposable {
      * coordinates, origin top-left, y-down).
      *
      * <p>The Vulkan backend already corrects its NDC Y-inversion via a negative-height viewport in
-     * {@code VulkanContext.clear()}, so the same OpenGL-style matrix works for both backends.
+     * {@code VulkanContext.clear()}, so a standard projection matrix works correctly.
      */
     public void begin() {
         ortho.setOrtho(0f, screenW, screenH, 0f, -1f, 1f);

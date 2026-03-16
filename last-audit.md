@@ -9,70 +9,35 @@
 
 | #  | Priority | Category    | Status | Summary                                                                                              |
 |----|----------|-------------|--------|------------------------------------------------------------------------------------------------------|
-| 1  | Critical | Bug         | Open   | OpenGL texture upload is incorrect for RGB assets                                                    |
-| 2  | Critical | Leak        | Open   | `OpenGLShader.dispose()` leaks separable program objects                                             |
-| 3  | Critical | Leak        | Open   | `OpenGLVertexArray.dispose()` does not release attached buffers, so `SpriteBatch2D` leaks GPU memory |
-| 4  | Critical | Correctness | Done   | Vulkan pipeline caching ignores render-pass changes                                                  |
-| 5  | Critical | Leak        | Done   | Vulkan descriptor sets leak from a fixed-size shared pool                                            |
-| 6  | High     | Bug         | Open   | `VulkanVertexBuffer.update(ByteBuffer)` stores byte count as float count                             |
-| 7  | High     | Leak        | Open   | `ResourceLoader.load()` never closes Scanner / InputStream                                           |
-| 8  | High     | Leak        | Open   | `ScreenPixelRatioHandler.set()` leaks native memory on exception                                     |
-| 9  | High     | API         | Open   | Input APIs expose shared mutable state instead of stable snapshots                                   |
-| 10 | High     | Design      | Open   | Screen lifecycle is unsafe: `show()` doubles as resume and transitions are immediate                 |
-| 11 | High     | Design      | Open   | `Game.components` is a public mutable service list with hidden ordering and mutation hazards         |
-| 12 | High     | Correctness | Open   | ECS entity handles are raw ids with no liveness or ownership validation                              |
-| 13 | High     | Bug         | Open   | `Window.dispose()` calls GLFW after `glfwTerminate()`                                                |
-| 14 | High     | Correctness | Open   | Vulkan sync objects are not recreated if swapchain image count changes                               |
-| 15 | Medium   | Correctness | Open   | Vulkan `vSync=false` silently falls back to FIFO on Linux                                            |
-| 16 | Medium   | GC          | Open   | `MouseState.position()` allocates `Vector2f` every call                                              |
-| 17 | Medium   | API         | Open   | Vulkan backend silently ignores `setBlend()` and `setScissor()`                                      |
-| 18 | Medium   | API         | Open   | `OpenGLTexture2D.bind()` hardcodes texture unit 0                                                    |
-| 19 | Medium   | Build       | Open   | Deprecated Gradle multi-string dependency notation                                                   |
-| 20 | Medium   | Feature     | Open   | Hierarchical transforms are still missing                                                            |
-| 21 | Medium   | API         | Open   | `RenderTarget.getColorTexture()` has backend-inconsistent ownership semantics                        |
-| 22 | Medium   | Correctness | Open   | `Camera2D` dirty-flag correctness is easy to bypass through public mutable fields                    |
-| 23 | Low      | Metrics     | Open   | `DebugStatsComponent` direct-memory fallback reports heap max                                        |
-| 24 | Low      | GC          | Open   | `DebugStatsComponent.update()` uses `String.format()` per frame                                      |
-| 25 | Low      | Portability | Open   | `module-info.java` missing `requires org.lwjgl.vulkan.natives`                                       |
-| 26 | Low      | Design      | Open   | `RenderMode` enum stores GL constants but is used by Vulkan                                          |
-| 27 | Low      | GC          | Open   | `EntityManager.buildQuery()` allocates `HashSet` on cache miss                                       |
-| 28 | Low      | Leak        | Open   | OpenGL debug callback is created but never freed                                                     |
+| 1  | Critical | Correctness | Done   | Vulkan pipeline caching ignores render-pass changes                                                  |
+| 2  | Critical | Leak        | Done   | Vulkan descriptor sets leak from a fixed-size shared pool                                            |
+| 3  | High     | Bug         | Open   | `VulkanVertexBuffer.update(ByteBuffer)` stores byte count as float count                             |
+| 4  | High     | Leak        | Open   | `ResourceLoader.load()` never closes Scanner / InputStream                                           |
+| 5  | High     | Leak        | Open   | `ScreenPixelRatioHandler.set()` leaks native memory on exception                                     |
+| 6  | High     | API         | Open   | Input APIs expose shared mutable state instead of stable snapshots                                   |
+| 7  | High     | Design      | Open   | Screen lifecycle is unsafe: `show()` doubles as resume and transitions are immediate                 |
+| 8  | High     | Design      | Open   | `Game.components` is a public mutable service list with hidden ordering and mutation hazards         |
+| 9  | High     | Correctness | Open   | ECS entity handles are raw ids with no liveness or ownership validation                              |
+| 10 | High     | Bug         | Open   | `Window.dispose()` calls GLFW after `glfwTerminate()`                                                |
+| 11 | High     | Correctness | Open   | Vulkan sync objects are not recreated if swapchain image count changes                               |
+| 12 | Medium   | Correctness | Open   | Vulkan `vSync=false` silently falls back to FIFO on Linux                                            |
+| 13 | Medium   | GC          | Open   | `MouseState.position()` allocates `Vector2f` every call                                              |
+| 14 | Medium   | API         | Open   | Vulkan backend silently ignores `setBlend()` and `setScissor()`                                      |
+| 15 | Medium   | Build       | Open   | Deprecated Gradle multi-string dependency notation                                                   |
+| 16 | Medium   | Feature     | Open   | Hierarchical transforms are still missing                                                            |
+| 17 | Medium   | API         | Open   | `RenderTarget.getColorTexture()` ownership semantics need clarification                              |
+| 18 | Medium   | Correctness | Open   | `Camera2D` dirty-flag correctness is easy to bypass through public mutable fields                    |
+| 19 | Low      | Metrics     | Open   | `DebugStatsComponent` direct-memory fallback reports heap max                                        |
+| 20 | Low      | GC          | Open   | `DebugStatsComponent.update()` uses `String.format()` per frame                                      |
+| 21 | Low      | Portability | Open   | `module-info.java` missing `requires org.lwjgl.vulkan.natives`                                       |
+| 22 | Low      | Design      | Open   | `RenderMode` enum stores backend-specific constants                                                  |
+| 23 | Low      | GC          | Open   | `EntityManager.buildQuery()` allocates `HashSet` on cache miss                                       |
 
 ---
 
 ## Details
 
-### 1. Critical — OpenGL texture upload is incorrect for RGB assets
-
-**Files:** `OpenGLTexture2D.java`, `TextureLoader.java`
-
-**Problem:** `TextureLoader` preserves the source channel count, but `OpenGLTexture2D` always uploads pixel data with `GL_RGBA`. For 3-channel textures, the engine tells OpenGL to read 4 bytes per pixel from a 3-byte buffer. That can produce corrupted colors and out-of-bounds reads.
-
-**Fix:** Pick one policy and apply it consistently: either force STB to output RGBA everywhere, or use the same channel-derived format for both the internal format and the upload format.
-
----
-
-### 2. Critical — `OpenGLShader.dispose()` leaks separable program objects
-
-**File:** `OpenGLShader.java`
-
-**Problem:** `OpenGLShader` creates separate vertex and fragment program objects with `glCreateShaderProgramv(...)`, but `dispose()` only deletes the program pipeline. The actual program objects remain live on the GPU.
-
-**Fix:** Delete `vertexId` and `fragmentId` explicitly in `dispose()`, in addition to deleting the pipeline object.
-
----
-
-### 3. Critical — `OpenGLVertexArray.dispose()` does not release attached buffers
-
-**Files:** `OpenGLVertexArray.java`, `SpriteBatch2D.java`
-
-**Problem:** `SpriteBatch2D.dispose()` assumes the vertex array owns the dynamic VBO and EBO. That is true in the Vulkan backend, but the OpenGL backend only deletes the VAO object itself. The result is a backend-specific GPU leak every time a sprite batch is created and disposed.
-
-**Fix:** Make ownership explicit and consistent across backends. The simplest fix is to make `VertexArray.dispose()` release attached VBOs and the EBO in the OpenGL implementation as well.
-
----
-
-### 4. Critical — Vulkan pipeline caching ignores render-pass changes
+### 1. Critical — Vulkan pipeline caching ignores render-pass changes
 
 **Files:** `VulkanShader.java`, `VulkanContext.java`
 
@@ -82,7 +47,7 @@
 
 ---
 
-### 5. Critical — Vulkan descriptor sets leak from a fixed-size shared pool
+### 2. Critical — Vulkan descriptor sets leak from a fixed-size shared pool
 
 **Files:** `VulkanContext.java`, `VulkanTexture2D.java`, `VulkanRenderTarget.java`
 
@@ -92,7 +57,7 @@
 
 ---
 
-### 6. High — `VulkanVertexBuffer.update(ByteBuffer)` stores byte count as float count
+### 3. High — `VulkanVertexBuffer.update(ByteBuffer)` stores byte count as float count
 
 **File:** `VulkanVertexBuffer.java` — `update(ByteBuffer data, int byteCount)`
 
@@ -102,7 +67,7 @@
 
 ---
 
-### 7. High — `ResourceLoader.load()` never closes Scanner / InputStream
+### 4. High — `ResourceLoader.load()` never closes Scanner / InputStream
 
 **File:** `ResourceLoader.java:80-88`
 
@@ -121,7 +86,7 @@ public static String load(String path) {
 
 ---
 
-### 8. High — `ScreenPixelRatioHandler.set()` leaks native memory on exception
+### 5. High — `ScreenPixelRatioHandler.set()` leaks native memory on exception
 
 **File:** `ScreenPixelRatioHandler.java:29-48`
 
@@ -131,7 +96,7 @@ public static String load(String path) {
 
 ---
 
-### 9. High — Input APIs expose shared mutable state instead of stable snapshots
+### 6. High — Input APIs expose shared mutable state instead of stable snapshots
 
 **Files:** `InputSystem.java`, `KeyboardState.java`, `MouseState.java`, `InputActionContext.java`
 
@@ -141,7 +106,7 @@ public static String load(String path) {
 
 ---
 
-### 10. High — Screen lifecycle is unsafe: `show()` doubles as resume and transitions are immediate
+### 7. High — Screen lifecycle is unsafe: `show()` doubles as resume and transitions are immediate
 
 **Files:** `Screen.java`, `ScreenManager.java`, `PlayerScene.java`
 
@@ -151,7 +116,7 @@ public static String load(String path) {
 
 ---
 
-### 11. High — `Game.components` is a public mutable service list with hidden ordering and mutation hazards
+### 8. High — `Game.components` is a public mutable service list with hidden ordering and mutation hazards
 
 **Files:** `Game.java`, `GameService.java`, `SandboxApplication.java`
 
@@ -161,7 +126,7 @@ public static String load(String path) {
 
 ---
 
-### 12. High — ECS entity handles are raw ids with no liveness or ownership validation
+### 9. High — ECS entity handles are raw ids with no liveness or ownership validation
 
 **Files:** `Entity.java`, `EntityManager.java`
 
@@ -171,7 +136,7 @@ public static String load(String path) {
 
 ---
 
-### 13. High — `Window.dispose()` calls GLFW after `glfwTerminate()`
+### 10. High — `Window.dispose()` calls GLFW after `glfwTerminate()`
 
 **File:** `Window.java`
 
@@ -181,7 +146,7 @@ public static String load(String path) {
 
 ---
 
-### 14. High — Vulkan sync objects are not recreated if swapchain image count changes
+### 11. High — Vulkan sync objects are not recreated if swapchain image count changes
 
 **Files:** `VulkanContext.java`, `VulkanSyncObjects.java`
 
@@ -191,7 +156,7 @@ public static String load(String path) {
 
 ---
 
-### 15. Medium — Vulkan `vSync=false` silently falls back to FIFO on Linux
+### 12. Medium — Vulkan `vSync=false` silently falls back to FIFO on Linux
 
 **File:** `VulkanSwapChain.java`
 
@@ -201,7 +166,7 @@ public static String load(String path) {
 
 ---
 
-### 16. Medium — `MouseState.position()` allocates `Vector2f` every call
+### 13. Medium — `MouseState.position()` allocates `Vector2f` every call
 
 **File:** `MouseState.java:44-46`
 
@@ -211,27 +176,17 @@ public static String load(String path) {
 
 ---
 
-### 17. Medium — Vulkan backend silently ignores `setBlend()` and `setScissor()`
+### 14. Medium — Vulkan backend silently ignores `setBlend()` and `setScissor()`
 
 **Files:** `GraphicsContext.java` (default methods), `VulkanContext.java` (no override)
 
-**Problem:** `GraphicsContext` declares `setBlend()` and `setScissor()` as default no-ops. `VulkanContext` never overrides them. `SpriteBatch2D.flush()` calls both, which silently do nothing on Vulkan. Users switching backends get different blending behaviour with no indication.
+**Problem:** `GraphicsContext` declares `setBlend()` and `setScissor()` as default no-ops. `VulkanContext` never overrides them. `SpriteBatch2D.flush()` calls both, which silently do nothing.
 
 **Fix:** Override in `VulkanContext` to at least `log.warn()` on first call, making the gap visible. Full implementation requires dynamic pipeline state (Vulkan 1.3 `VK_DYNAMIC_STATE_COLOR_BLEND_ENABLE`), which can be deferred.
 
 ---
 
-### 18. Medium — `OpenGLTexture2D.bind()` hardcodes texture unit 0
-
-**File:** `OpenGLTexture2D.java:89`
-
-**Problem:** `bind()` calls `glActiveTexture(GL_TEXTURE0)` unconditionally. The `Texture2D` interface has no `bind(int unit)` overload. Multi-texture shaders (normal maps, lightmaps, shadow maps) are structurally impossible.
-
-**Fix:** Add `bind(int unit)` to `Texture2D`. Implement as `glActiveTexture(GL_TEXTURE0 + unit)` in OpenGL. Keep `bind()` as shorthand for `bind(0)`.
-
----
-
-### 19. Medium — Deprecated Gradle multi-string dependency notation
+### 15. Medium — Deprecated Gradle multi-string dependency notation
 
 **File:** `core/build.gradle.kts`
 
@@ -241,7 +196,7 @@ public static String load(String path) {
 
 ---
 
-### 20. Medium — Hierarchical transforms are still missing
+### 16. Medium — Hierarchical transforms are still missing
 
 **File:** `Transform2DComponent.java`
 
@@ -251,17 +206,17 @@ public static String load(String path) {
 
 ---
 
-### 21. Medium — `RenderTarget.getColorTexture()` has backend-inconsistent ownership semantics
+### 17. Medium — `RenderTarget.getColorTexture()` ownership semantics need clarification
 
-**Files:** `RenderTarget.java`, `OpenGLRenderTarget.java`, `VulkanRenderTarget.java`
+**Files:** `RenderTarget.java`, `VulkanRenderTarget.java`
 
-**Problem:** In OpenGL, `getColorTexture()` returns an owning texture object whose `dispose()` deletes the real attachment. In Vulkan, the returned texture is a non-owning view whose `dispose()` is intentionally a no-op. The same API therefore has opposite lifetime rules depending on the active backend.
+**Problem:** The returned texture from `getColorTexture()` is a non-owning view whose `dispose()` is intentionally a no-op. The ownership semantics should be documented explicitly in the API so callers understand the lifetime rules.
 
-**Fix:** Make both backends return non-owning attachment views, or encode ownership explicitly in the API so callers cannot accidentally delete a live render-target attachment on one backend only.
+**Fix:** Encode ownership explicitly in the API so callers cannot accidentally misuse the returned texture reference.
 
 ---
 
-### 22. Medium — `Camera2D` dirty-flag correctness is easy to bypass through public mutable fields
+### 18. Medium — `Camera2D` dirty-flag correctness is easy to bypass through public mutable fields
 
 **Files:** `Camera2D.java`, `OrthographicCamera2D.java`
 
@@ -271,7 +226,7 @@ public static String load(String path) {
 
 ---
 
-### 23. Low — `DebugStatsComponent` direct-memory fallback reports heap max
+### 19. Low — `DebugStatsComponent` direct-memory fallback reports heap max
 
 **File:** `DebugStatsComponent.java:138-147`
 
@@ -281,7 +236,7 @@ public static String load(String path) {
 
 ---
 
-### 24. Low — `DebugStatsComponent.update()` uses `String.format()` per frame
+### 20. Low — `DebugStatsComponent.update()` uses `String.format()` per frame
 
 **File:** `DebugStatsComponent.java:283-293`
 
@@ -291,27 +246,27 @@ public static String load(String path) {
 
 ---
 
-### 25. Low — `module-info.java` missing `requires org.lwjgl.vulkan.natives`
+### 21. Low — `module-info.java` missing `requires org.lwjgl.vulkan.natives`
 
 **File:** `core/src/main/java/module-info.java`
 
 **Problem:** The module requires `org.lwjgl.vulkan` but not `org.lwjgl.vulkan.natives`. On macOS this works because MoltenVK is bundled differently, but Linux and Windows builds will fail to resolve the Vulkan native libraries at runtime.
 
-**Fix:** Add `requires org.lwjgl.vulkan.natives;` after the existing Vulkan require. Verify consistency with how other LWJGL modules (`opengl`, `glfw`, `stb`, `vma`) are declared — all of which correctly have their `.natives` counterpart.
+**Fix:** Add `requires org.lwjgl.vulkan.natives;` after the existing Vulkan require. Verify consistency with how other LWJGL modules (`glfw`, `stb`, `vma`) are declared — all of which correctly have their `.natives` counterpart.
 
 ---
 
-### 26. Low — `RenderMode` enum stores GL constants but is used by Vulkan
+### 22. Low — `RenderMode` enum stores backend-specific constants
 
 **File:** `RenderMode.java`
 
-**Problem:** `RenderMode.TRIANGLES`, `.LINES`, `.POINTS` store OpenGL `GL_*` integer constants in a `glRef` field. Vulkan never reads these values (its pipeline topology is set at pipeline creation), but the enum is part of the public API and misleadingly named. New contributors will expect these values to work on Vulkan.
+**Problem:** `RenderMode.TRIANGLES`, `.LINES`, `.POINTS` store backend-specific integer constants. The enum is part of the public API, and the Vulkan backend sets pipeline topology at pipeline creation, not via these values.
 
-**Fix:** Rename the field from `glRef` to something backend-neutral, or remove it entirely and let each backend map the enum to its own constant internally.
+**Fix:** Remove the constant field entirely and let the backend map the enum to its own constant internally.
 
 ---
 
-### 27. Low — `EntityManager.buildQuery()` allocates `HashSet` on cache miss
+### 23. Low — `EntityManager.buildQuery()` allocates `HashSet` on cache miss
 
 **File:** `EntityManager.java:88-112`
 
@@ -321,10 +276,3 @@ public static String load(String path) {
 
 ---
 
-### 28. Low — OpenGL debug callback is created but never freed
-
-**File:** `OpenGLGraphicsContext.java`
-
-**Problem:** `GLUtil.setupDebugMessageCallback()` returns a native callback handle, but the return value is discarded and `OpenGLGraphicsContext.dispose()` is empty. That leaves native debug-callback state unmanaged for the entire process lifetime.
-
-**Fix:** Store the callback handle in the graphics context and free it during OpenGL context disposal.

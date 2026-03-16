@@ -11,7 +11,7 @@
 ## Agent Role & Expertise
 
 - Lead Java Architect: Senior Java developer, Clean Code principles, SOLID design, Java 17/21+.
-- Graphics Engineering Specialist: Expert in OpenGL 4.5+ and Vulkan 1.3 (memory barriers, pipeline states, command buffers, descriptor sets).
+- Graphics Engineering Specialist: Expert in Vulkan 1.3 (memory barriers, pipeline states, command buffers, descriptor sets).
 
 ## Project Context
 
@@ -25,7 +25,7 @@ Java-based game engine using LWJGL. Goal: a 2D/3D rendering engine similar to Li
 
 **Key guidelines:**
 - Mirror MonoGame's structure and API in Java style.
-- Hardware abstraction layer (HAL) so OpenGL/Vulkan can be toggled.
+- Vulkan-only rendering backend.
 - Strictly typed Java; avoid GC pressure in the render loop (object pooling, direct buffers).
 
 ## Build & Run Commands
@@ -58,14 +58,14 @@ There are no automated tests. The sandbox (`./gradlew run`) is the manual testin
 
 - **`core/`** — Engine library. Rendering, ECS, scenes, input, window, cameras.
 - **`sandbox/`** — Manual test app. Entry: `hu.mudlee.sandbox.SandboxApplication`.
-- **`resources/`** — Shared assets: GLSL/SPIR-V shaders, textures, logging config.
+- **`resources/`** — Shared assets: SPIR-V shaders, textures, logging config.
 
 ## Architecture Overview
 
 - **Game loop**: `Game` → `Window` (GLFW) + `Renderer` + `ScreenManager` + `GameService` list.
 - **Screens**: `Screen` interface managed by `ScreenManager` (stack-based).
 - **GameObjects**: `GameScene` holds `GameObject` instances; each has `Component`s (`SpriteRenderer`, `Animator`, etc.) and a `Transform`.
-- **Rendering**: `Renderer` facade over `GraphicsContext` (OpenGL or Vulkan backend).
+- **Rendering**: `Renderer` facade over `GraphicsContext` (Vulkan backend).
 - **ECS**: Ashley framework — legacy path, separate from the new GameObject system.
 - **Cameras**: `Camera2D` / `OrthoCamera` supply projection+view matrices as shader uniforms.
 
@@ -112,7 +112,7 @@ var x = 0;                       // wrong — ambiguous (int? long? float?)
 
 | Library      | Version | Purpose                            |
 |--------------|---------|------------------------------------|
-| LWJGL        | 3.4.0   | OpenGL, GLFW, STB, Vulkan bindings |
+| LWJGL        | 3.4.0   | GLFW, STB, Vulkan bindings         |
 | JOML         | 1.10.8  | Vector/matrix math                 |
 | Ashley       | 1.7.3   | Entity Component System            |
 | SLF4J Simple | 2.0.17  | Logging                            |

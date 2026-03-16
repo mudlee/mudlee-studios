@@ -1,7 +1,7 @@
 package hu.mudlee.core.render;
 
-import hu.mudlee.core.render.opengl.OpenGLGraphicsContext;
 import hu.mudlee.core.render.types.BlendFactor;
+import hu.mudlee.core.render.types.BufferBitTypes;
 import hu.mudlee.core.render.types.PolygonMode;
 import hu.mudlee.core.render.types.RenderMode;
 import hu.mudlee.core.render.vulkan.VulkanContext;
@@ -16,18 +16,15 @@ public class Renderer implements WindowEventListener {
 
     private final GraphicsContext context;
     private static Renderer instance;
-    private static RenderBackend backend = RenderBackend.OPENGL;
+    private static RenderBackend backend = RenderBackend.VULKAN;
 
     private Renderer() {
-        context = switch (backend) {
-            case OPENGL -> new OpenGLGraphicsContext(true);
-            case VULKAN -> new VulkanContext(true);
-        };
+        context = new VulkanContext(true);
     }
 
     /**
      * Selects the rendering backend. Must be called before the first {@link #get()} call. Defaults to
-     * {@link RenderBackend#OPENGL} if never called.
+     * {@link RenderBackend#VULKAN} if never called.
      */
     public static void configure(RenderBackend selectedBackend) {
         if (instance != null) {
@@ -99,8 +96,8 @@ public class Renderer implements WindowEventListener {
         get().context.setClearColor(color);
     }
 
-    public static void setClearFlags(int mask) {
-        get().context.setClearFlags(mask);
+    public static void setClearFlags(BufferBitTypes... flags) {
+        get().context.setClearFlags(flags);
     }
 
     public static void swapBuffers(float frameTime) {

@@ -3,9 +3,8 @@
 ## Objective
 
 Transform the engine's public API from its current low-level, scene-centric structure into a
-clean, high-level game framework modelled after MonoGame. The internal rendering backends
-(OpenGL, Vulkan) remain untouched; only the public-facing API that game code interacts with
-changes.
+clean, high-level game framework modelled after MonoGame. The internal Vulkan rendering backend
+remains untouched; only the public-facing API that game code interacts with changes.
 
 ## Reference
 

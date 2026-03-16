@@ -12,6 +12,7 @@ import hu.mudlee.core.render.RenderTarget;
 import hu.mudlee.core.render.Shader;
 import hu.mudlee.core.render.VertexArray;
 import hu.mudlee.core.render.VertexBuffer;
+import hu.mudlee.core.render.types.BufferBitTypes;
 import hu.mudlee.core.render.types.PolygonMode;
 import hu.mudlee.core.render.types.RenderMode;
 import java.util.ArrayList;
@@ -240,7 +241,7 @@ public class VulkanContext implements GraphicsContext {
     }
 
     @Override
-    public void setClearFlags(int mask) {
+    public void setClearFlags(BufferBitTypes... flags) {
         // No-op: Vulkan clearing is declared as a render pass load op, not a separate call
     }
 

@@ -2,6 +2,7 @@ package hu.mudlee.core.render;
 
 import hu.mudlee.core.Disposable;
 import hu.mudlee.core.render.types.BlendFactor;
+import hu.mudlee.core.render.types.BufferBitTypes;
 import hu.mudlee.core.render.types.PolygonMode;
 import hu.mudlee.core.render.types.RenderMode;
 import org.joml.Vector4f;
@@ -11,7 +12,7 @@ public interface GraphicsContext extends Disposable {
 
     void windowCreated(long windowId, int windowWidth, int windowHeight, boolean vSync);
 
-    void setClearFlags(int mask);
+    void setClearFlags(BufferBitTypes... flags);
 
     void setClearColor(Vector4f color);
 
@@ -47,7 +48,7 @@ public interface GraphicsContext extends Disposable {
     /** Block until the GPU has finished all in-flight work. No-op for stateless backends. */
     default void waitIdle() {}
 
-    /** Returns a human-readable string identifying the GPU and backend, e.g. "RTX 4090 (OpenGL)". */
+    /** Returns a human-readable string identifying the GPU and backend, e.g. "RTX 4090 (Vulkan)". */
     default String getRendererInfo() {
         return "";
     }

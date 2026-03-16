@@ -5,7 +5,6 @@ import hu.mudlee.core.GameTime;
 import hu.mudlee.core.ScreenManager;
 import hu.mudlee.core.input.Keyboard;
 import hu.mudlee.core.input.Keys;
-import hu.mudlee.core.render.RenderBackend;
 import hu.mudlee.core.render.Renderer;
 import hu.mudlee.core.render.font.BitmapFont;
 import hu.mudlee.core.window.Window;
@@ -176,7 +175,7 @@ public final class DebugStatsComponent extends UIComponent {
         var size = Window.getSize();
         var ratio = Window.getPixelRatio();
         windowStr = size.x + "x" + size.y + (ratio > 1 ? " @" + ratio + "x" : "");
-        backendStr = Renderer.activeBackend() == RenderBackend.VULKAN ? "Vulkan" : "OpenGL";
+        backendStr = "Vulkan";
     }
 
     @Override

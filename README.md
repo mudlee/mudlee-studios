@@ -33,5 +33,4 @@ $ ./gradlew spotlessCheck
 
 # TODOs
 
-- Add cli flag to pick rendering backend (OpenGL or Vulkan)
 - Refresh debug stat screen every second, not every frame

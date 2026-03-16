@@ -83,48 +83,37 @@ shared base.
 
 ---
 
-## 5. `BufferBitTypes` leaks raw OpenGL constants into the public API
+## 5. `BufferBitTypes` leaks raw constant values into the public API
 
 **File:** `render/types/BufferBitTypes.java`
 
-```java
-public static final int COLOR = GL_COLOR_BUFFER_BIT; // raw OpenGL value
-```
-
-`GraphicsDevice.clear(Color)` calls `Renderer.setClearFlags(BufferBitTypes.COLOR)`,
-passing a raw OpenGL integer (`0x4000`) through the HAL boundary. Vulkan does not use
-these bit masks. This also means there is no way to clear the depth buffer from game
+`GraphicsDevice.clear(Color)` calls `Renderer.setClearFlags(BufferBitTypes.COLOR)`.
+This also means there is no way to clear the depth buffer from game
 code — `GraphicsDevice.clear()` only accepts a colour.
 
 **Fix:** Replace `BufferBitTypes` with a proper `ClearFlag` enum (`COLOR`, `DEPTH`,
-`STENCIL`). Translate to backend constants inside `OpenGLGraphicsContext.clear()`.
+`STENCIL`). Translate to backend constants inside `VulkanContext.clear()`.
 Change `GraphicsDevice.clear(Color)` to `GraphicsDevice.clear(Color, ClearFlag...)`
 so game code can request depth clearing for 3D scenes.
 
 ---
 
-## 6. `PolygonMode`, `RenderMode`, and `ShaderTypes` hold raw OpenGL constant values
+## 6. `PolygonMode`, `RenderMode`, and `ShaderTypes` hold raw constant values
 
 **Files:** `render/types/PolygonMode.java`, `render/types/RenderMode.java`,
 `render/types/ShaderTypes.java`
 
-```java
-TRIANGLES(GL_TRIANGLES)  // stores OpenGL integer directly in the enum
-LINE(GL_LINE)
-FLOAT = GL_FLOAT
-```
+These enum fields store backend-specific integers. The Vulkan backend has to ignore
+or work around these fields since it uses `VkPrimitiveTopology`, `VkPolygonMode`,
+and typed format enums.
 
-These enum fields store OpenGL integers. Vulkan uses `VkPrimitiveTopology`,
-`VkPolygonMode`, and typed format enums — the values are different. Currently the
-Vulkan backend has to ignore or work around the `glRef` field.
-
-**Fix:** Remove `glRef` (and `FLOAT`/`UNSIGNED_BYTE` raw values) from the
-HAL-facing types. Backend implementations translate the enum to their own constant
-internally. `ShaderTypes` can become an enum with a name only.
+**Fix:** Remove raw constant values from the HAL-facing types. Backend implementations
+translate the enum to their own constant internally. `ShaderTypes` can become an enum
+with a name only.
 
 ---
 
-## 7. `Shader` API exposes OpenGL PPO concepts
+## 7. `Shader` API exposes backend-specific concepts
 
 **File:** `render/Shader.java`
 
@@ -134,15 +123,14 @@ int getFragmentProgramId();
 void setUniform(int programId, String name, Matrix4f value);
 ```
 
-`getVertexProgramId()` / `getFragmentProgramId()` return OpenGL Program Pipeline Object
-IDs. Vulkan has no concept of a "program ID". `setUniform(int programId, ...)` passes
-the program ID as a parameter, which is also OpenGL-specific. In Vulkan, uniforms are
-push constants or UBOs — setting them does not involve a program ID.
+`getVertexProgramId()` / `getFragmentProgramId()` return backend-specific IDs.
+`setUniform(int programId, ...)` passes the program ID as a parameter. In Vulkan,
+uniforms are push constants or UBOs — setting them does not involve a program ID.
 
 **Fix:** Remove `getVertexProgramId()` / `getFragmentProgramId()` from `Shader`.
 Replace `setUniform(int programId, String name, T value)` with
-`setUniform(String name, T value)`. The OpenGL implementation can look up the correct
-program ID internally (it already owns both `vertexId` and `fragmentId`).
+`setUniform(String name, T value)`. The backend implementation can look up the correct
+ID internally.
 
 ---
 
@@ -164,17 +152,11 @@ that improves throughput.
 
 ---
 
-## 9. `OpenGLTexture2D.bind()` always activates texture unit 0
+## 9. `Texture2D.bind()` always activates a single texture unit
 
-**File:** `render/opengl/OpenGLTexture2D.java:83`
-
-```java
-glActiveTexture(GL_TEXTURE0); // TODO: we should not use it here...
-```
-
-There is already a TODO here. For 3D rendering, you need multiple texture units
-simultaneously (albedo, normal map, specular, shadow map). Hardcoding unit 0 makes
-multi-texturing impossible without workarounds.
+For 3D rendering, you need multiple texture units simultaneously (albedo, normal map,
+specular, shadow map). Hardcoding a single unit makes multi-texturing impossible
+without workarounds.
 
 **Fix:** Add a `bind(int unit)` overload to the `Texture2D` abstract class and have
 callers specify the unit. Keep `bind()` as `bind(0)` for backward compatibility.
@@ -239,14 +221,7 @@ throw, dynamic ones update). The same issue exists in `ElementBuffer`.
 
 ---
 
-## 13. `OpenGLGraphicsContext.renderRaw()` derives vertex count by dividing by 3
-
-**File:** `render/opengl/OpenGLGraphicsContext.java:106`
-
-```java
-glDrawArrays(renderMode.glRef, 0, buffer.getLength() / 3);
-// NOTE: we suppose that vertex coordinates always passed as vec3
-```
+## 13. `GraphicsContext.renderRaw()` derives vertex count by dividing by 3
 
 This hardcodes the assumption that all vertices are vec3 positions. A vertex buffer
 storing `(vec3 pos, vec3 normal, vec2 uv)` would compute the wrong count. This will
@@ -305,13 +280,13 @@ opens the door for ordering enforcement or dependency tracking later.
 | 3 | `GameObject.transform` as `Transform2D` | **Critical** | Wrong abstraction |
 | 4 | `GameScene2D` ownership of SpriteBatch/Camera | **High** | Wrong abstraction |
 | 5 | `BufferBitTypes` + `GraphicsDevice.clear()` | **High** | HAL leak |
-| 6 | `PolygonMode`/`RenderMode`/`ShaderTypes` GL values | **High** | HAL leak |
-| 7 | `Shader` PPO API | **High** | HAL leak |
+| 6 | `PolygonMode`/`RenderMode`/`ShaderTypes` raw values | **High** | HAL leak |
+| 7 | `Shader` backend-specific API | **High** | HAL leak |
 | 8 | `SpriteBatch2D` non-indexed quads | Medium | Performance |
-| 9 | `Texture2D.bind()` hardcoded unit 0 | **High** | HAL limitation |
+| 9 | `Texture2D.bind()` single unit only | **High** | HAL limitation |
 | 10 | `Renderer.clear()` side effect | Low | Logic bug |
 | 11 | `GraphicsContext.renderRaw()` silent no-op | Medium | Bug risk |
 | 12 | `VertexBuffer.update()` runtime exception | Low | Design |
-| 13 | `renderRaw()` vertex count `/3` hack | **High** | Correctness |
+| 13 | `GraphicsContext.renderRaw()` vertex count `/3` hack | **High** | Correctness |
 | 14 | `ContentManager` unused | Low | Dead code |
 | 15 | `Game.components` raw public list | Low | Design |

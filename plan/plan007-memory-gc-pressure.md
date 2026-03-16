@@ -2,7 +2,7 @@
 
 ## Problem
 
-Both OpenGL and Vulkan backends show ~1 MB/s heap growth as reported by the debug overlay
+The Vulkan backend shows ~1 MB/s heap growth as reported by the debug overlay
 (`Runtime.getRuntime().totalMemory() - freeMemory()`). There are no true memory leaks
 (no retained references that prevent GC), but sustained per-frame allocation creates GC
 pressure that causes the JVM to grow its heap faster than the collector can reclaim it.
@@ -118,65 +118,7 @@ then uses the pre-computed strings with zero allocations.
 
 ---
 
-## OpenGL-specific findings (explain why OpenGL grows faster than Vulkan)
-
-### 8 — `OpenGLVertexBuffer.update()` copies through MemoryStack ★★★
-**File:** `core/.../render/opengl/OpenGLVertexBuffer.java`
-
-```java
-public void update(float[] data, int floatCount) {
-    bind();
-    try (var stack = stackPush()) {
-        var buffer = stack.mallocFloat(floatCount).put(data, 0, floatCount).flip();
-        glBufferSubData(GL_ARRAY_BUFFER, 0L, buffer);
-    }
-    unbind();
-}
-```
-
-`stack.mallocFloat(floatCount)` creates a `FloatBuffer` Java wrapper on the heap per call.
-More importantly, it **copies all vertex data twice**: Java array → native MemoryStack → GPU
-(via `glBufferSubData`). Vulkan avoids this entirely — `VulkanVertexBuffer.update()` writes
-directly into pre-mapped host-coherent GPU memory (one copy: Java array → VRAM).
-
-Both backends create one small wrapper object per flush, but OpenGL incurs the extra copy
-overhead and MemoryStack churn for potentially thousands of floats per flush.
-
-**Fix:** Add a `private final FloatBuffer uploadBuffer` field (allocated once via
-`BufferUtils.createFloatBuffer(maxFloats)` in the dynamic constructor). Reuse it in
-`update()` instead of allocating on the MemoryStack. Eliminates the extra copy as well.
-
-**Status: FIXED**
-
----
-
-### 9 — `OpenGLShader.setUniform(Matrix4f / Vector4f)` uses MemoryStack per call ★★
-**File:** `core/.../render/opengl/OpenGLShader.java`
-
-```java
-public void setUniform(int programId, String name, Matrix4f value) {
-    try (MemoryStack stack = MemoryStack.stackPush()) {
-        final var buffer = stack.mallocFloat(16);   // FloatBuffer wrapper allocated per call
-        value.get(buffer);
-        glProgramUniformMatrix4fv(programId, uniforms.get(name), false, buffer);
-    }
-}
-```
-
-Called twice every `SpriteBatch2D.begin()` (projection + view matrices). With 2 batches per
-frame (GameScene2D + UIBatch): **4 FloatBuffer wrappers per frame × 60 fps = 240/sec**.
-Vulkan uses push constants recorded directly into command buffers — no MemoryStack required.
-
-**Fix:** Add `private final FloatBuffer mat4Buf = BufferUtils.createFloatBuffer(16)` and
-`private final FloatBuffer vec4Buf = BufferUtils.createFloatBuffer(4)` fields on
-`OpenGLShader`. Reuse them in the respective `setUniform` overloads (not thread-safe, but
-rendering is single-threaded).
-
-**Status: FIXED**
-
----
-
-### 10 — `Color.toVector4f()` called every frame from `GraphicsDevice.clear()` ★★
+### 8 — `Color.toVector4f()` called every frame from `GraphicsDevice.clear()` ★★
 **File:** `core/.../Color.java`, `core/.../GraphicsDevice.java`
 
 ```java
@@ -196,27 +138,7 @@ when the color changes.
 
 ---
 
-### 11 — `for (VertexBuffer : vao.getVBOs())` in `OpenGLGraphicsContext.renderRaw()` ★
-**File:** `core/.../render/opengl/OpenGLGraphicsContext.java`
-
-Lines 95 and 104 both use enhanced for-each on the `ArrayList<VertexBuffer>` returned by
-`getVBOs()`. Each for-each on `ArrayList` creates a new `ArrayList$Itr` object. Called once
-per `renderRaw()` invocation (once per flush), so **1–2 iterator objects per frame**.
-
-**Fix:** Replace with an index-based loop:
-```java
-var vbos = vao.getVBOs();
-for (int i = 0; i < vbos.size(); i++) {
-    var buffer = vbos.get(i);
-    glDrawArrays(renderMode.glRef, 0, buffer.getLength() / 3);
-}
-```
-
-**Status: FIXED**
-
----
-
-### 12 — `GameScene2D.update()` / `draw()` for-each over `ArrayList<GameObject>` ★
+### 9 — `GameScene2D.update()` / `draw()` for-each over `ArrayList<GameObject>` ★
 **File:** `core/.../gameobject/GameScene2D.java`
 
 Both `update()` (line 75) and `draw()` (line 84) use enhanced for-each on
@@ -228,26 +150,6 @@ Both `update()` (line 75) and `draw()` (line 84) use enhanced for-each on
 
 ---
 
-### 13 — OpenGL debug callback generates `String` objects on GPU notifications ★★
-**File:** `core/.../render/opengl/OpenGLGraphicsContext.java`
-
-`GLUtil.setupDebugMessageCallback()` (called when `debug=true`) registers a native callback
-that fires for ALL GL message severities including `GL_DEBUG_SEVERITY_NOTIFICATION`. NVIDIA
-and AMD drivers in debug mode emit notification-level messages on every frame for buffer
-usage, pipeline state changes, shader recompilation hints, etc. Each message arrival
-allocates at least one Java `String` object inside LWJGL's callback wrapper.
-
-This is the most likely cause of the OpenGL-vs-Vulkan divergence: Vulkan debug callbacks
-(`VkDebugUtilsMessengerEXT`) are much quieter at the notification level.
-
-**Fix:** After `GLUtil.setupDebugMessageCallback()`, filter out notification-severity messages:
-```java
-glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE,
-    GL_DEBUG_SEVERITY_NOTIFICATION, (int[]) null, false);
-```
-
-**Status: FIXED**
-
 ---
 
 ## Priority order for fixing
@@ -258,15 +160,9 @@ glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE,
 | 2 | Reuse `float[1]` cursor fields in `UIBatch`+`BitmapFont`      | High             | FIXED   |
 | 3 | Reuse `FloatBuffer` fields in `BitmapFont.getQuad`            | Medium           | FIXED   |
 | 6 | Move `String.format` to `update()` in `DebugStats`            | Low              | FIXED   |
-| 13| Filter GL debug notifications in `OpenGLGraphicsContext`      | High (OGL only)  | FIXED   |
-| 8 | Reuse direct `FloatBuffer` in `OpenGLVertexBuffer.update()`   | High (OGL only)  | FIXED   |
-| 9 | Reuse `FloatBuffer` fields in `OpenGLShader.setUniform()`     | Medium (OGL only)| FIXED   |
-| 10| Remove `Color.toVector4f()` from per-frame `clear()` path     | Medium           | FIXED   |
-| 11| Index-based loop in `OpenGLGraphicsContext.renderRaw()`       | Low              | FIXED   |
-| 12| Index-based loops in `GameScene2D.update()` / `draw()`        | Low              | FIXED   |
+| 8 | Remove `Color.toVector4f()` from per-frame `clear()` path     | Medium           | FIXED   |
+| 9 | Index-based loops in `GameScene2D.update()` / `draw()`        | Low              | FIXED   |
 | 4 | Singleton `KeyboardState` / `MouseState`                      | Low              | SKIPPED |
 | 5 | Reuse `Vector2f` in `computeVector2`                          | Low              | SKIPPED |
 | 7 | `MouseState.position()` output overload                       | Low              | SKIPPED |
 
-Items 8, 9, 13 together are the main OpenGL-specific contributors. Fix 13 first as it is
-the most likely root cause of the OpenGL/Vulkan divergence.

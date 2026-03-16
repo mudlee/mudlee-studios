@@ -210,8 +210,7 @@ threshold logic co-located with the stat that owns it.
 - `getTextureCount()` — tracks how many texture instances are live (increment in the backend
   texture constructor, decrement in `dispose()`).
 - `getRendererInfo()` — returns a backend-agnostic one-line string describing the GPU/driver
-  (OpenGL: `GL11.glGetString(GL_RENDERER)`; Vulkan: device name from
-  `VkPhysicalDeviceProperties`). `GraphicsContext` interface gets this method.
+  (device name from `VkPhysicalDeviceProperties`). `GraphicsContext` interface gets this method.
 
 #### `SpriteBatch` (or `SpriteBatch2D`)
 
@@ -269,7 +268,7 @@ Vertices     8 204
 
 Textures     12
 Window       1920x1080 @2x
-GPU          NVIDIA GeForce RTX 4090 (OpenGL) / AMD Radeon RX 7900 (Vulkan)
+GPU          AMD Radeon RX 7900 (Vulkan)
 Uptime       00:03:42
 ```
 

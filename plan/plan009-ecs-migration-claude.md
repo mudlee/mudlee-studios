@@ -52,7 +52,7 @@ World
 - `SpriteBatch2D`, `AnimationPlayer2D`, `Animation2D`, `TextureRegion`
 - `Camera2D` / `OrthographicCamera2D`
 - `Screen`, `ScreenManager`, `Game`, `GraphicsDevice`
-- `ContentManager`, `InputActionMap`, rendering back-end (OpenGL/Vulkan)
+- `ContentManager`, `InputActionMap`, Vulkan rendering back-end
 - `SpriteSheet2D`, `Texture2D`
 
 ---

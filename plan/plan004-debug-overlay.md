@@ -11,7 +11,7 @@ Integrate Dear ImGui as the UI backend behind an abstract `UIRenderer` interface
 - **Artifact**: `io.github.spair:imgui-java-binding` + `io.github.spair:imgui-java-lwjgl3`
 - **Latest version**: 1.90.0 (released 2025, actively maintained)
 - **GitHub**: https://github.com/SpaiR/imgui-java
-- **Why**: Industry-standard immediate-mode GUI for game engines. Feature-rich (graphs, sliders, dockable windows). Actively maintained. OpenGL backend is plug-and-play; Vulkan backend is wirable manually.
+- **Why**: Industry-standard immediate-mode GUI for game engines. Feature-rich (graphs, sliders, dockable windows). Actively maintained. Vulkan backend is wirable manually.
 
 ### JPMS / Module System Note
 imgui-java ships no `module-info.java` and no `Automatic-Module-Name` in its manifest. When placed on the module path it becomes an **automatic module** whose name is derived from the JAR filename: `imgui.java.binding` and `imgui.java.lwjgl3`. These names must be used in `module-info.java` `requires` directives. This is fragile if SpaiR renames the JAR — verify the actual name after adding the dependency by inspecting the resolved JAR filename.
@@ -32,8 +32,7 @@ Game (via UIService)
   └── UIRenderer  [interface — thin backend API]
         └── ImGuiUIRenderer         [implementation — knows about ImGui]
               ├── ImGuiImplGlfw     (GLFW platform backend — input/window)
-              └── ImGuiImplGl3      (OpenGL renderer backend)  ← now
-                  ImGuiImplVulkan                               ← future
+              └── ImGuiImplVulkan   (Vulkan renderer backend)
 ```
 
 **Key principles:**
@@ -42,7 +41,7 @@ Game (via UIService)
 - No engine or game code imports ImGui classes — only `ImGuiUIRenderer` does.
 - `UIComponent.draw` takes a `UIRenderer`, not a `SpriteBatch` — it is a separate base class from `gameobject.Component`, but mirrors its lifecycle pattern exactly.
 
-This mirrors the existing HAL pattern: just as `Renderer` hides `OpenGLGraphicsContext` / `VulkanContext`, `UIRenderer` hides `ImGuiUIRenderer`.
+This mirrors the existing HAL pattern: just as `Renderer` hides `VulkanContext`, `UIRenderer` hides `ImGuiUIRenderer`.
 
 ---
 
@@ -148,19 +147,19 @@ Create `core/src/main/java/hu/mudlee/core/ui/ImGuiUIRenderer.java` implementing 
 - Call `ImGui.createContext()`
 - Configure `ImGuiIO`: enable docking, set font, set style
 - Init GLFW platform backend: `ImGuiImplGlfw.init(windowHandle, true)`
-- Init renderer backend: `ImGuiImplGl3.init("#version 410 core")` (matches the engine's OpenGL 4.1 profile)
+- Init renderer backend: `ImGuiImplVulkan.init(...)` (passing Vulkan handles: instance, device, render pass, command pool)
 
 `newFrame()`:
 - `ImGuiImplGlfw.newFrame()`
-- `ImGuiImplGl3.newFrame()`
+- `ImGuiImplVulkan.newFrame()`
 - `ImGui.newFrame()`
 
 `render()`:
 - `ImGui.render()`
-- `ImGuiImplGl3.renderDrawData(ImGui.getDrawData())`
+- `ImGuiImplVulkan.renderDrawData(ImGui.getDrawData())`
 
 `dispose()`:
-- `ImGuiImplGl3.shutdown()`
+- `ImGuiImplVulkan.shutdown()`
 - `ImGuiImplGlfw.shutdown()`
 - `ImGui.destroyContext()`
 
@@ -221,7 +220,7 @@ Toggle visibility with `F3` via `InputSystem`.
 
 #### Draw call tracking
 
-All GPU draw calls (OpenGL `glDraw*`, Vulkan `vkCmdDraw*`) funnel through `Renderer.renderRaw()`. Add a counter there:
+All GPU draw calls (`vkCmdDraw*`) funnel through `Renderer.renderRaw()`. Add a counter there:
 
 1. **Add to `Renderer`**: a static `int drawCallCount` field and a `static int getDrawCallCount()` accessor.
 2. **Increment** in `Renderer.renderRaw()` — one increment per call, regardless of backend.
@@ -269,10 +268,6 @@ To replace Dear ImGui with another library:
 3. No engine code changes required — `UIObject`, `UICanvas`, `UIComponent` are all backend-agnostic.
 
 ---
-
-## Future: Vulkan Backend
-
-When Vulkan UI support is needed, create `VulkanImGuiUIRenderer` implementing `UIRenderer`. Internally use `ImGuiImplVulkan` (requires passing Vulkan handles: instance, device, render pass, command pool). The rest of the engine stays untouched.
 
 ---
 

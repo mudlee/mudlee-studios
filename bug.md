@@ -14,10 +14,8 @@ UIRenderer (interface — HAL)
         NK context, input, all widget calls
         Abstract hooks: uploadFontTexture(), createNullTexture(),
                         initRenderer(), renderCommands(), disposeRenderer()
-        └── NuklearOpenGLRenderer  ← OpenGL 4.1 implementation
+        └── NuklearVulkanRenderer  ← Vulkan implementation
 ```
-
-Future Vulkan support only requires a `NuklearVulkanRenderer` extending the same base.
 
 ### Files changed
 
@@ -62,7 +60,7 @@ Exception in thread "main" java.lang.UnsatisfiedLinkError: no imgui-java64 in ja
 - JDK 25 (`Eclipse Adoptium jdk-25.0.2.10-hotspot`)
 - JPMS modular project (via `org.javamodularity.moduleplugin 2.0.0`)
 - imgui-java `1.90.0`
-- `RenderBackend.OPENGL` (already switched from VULKAN for this plan step)
+- `RenderBackend.VULKAN`
 
 ## Root Cause (partially diagnosed)
 

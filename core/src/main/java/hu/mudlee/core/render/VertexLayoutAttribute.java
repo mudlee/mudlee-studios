@@ -1,14 +1,17 @@
 package hu.mudlee.core.render;
 
+import hu.mudlee.core.render.types.ShaderTypes;
+
 public class VertexLayoutAttribute {
     private final int index;
     private final int dataSize;
-    private final int dataType;
+    private final ShaderTypes dataType;
     private final int stride;
     private final int offset;
     private final boolean normalized;
 
-    public VertexLayoutAttribute(int index, int dataSize, int dataType, boolean normalized, int stride, int offset) {
+    public VertexLayoutAttribute(
+            int index, int dataSize, ShaderTypes dataType, boolean normalized, int stride, int offset) {
         this.index = index;
         this.dataSize = dataSize;
         this.dataType = dataType;
@@ -25,7 +28,7 @@ public class VertexLayoutAttribute {
         return dataSize;
     }
 
-    public int getDataType() {
+    public ShaderTypes getDataType() {
         return dataType;
     }
 
