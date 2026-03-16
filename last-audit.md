@@ -30,8 +30,8 @@
 | 19 | Low      | Metrics     | Done   | `DebugStatsComponent` direct-memory fallback reports heap max                                        |
 | 20 | Low      | GC          | Done   | `DebugStatsComponent.update()` uses `String.format()` per frame                                      |
 | 21 | Low      | Portability | Done   | `module-info.java` missing `requires org.lwjgl.vulkan.natives`                                       |
-| 22 | Low      | Design      | Open   | `RenderMode` enum stores backend-specific constants                                                  |
-| 23 | Low      | GC          | Open   | `EntityManager.buildQuery()` allocates `HashSet` on cache miss                                       |
+| 22 | Low      | Design      | Done   | `RenderMode` enum stores backend-specific constants                                                  |
+| 23 | Low      | GC          | Done   | `EntityManager.buildQuery()` allocates `HashSet` on cache miss                                       |
 
 ---
 

@@ -20,6 +20,7 @@ public final class EntityManager {
     private final Map<Class<? extends Component>, Map<Integer, Component>> byType = new HashMap<>();
     private final Map<Integer, Set<Class<? extends Component>>> byEntity = new HashMap<>();
     private final Map<AspectKey, CachedQuery> queryCache = new HashMap<>();
+    private final Set<Integer> scratchIds = new HashSet<>();
 
     public Entity createEntity() {
         int id = freeIds.isEmpty() ? nextId++ : freeIds.pop();
@@ -92,26 +93,28 @@ public final class EntityManager {
 
     @SafeVarargs
     private List<Entity> buildQuery(Class<? extends Component>... required) {
-        Set<Integer> ids = null;
+        scratchIds.clear();
+        var first = true;
         for (var type : required) {
             var map = byType.get(type);
             if (map == null) {
                 return List.of();
             }
-            if (ids == null) {
-                ids = new HashSet<>(map.keySet());
+            if (first) {
+                scratchIds.addAll(map.keySet());
+                first = false;
             } else {
-                ids.retainAll(map.keySet());
+                scratchIds.retainAll(map.keySet());
             }
-            if (ids.isEmpty()) {
+            if (scratchIds.isEmpty()) {
                 return List.of();
             }
         }
-        if (ids == null) {
+        if (first) {
             return List.of();
         }
-        var result = new ArrayList<Entity>(ids.size());
-        for (var id : ids) {
+        var result = new ArrayList<Entity>(scratchIds.size());
+        for (var id : scratchIds) {
             result.add(new Entity(id));
         }
         return Collections.unmodifiableList(result);
