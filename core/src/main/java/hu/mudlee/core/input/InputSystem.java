@@ -25,7 +25,6 @@ public final class InputSystem {
     private static final boolean[] PREV_GAMEPAD_BUTTON_STATE = new boolean[15];
     private static final float[] GAMEPAD_AXIS_STATE = new float[6];
     private static final float STICK_DEADZONE = 0.15f;
-    private static final Vector2f REUSABLE_VECTOR2 = new Vector2f();
 
     private static float mouseX;
     private static float mouseY;
@@ -38,11 +37,11 @@ public final class InputSystem {
     private InputSystem() {}
 
     static KeyboardState getKeyboardState() {
-        return new KeyboardState(KEY_STATE);
+        return new KeyboardState(Arrays.copyOf(KEY_STATE, KEY_STATE.length));
     }
 
     static MouseState getMouseState() {
-        return new MouseState(mouseX, mouseY, scrollX, scrollY, MOUSE_STATE);
+        return new MouseState(mouseX, mouseY, scrollX, scrollY, Arrays.copyOf(MOUSE_STATE, MOUSE_STATE.length));
     }
 
     static GamepadState getGamepadState() {
@@ -304,18 +303,18 @@ public final class InputSystem {
                     y -= 1f;
                 }
                 if (x != 0f || y != 0f) {
-                    return REUSABLE_VECTOR2.set(x, y);
+                    return new Vector2f(x, y);
                 }
             }
             if (binding instanceof InputBinding.GamepadStickCompositeBinding stick) {
                 var x = GAMEPAD_AXIS_STATE[stick.xAxis().glfwCode()];
                 var y = -GAMEPAD_AXIS_STATE[stick.yAxis().glfwCode()]; // invert GLFW Y convention
                 if (x != 0f || y != 0f) {
-                    return REUSABLE_VECTOR2.set(x, y);
+                    return new Vector2f(x, y);
                 }
             }
         }
-        return REUSABLE_VECTOR2.set(0f, 0f);
+        return new Vector2f(0f, 0f);
     }
 
     private static boolean isAnyBindingActive(InputAction action) {
