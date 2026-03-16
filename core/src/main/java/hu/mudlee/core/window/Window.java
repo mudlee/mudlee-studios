@@ -10,7 +10,6 @@ import hu.mudlee.core.settings.Antialiasing;
 import hu.mudlee.core.settings.WindowPreferences;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import org.joml.Vector2i;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWVidMode;
@@ -42,8 +41,11 @@ public class Window implements Disposable {
     public void dispose() {
         glfwFreeCallbacks(id);
         glfwDestroyWindow(id);
+        var errorCb = glfwSetErrorCallback(null);
+        if (errorCb != null) {
+            errorCb.free();
+        }
         glfwTerminate();
-        Objects.requireNonNull(glfwSetErrorCallback(null)).free();
     }
 
     public static void remove() {
