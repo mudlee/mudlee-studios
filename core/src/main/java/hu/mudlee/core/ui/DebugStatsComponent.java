@@ -135,8 +135,7 @@ public final class DebugStatsComponent extends UIComponent {
         this.gcBeans = ManagementFactory.getGarbageCollectorMXBeans();
         this.bufferPoolBeans = ManagementFactory.getPlatformMXBeans(BufferPoolMXBean.class);
 
-        // Approximate max direct memory: JVM exposes it via a private field; fall back to max heap.
-        long maxDirect = Runtime.getRuntime().maxMemory();
+        long maxDirect = -1;
         try {
             var vmClass = Class.forName("jdk.internal.misc.VM");
             var method = vmClass.getDeclaredMethod("maxDirectMemory");
@@ -266,7 +265,7 @@ public final class DebugStatsComponent extends UIComponent {
             }
         }
         offHeapMb = directUsed / (1024f * 1024f);
-        offHeapPct = maxDirectMemoryBytes > 0 ? (directUsed / (float) maxDirectMemoryBytes) * 100f : 0f;
+        offHeapPct = maxDirectMemoryBytes > 0 ? (directUsed / (float) maxDirectMemoryBytes) * 100f : -1f;
 
         // Renderer stats
         drawCalls = Renderer.getDrawCallCount();
@@ -289,7 +288,9 @@ public final class DebugStatsComponent extends UIComponent {
         heapStr = String.format("%.0f%% (%.0f/%.0f MB)", heapPct, heapUsedMb, heapMaxMb);
         allocRateStr = String.format("%.1f MB/s", allocRateMbS);
         gcStr = gcPausesPerSec + " / s";
-        offHeapStr = String.format("%.1f MB (%.0f%%)", offHeapMb, offHeapPct);
+        offHeapStr = offHeapPct >= 0f
+                ? String.format("%.1f MB (%.0f%%)", offHeapMb, offHeapPct)
+                : String.format("%.1f MB (N/A)", offHeapMb);
         drawCallsStr = String.valueOf(drawCalls);
         flushStr = flushCount + " / frame";
         vertexStr = String.format("%,d", vertexCount);
