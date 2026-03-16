@@ -11,8 +11,8 @@
 |----|----------|-------------|--------|------------------------------------------------------------------------------------------------------|
 | 1  | Critical | Correctness | Done   | Vulkan pipeline caching ignores render-pass changes                                                  |
 | 2  | Critical | Leak        | Done   | Vulkan descriptor sets leak from a fixed-size shared pool                                            |
-| 3  | High     | Bug         | Open   | `VulkanVertexBuffer.update(ByteBuffer)` stores byte count as float count                             |
-| 4  | High     | Leak        | Open   | `ResourceLoader.load()` never closes Scanner / InputStream                                           |
+| 3  | High     | Bug         | Done   | `VulkanVertexBuffer.update(ByteBuffer)` stores byte count as float count                             |
+| 4  | High     | Leak        | Done   | `ResourceLoader.load()` never closes Scanner / InputStream                                           |
 | 5  | High     | Leak        | Open   | `ScreenPixelRatioHandler.set()` leaks native memory on exception                                     |
 | 6  | High     | API         | Open   | Input APIs expose shared mutable state instead of stable snapshots                                   |
 | 7  | High     | Design      | Open   | Screen lifecycle is unsafe: `show()` doubles as resume and transitions are immediate                 |

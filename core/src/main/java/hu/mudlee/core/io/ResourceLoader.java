@@ -79,11 +79,12 @@ public class ResourceLoader {
 
     public static String load(String path) {
         log.debug("Loading resource {}", path);
-        final var in = ResourceLoader.class.getResourceAsStream(path);
+        var in = ResourceLoader.class.getResourceAsStream(path);
         if (in == null) {
             throw new RuntimeException("Could not find resource: " + path);
         }
-        final var scanner = new Scanner(in, StandardCharsets.UTF_8);
-        return scanner.useDelimiter("\\A").next();
+        try (var scanner = new Scanner(in, StandardCharsets.UTF_8)) {
+            return scanner.useDelimiter("\\A").next();
+        }
     }
 }
