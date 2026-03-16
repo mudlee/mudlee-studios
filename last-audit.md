@@ -19,7 +19,7 @@
 | 8  | High     | Design      | Done   | `Game.components` is a public mutable service list with hidden ordering and mutation hazards         |
 | 9  | High     | Correctness | Done   | ECS entity handles are raw ids with no liveness or ownership validation                              |
 | 10 | High     | Bug         | Done   | `Window.dispose()` calls GLFW after `glfwTerminate()`                                                |
-| 11 | High     | Correctness | Open   | Vulkan sync objects are not recreated if swapchain image count changes                               |
+| 11 | High     | Correctness | Done   | Vulkan sync objects are not recreated if swapchain image count changes                               |
 | 12 | Medium   | Correctness | Open   | Vulkan `vSync=false` silently falls back to FIFO on Linux                                            |
 | 13 | Medium   | GC          | Open   | `MouseState.position()` allocates `Vector2f` every call                                              |
 | 14 | Medium   | API         | Open   | Vulkan backend silently ignores `setBlend()` and `setScissor()`                                      |

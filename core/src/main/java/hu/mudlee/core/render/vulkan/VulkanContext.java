@@ -521,7 +521,13 @@ public class VulkanContext implements GraphicsContext {
 
     private void recreateSwapChain() {
         device.waitIdle();
+        var oldImageCount = swapChain.imageCount();
         swapChain.recreate(renderPass.handle(), vSync);
+        if (swapChain.imageCount() != oldImageCount) {
+            syncObjects.dispose();
+            syncObjects = new VulkanSyncObjects(device, swapChain.imageCount());
+            log.debug("Sync objects recreated for new image count {}", swapChain.imageCount());
+        }
         swapchainOutOfDate = false;
         log.debug(
                 "Swap chain recreated ({}x{})",
