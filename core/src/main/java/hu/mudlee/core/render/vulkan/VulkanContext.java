@@ -12,9 +12,6 @@ import hu.mudlee.core.render.RenderTarget;
 import hu.mudlee.core.render.Shader;
 import hu.mudlee.core.render.VertexArray;
 import hu.mudlee.core.render.VertexBuffer;
-import hu.mudlee.core.render.types.BufferBitTypes;
-import hu.mudlee.core.render.types.PolygonMode;
-import hu.mudlee.core.render.types.RenderMode;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -240,11 +237,6 @@ public class VulkanContext implements GraphicsContext {
         clearColor[3] = color.w;
     }
 
-    @Override
-    public void setClearFlags(BufferBitTypes... flags) {
-        // No-op: Vulkan clearing is declared as a render pass load op, not a separate call
-    }
-
     /**
      * Begins a new frame: waits for the GPU fence, acquires the next swap chain image, resets and
      * begins recording the command buffer, then starts the render pass targeting the current render
@@ -312,18 +304,12 @@ public class VulkanContext implements GraphicsContext {
      * – Texture bound via a pre-built descriptor set (written at texture creation time).
      */
     @Override
-    public void renderRaw(VertexArray vertexArray, Shader shader, RenderMode renderMode, PolygonMode polygonMode) {
+    public void renderRaw(VertexArray vertexArray, Shader shader) {
         renderRawInternal(vertexArray, shader, -1, 0);
     }
 
     @Override
-    public void renderRaw(
-            VertexArray vertexArray,
-            Shader shader,
-            RenderMode renderMode,
-            PolygonMode polygonMode,
-            int elementOffset,
-            int elementCount) {
+    public void renderRaw(VertexArray vertexArray, Shader shader, int elementOffset, int elementCount) {
         renderRawInternal(vertexArray, shader, elementCount, elementOffset);
     }
 

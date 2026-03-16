@@ -73,16 +73,6 @@ public class VulkanIndexBuffer extends ElementBuffer {
     }
 
     @Override
-    public void bind() {
-        // No-op: binding happens in vkCmdBindIndexBuffer during command recording
-    }
-
-    @Override
-    public void unbind() {
-        // No-op
-    }
-
-    @Override
     public void dispose() {
         gpuBuffer.dispose();
         log.debug("VulkanIndexBuffer disposed");

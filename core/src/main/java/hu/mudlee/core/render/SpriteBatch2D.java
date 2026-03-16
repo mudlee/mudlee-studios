@@ -5,9 +5,6 @@ import hu.mudlee.core.Disposable;
 import hu.mudlee.core.Rectangle;
 import hu.mudlee.core.render.texture.Texture2D;
 import hu.mudlee.core.render.texture.TextureRegion;
-import hu.mudlee.core.render.types.BlendFactor;
-import hu.mudlee.core.render.types.PolygonMode;
-import hu.mudlee.core.render.types.RenderMode;
 import hu.mudlee.core.render.types.ShaderProps;
 import hu.mudlee.core.render.types.ShaderTypes;
 import hu.mudlee.core.window.Window;
@@ -64,10 +61,6 @@ public class SpriteBatch2D implements Disposable, RenderContext {
         vertexArray.setEBO(indexBuffer);
 
         shader = Shader.create("vulkan/2d/vert.glsl", "vulkan/2d/frag.glsl");
-        shader.createUniform(ShaderProps.UNIFORM_PROJECTION_MATRIX.glslName);
-        shader.createUniform(ShaderProps.UNIFORM_VIEW_MATRIX.glslName);
-        shader.createUniform("TEX_SAMPLER");
-        shader.setUniform("TEX_SAMPLER", 0);
         shader.setUniform(ShaderProps.UNIFORM_VIEW_MATRIX.glslName, identityMatrix);
     }
 
@@ -107,7 +100,6 @@ public class SpriteBatch2D implements Disposable, RenderContext {
         currentTexture = null;
         shader.setUniform(ShaderProps.UNIFORM_PROJECTION_MATRIX.glslName, projection);
         shader.setUniform(ShaderProps.UNIFORM_VIEW_MATRIX.glslName, view);
-        Renderer.setBlend(true, BlendFactor.SRC_ALPHA, BlendFactor.ONE_MINUS_SRC_ALPHA);
     }
 
     public void draw(Texture2D texture, Vector2f position, Color color) {
@@ -193,7 +185,6 @@ public class SpriteBatch2D implements Disposable, RenderContext {
             throw new IllegalStateException("SpriteBatch2D.end() called without a matching begin()");
         }
         flush();
-        Renderer.setBlend(false, BlendFactor.SRC_ALPHA, BlendFactor.ONE_MINUS_SRC_ALPHA);
         begun = false;
     }
 
@@ -264,7 +255,7 @@ public class SpriteBatch2D implements Disposable, RenderContext {
         dynamicVbo.update(vertexData, floatCount);
         currentTexture.bind();
         Renderer.incrementVertexCount(spriteCount * VERTICES_PER_SPRITE);
-        Renderer.renderRaw(vertexArray, shader, RenderMode.TRIANGLES, PolygonMode.FILL, 0, indexCount);
+        Renderer.renderRaw(vertexArray, shader, 0, indexCount);
         Renderer.incrementSpriteBatchFlushCount();
         spriteCount = 0;
         currentTexture = null;

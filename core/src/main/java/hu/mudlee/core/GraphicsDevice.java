@@ -2,7 +2,6 @@ package hu.mudlee.core;
 
 import hu.mudlee.core.render.RenderBackend;
 import hu.mudlee.core.render.Renderer;
-import hu.mudlee.core.render.types.BufferBitTypes;
 import hu.mudlee.core.window.Window;
 import org.joml.Vector4f;
 
@@ -21,7 +20,6 @@ public final class GraphicsDevice {
     /** Clears the back-buffer with the given colour. Call once at the start of {@code draw()}. */
     public void clear(Color color) {
         Renderer.setClearColor(clearColorVec.set(color.r, color.g, color.b, color.a));
-        Renderer.setClearFlags(BufferBitTypes.COLOR);
         Renderer.clear();
     }
 
@@ -29,11 +27,6 @@ public final class GraphicsDevice {
     public Viewport getViewport() {
         var size = Window.getSize();
         return new Viewport(0, 0, size.x, size.y);
-    }
-
-    /** Sets the active viewport. */
-    public void setViewport(Viewport viewport) {
-        Renderer.setViewport(viewport.x, viewport.y, viewport.width, viewport.height);
     }
 
     /** Returns the active rendering backend. */

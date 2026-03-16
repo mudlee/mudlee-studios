@@ -87,21 +87,10 @@ public class VulkanTexture2D extends Texture2D {
         return height;
     }
 
-    @Override
-    public int getNativeHandle() {
-        throw new UnsupportedOperationException(
-                "VulkanTexture2D does not expose an integer native handle; use descriptorSet() instead");
-    }
-
     /** Informs VulkanContext that this is the texture to bind for the next draw call(s). */
     @Override
     public void bind() {
         VulkanContext.get().setActiveDescriptorSet(descriptorSet);
-    }
-
-    @Override
-    public void unBind() {
-        // No-op: Vulkan textures are unbound implicitly by the next descriptor set bind
     }
 
     long descriptorSet() {

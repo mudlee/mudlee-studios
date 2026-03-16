@@ -8,7 +8,6 @@ import hu.mudlee.core.render.Shader;
 import hu.mudlee.core.render.VertexBufferLayout;
 import hu.mudlee.core.render.types.ShaderTypes;
 import org.joml.Matrix4f;
-import org.joml.Vector4f;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.vulkan.*;
 import org.slf4j.Logger;
@@ -127,43 +126,12 @@ public class VulkanShader extends Shader {
     }
 
     @Override
-    public void bind() {
-        // No-op: pipeline binding happens inside vkCmdBindPipeline in VulkanContext.renderRaw()
-    }
-
-    @Override
-    public void unbind() {
-        // No-op
-    }
-
-    @Override
-    public void createUniform(String name) {
-        // No-op: Vulkan uniforms are push constants or descriptor sets — no named locations
-    }
-
-    @Override
     public void setUniform(String name, Matrix4f value) {
         switch (name) {
             case "uProjection" -> value.get(projectionData);
             case "uView" -> value.get(viewData);
             // Additional mat4 uniforms can be added here when the HAL is extended
         }
-    }
-
-    @Override
-    public void setUniform(String name, Vector4f value) {
-        // No-op until additional vec4 uniforms are needed
-    }
-
-    @Override
-    public void setUniform(String name, float value) {
-        // No-op
-    }
-
-    @Override
-    public void setUniform(String name, int value) {
-        // "TEX_SAMPLER" sampler-unit assignments are meaningless in Vulkan:
-        // textures are bound via VkDescriptorSets in VulkanContext.renderRaw()
     }
 
     @Override

@@ -369,17 +369,9 @@ public final class VulkanRenderTarget extends RenderTarget {
         }
 
         @Override
-        public int getNativeHandle() {
-            throw new UnsupportedOperationException("VulkanRenderTarget does not expose an integer handle");
-        }
-
-        @Override
         public void bind() {
             VulkanContext.get().setActiveDescriptorSet(descriptorSet);
         }
-
-        @Override
-        public void unBind() {}
 
         @Override
         public void dispose() {

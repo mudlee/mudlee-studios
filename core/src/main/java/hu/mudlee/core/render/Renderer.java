@@ -1,9 +1,5 @@
 package hu.mudlee.core.render;
 
-import hu.mudlee.core.render.types.BlendFactor;
-import hu.mudlee.core.render.types.BufferBitTypes;
-import hu.mudlee.core.render.types.PolygonMode;
-import hu.mudlee.core.render.types.RenderMode;
 import hu.mudlee.core.render.vulkan.VulkanContext;
 import hu.mudlee.core.window.WindowEventListener;
 import org.joml.Vector4f;
@@ -60,44 +56,22 @@ public class Renderer implements WindowEventListener {
         context.windowResized(width, height);
     }
 
-    public static void renderRaw(VertexArray vao, Shader shader, RenderMode renderMode, PolygonMode polygonMode) {
+    public static void renderRaw(VertexArray vao, Shader shader) {
         drawCallCount++;
-        get().context.renderRaw(vao, shader, renderMode, polygonMode);
+        get().context.renderRaw(vao, shader);
     }
 
-    public static void renderRaw(
-            VertexArray vao,
-            Shader shader,
-            RenderMode renderMode,
-            PolygonMode polygonMode,
-            int elementOffset,
-            int elementCount) {
+    public static void renderRaw(VertexArray vao, Shader shader, int elementOffset, int elementCount) {
         drawCallCount++;
-        get().context.renderRaw(vao, shader, renderMode, polygonMode, elementOffset, elementCount);
+        get().context.renderRaw(vao, shader, elementOffset, elementCount);
     }
 
     public static void setRenderTarget(RenderTarget renderTarget) {
         get().context.setRenderTarget(renderTarget);
     }
 
-    public static void setViewport(int x, int y, int width, int height) {
-        get().context.setViewport(x, y, width, height);
-    }
-
-    public static void setBlend(boolean enable, BlendFactor src, BlendFactor dst) {
-        get().context.setBlend(enable, src, dst);
-    }
-
-    public static void setScissor(boolean enable, int x, int y, int width, int height) {
-        get().context.setScissor(enable, x, y, width, height);
-    }
-
     public static void setClearColor(Vector4f color) {
         get().context.setClearColor(color);
-    }
-
-    public static void setClearFlags(BufferBitTypes... flags) {
-        get().context.setClearFlags(flags);
     }
 
     public static void swapBuffers(float frameTime) {

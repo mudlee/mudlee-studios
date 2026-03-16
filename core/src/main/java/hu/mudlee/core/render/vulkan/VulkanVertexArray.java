@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
  * There is no GPU state object in Vulkan — vertex/index buffers are bound explicitly in the command
  * buffer via vkCmdBindVertexBuffers / vkCmdBindIndexBuffer inside VulkanContext.renderRaw().
  *
- * <p>bind()/unbind() are no-ops.
+ * <p>Instancing is supported via {@link #setInstanceCount(int)}.
  */
 public class VulkanVertexArray extends VertexArray {
 
@@ -23,30 +23,11 @@ public class VulkanVertexArray extends VertexArray {
     private final List<VertexBuffer> vertexBuffers = new ArrayList<>();
     private ElementBuffer indexBuffer;
     private int instanceCount;
-    private boolean instanced;
-
-    @Override
-    public void bind() {
-        // No-op: no VAO concept in Vulkan
-    }
-
-    @Override
-    public void unbind() {
-        // No-op
-    }
 
     @Override
     public void addVBO(VertexBuffer buffer) {
         if (buffer instanceof VulkanVertexBuffer vvb) {
             vertexBuffers.add(vvb);
-
-            // Check for instanced attributes
-            for (var attr : buffer.getLayout().attributes()) {
-                if (attr instanceof hu.mudlee.core.render.VertexLayoutInstancedAttribute) {
-                    instanced = true;
-                    break;
-                }
-            }
         } else {
             throw new IllegalArgumentException("VulkanVertexArray only accepts VulkanVertexBuffer instances");
         }
@@ -85,7 +66,7 @@ public class VulkanVertexArray extends VertexArray {
 
     @Override
     public boolean isInstanced() {
-        return instanced;
+        return instanceCount > 0;
     }
 
     @Override

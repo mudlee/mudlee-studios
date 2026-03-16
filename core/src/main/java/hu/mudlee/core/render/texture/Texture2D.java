@@ -21,12 +21,7 @@ public abstract class Texture2D implements Disposable {
 
     public abstract int getHeight();
 
-    /** Returns the backend-native texture handle. */
-    public abstract int getNativeHandle();
-
     public abstract void bind();
-
-    public abstract void unBind();
 
     public abstract void dispose();
 }

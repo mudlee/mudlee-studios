@@ -9,10 +9,6 @@ public abstract class VertexArray {
         return new VulkanVertexArray();
     }
 
-    public abstract void bind();
-
-    public abstract void unbind();
-
     public abstract void addVBO(VertexBuffer buffer);
 
     public abstract void setEBO(ElementBuffer elementBuffer);
