@@ -38,7 +38,8 @@
       "Bash(./gradlew :sandbox:compileJava 2>&1 | tail -10)",
       "Bash(./gradlew run:*)",
       "Bash(./gradlew spotlessCheck 2>&1 | tail -50)",
-      "Bash(./gradlew --version)"
+      "Bash(./gradlew --version)",
+      "Bash(git stash:*)"
     ]
   }
 }
