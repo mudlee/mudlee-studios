@@ -13,7 +13,7 @@
 | 2  | Critical | Leak        | Done   | Vulkan descriptor sets leak from a fixed-size shared pool                                            |
 | 3  | High     | Bug         | Done   | `VulkanVertexBuffer.update(ByteBuffer)` stores byte count as float count                             |
 | 4  | High     | Leak        | Done   | `ResourceLoader.load()` never closes Scanner / InputStream                                           |
-| 5  | High     | Leak        | Open   | `ScreenPixelRatioHandler.set()` leaks native memory on exception                                     |
+| 5  | High     | Leak        | Done   | `ScreenPixelRatioHandler.set()` leaks native memory on exception                                     |
 | 6  | High     | API         | Open   | Input APIs expose shared mutable state instead of stable snapshots                                   |
 | 7  | High     | Design      | Open   | Screen lifecycle is unsafe: `show()` doubles as resume and transitions are immediate                 |
 | 8  | High     | Design      | Open   | `Game.components` is a public mutable service list with hidden ordering and mutation hazards         |

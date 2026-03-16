@@ -4,7 +4,7 @@ import static org.lwjgl.glfw.GLFW.glfwGetFramebufferSize;
 import static org.lwjgl.glfw.GLFW.glfwGetWindowSize;
 
 import org.lwjgl.glfw.GLFWVidMode;
-import org.lwjgl.system.MemoryUtil;
+import org.lwjgl.system.MemoryStack;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,22 +28,19 @@ public class ScreenPixelRatioHandler {
             return ratioTmp;
         }
 
-        var widthScreenCoordBuf = MemoryUtil.memAllocInt(1);
-        var heightScreenCoordBuf = MemoryUtil.memAllocInt(1);
-        var widthPixelsBuf = MemoryUtil.memAllocInt(1);
-        var heightPixelsBuf = MemoryUtil.memAllocInt(1);
+        try (var stack = MemoryStack.stackPush()) {
+            var widthScreenCoordBuf = stack.mallocInt(1);
+            var heightScreenCoordBuf = stack.mallocInt(1);
+            var widthPixelsBuf = stack.mallocInt(1);
+            var heightPixelsBuf = stack.mallocInt(1);
 
-        glfwGetWindowSize(windowId, widthScreenCoordBuf, heightScreenCoordBuf);
-        glfwGetFramebufferSize(windowId, widthPixelsBuf, heightPixelsBuf);
+            glfwGetWindowSize(windowId, widthScreenCoordBuf, heightScreenCoordBuf);
+            glfwGetFramebufferSize(windowId, widthPixelsBuf, heightPixelsBuf);
 
-        ratioTmp = (int) Math.floor((float) widthPixelsBuf.get() / (float) widthScreenCoordBuf.get());
-        log.debug("Screen pixel ratio has been calculated to: {}", ratioTmp);
+            ratioTmp = (int) Math.floor((float) widthPixelsBuf.get(0) / (float) widthScreenCoordBuf.get(0));
+            log.debug("Screen pixel ratio has been calculated to: {}", ratioTmp);
 
-        MemoryUtil.memFree(widthScreenCoordBuf);
-        MemoryUtil.memFree(heightScreenCoordBuf);
-        MemoryUtil.memFree(widthPixelsBuf);
-        MemoryUtil.memFree(heightPixelsBuf);
-
-        return ratioTmp;
+            return ratioTmp;
+        }
     }
 }
