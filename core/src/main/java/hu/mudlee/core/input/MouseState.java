@@ -40,9 +40,14 @@ public final class MouseState {
         return y;
     }
 
-    /** Cursor position as a {@link Vector2f}. */
+    /** Cursor position as a {@link Vector2f}. Allocates a new vector each call. */
     public Vector2f position() {
         return new Vector2f(x, y);
+    }
+
+    /** Writes cursor position into {@code dest} and returns it. Preferred in hot paths. */
+    public Vector2f position(Vector2f dest) {
+        return dest.set(x, y);
     }
 
     /** Horizontal scroll offset accumulated since the last frame. */

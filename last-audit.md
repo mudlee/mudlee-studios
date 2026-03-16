@@ -21,7 +21,7 @@
 | 10 | High     | Bug         | Done   | `Window.dispose()` calls GLFW after `glfwTerminate()`                                                |
 | 11 | High     | Correctness | Done   | Vulkan sync objects are not recreated if swapchain image count changes                               |
 | 12 | Medium   | Correctness | Done   | Vulkan `vSync=false` silently falls back to FIFO on Linux                                            |
-| 13 | Medium   | GC          | Open   | `MouseState.position()` allocates `Vector2f` every call                                              |
+| 13 | Medium   | GC          | Done   | `MouseState.position()` allocates `Vector2f` every call                                              |
 | 14 | Medium   | API         | Open   | Vulkan backend silently ignores `setBlend()` and `setScissor()`                                      |
 | 15 | Medium   | Build       | Open   | Deprecated Gradle multi-string dependency notation                                                   |
 | 16 | Medium   | Feature     | Open   | Hierarchical transforms are still missing                                                            |
