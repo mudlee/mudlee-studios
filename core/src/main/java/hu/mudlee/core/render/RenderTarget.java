@@ -30,7 +30,13 @@ public abstract class RenderTarget implements Disposable {
 
     public abstract int getHeight();
 
-    /** Returns the color attachment as a {@link Texture2D} that can be drawn with a sprite batch. */
+    /**
+     * Returns a non-owning view of the color attachment as a {@link Texture2D}.
+     *
+     * <p>The returned texture is owned by this render target — callers must <strong>not</strong>
+     * call {@link Texture2D#dispose()} on it. The texture becomes invalid when this render target
+     * is disposed or resized.
+     */
     public abstract Texture2D getColorTexture();
 
     /** Resizes the render target, recreating GPU resources if the dimensions changed. */
