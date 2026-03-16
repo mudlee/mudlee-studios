@@ -47,19 +47,19 @@ java {
 dependencies {
 	api(platform("org.lwjgl:lwjgl-bom:$lwjglVersion"))
 
-	implementation("org.lwjgl", "lwjgl")
-	api("org.lwjgl", "lwjgl-glfw")
-	implementation("org.lwjgl", "lwjgl-stb")
-	implementation("org.lwjgl", "lwjgl-vulkan")
-	implementation("org.lwjgl", "lwjgl-vma")
-	implementation("org.lwjgl", "lwjgl", classifier = lwjglNatives)
-	implementation("org.lwjgl", "lwjgl-glfw", classifier = lwjglNatives)
-	implementation("org.lwjgl", "lwjgl-stb", classifier = lwjglNatives)
-	implementation("org.lwjgl", "lwjgl-vma", classifier = lwjglNatives)
+	implementation("org.lwjgl:lwjgl")
+	api("org.lwjgl:lwjgl-glfw")
+	implementation("org.lwjgl:lwjgl-stb")
+	implementation("org.lwjgl:lwjgl-vulkan")
+	implementation("org.lwjgl:lwjgl-vma")
+	implementation("org.lwjgl:lwjgl::$lwjglNatives")
+	implementation("org.lwjgl:lwjgl-glfw::$lwjglNatives")
+	implementation("org.lwjgl:lwjgl-stb::$lwjglNatives")
+	implementation("org.lwjgl:lwjgl-vma::$lwjglNatives")
 	if (lwjglNatives.startsWith("natives-macos")) {
-		implementation("org.lwjgl", "lwjgl-vulkan", classifier = lwjglNatives)
+		implementation("org.lwjgl:lwjgl-vulkan::$lwjglNatives")
 	}
-	implementation("org.slf4j", "slf4j-api", slf4jVersion)
-	implementation("org.slf4j", "slf4j-simple", slf4jVersion)
-	api("org.joml", "joml", jomlVersion)
+	implementation("org.slf4j:slf4j-api:$slf4jVersion")
+	implementation("org.slf4j:slf4j-simple:$slf4jVersion")
+	api("org.joml:joml:$jomlVersion")
 }
