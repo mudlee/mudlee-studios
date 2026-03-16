@@ -14,8 +14,16 @@ package hu.mudlee.core;
  */
 public interface Screen {
 
-    /** Called when this screen becomes the active (top) screen. */
+    /** Called once when this screen is first added to the stack. Use for one-time setup. */
     default void show() {}
+
+    /**
+     * Called when this screen returns to the top of the stack after being hidden by a
+     * {@link ScreenManager#push}. Override to re-enable input or resume paused state.
+     * The default implementation delegates to {@link #show()} for backwards compatibility,
+     * but screens that do heavy one-time work in {@code show()} should override this separately.
+     */
+    default void resume() {}
 
     /** Called every frame while this screen is on top. */
     default void update(GameTime gameTime) {}

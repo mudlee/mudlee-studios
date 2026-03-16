@@ -15,7 +15,7 @@
 | 4  | High     | Leak        | Done   | `ResourceLoader.load()` never closes Scanner / InputStream                                           |
 | 5  | High     | Leak        | Done   | `ScreenPixelRatioHandler.set()` leaks native memory on exception                                     |
 | 6  | High     | API         | Done   | Input APIs expose shared mutable state instead of stable snapshots                                   |
-| 7  | High     | Design      | Open   | Screen lifecycle is unsafe: `show()` doubles as resume and transitions are immediate                 |
+| 7  | High     | Design      | Done   | Screen lifecycle is unsafe: `show()` doubles as resume and transitions are immediate                 |
 | 8  | High     | Design      | Open   | `Game.components` is a public mutable service list with hidden ordering and mutation hazards         |
 | 9  | High     | Correctness | Open   | ECS entity handles are raw ids with no liveness or ownership validation                              |
 | 10 | High     | Bug         | Open   | `Window.dispose()` calls GLFW after `glfwTerminate()`                                                |
