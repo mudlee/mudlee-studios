@@ -28,7 +28,7 @@
 | 17 | Medium   | API         | Done   | `RenderTarget.getColorTexture()` ownership semantics need clarification                              |
 | 18 | Medium   | Correctness | Done   | `Camera2D` dirty-flag correctness is easy to bypass through public mutable fields                    |
 | 19 | Low      | Metrics     | Done   | `DebugStatsComponent` direct-memory fallback reports heap max                                        |
-| 20 | Low      | GC          | Open   | `DebugStatsComponent.update()` uses `String.format()` per frame                                      |
+| 20 | Low      | GC          | Done   | `DebugStatsComponent.update()` uses `String.format()` per frame                                      |
 | 21 | Low      | Portability | Done   | `module-info.java` missing `requires org.lwjgl.vulkan.natives`                                       |
 | 22 | Low      | Design      | Open   | `RenderMode` enum stores backend-specific constants                                                  |
 | 23 | Low      | GC          | Open   | `EntityManager.buildQuery()` allocates `HashSet` on cache miss                                       |

@@ -66,6 +66,7 @@ public final class DebugStatsComponent extends UIComponent {
     private final float[] frameTimes = new float[SAMPLE_COUNT];
     private final BitmapFont font;
     private final float valueX;
+    private final StringBuilder sb = new StringBuilder(64);
     private final List<GarbageCollectorMXBean> gcBeans;
     private final List<BufferPoolMXBean> bufferPoolBeans;
     private final long maxDirectMemoryBytes;
@@ -278,22 +279,21 @@ public final class DebugStatsComponent extends UIComponent {
         var h = total / 3600;
         var m = (total % 3600) / 60;
         var s = total % 60;
-        uptimeStr = String.format("%02d:%02d:%02d", h, m, s);
+        uptimeStr = fmt("%02d:%02d:%02d", h, m, s);
         windowStr = buildWindowStr();
 
         // Build display strings
-        fpsStr = String.format("%.1f", averageFps);
-        fpsMinMaxStr = String.format("%.1f / %.1f", minFps > 0 ? minFps : averageFps, maxFps > 0 ? maxFps : averageFps);
-        frameTimeStr = String.format("%.2f ms", frameTimeMs);
-        heapStr = String.format("%.0f%% (%.0f/%.0f MB)", heapPct, heapUsedMb, heapMaxMb);
-        allocRateStr = String.format("%.1f MB/s", allocRateMbS);
+        fpsStr = fmt("%.1f", averageFps);
+        fpsMinMaxStr = fmt("%.1f / %.1f", minFps > 0 ? minFps : averageFps, maxFps > 0 ? maxFps : averageFps);
+        frameTimeStr = fmt("%.2f ms", frameTimeMs);
+        heapStr = fmt("%.0f%% (%.0f/%.0f MB)", heapPct, heapUsedMb, heapMaxMb);
+        allocRateStr = fmt("%.1f MB/s", allocRateMbS);
         gcStr = gcPausesPerSec + " / s";
-        offHeapStr = offHeapPct >= 0f
-                ? String.format("%.1f MB (%.0f%%)", offHeapMb, offHeapPct)
-                : String.format("%.1f MB (N/A)", offHeapMb);
+        offHeapStr =
+                offHeapPct >= 0f ? fmt("%.1f MB (%.0f%%)", offHeapMb, offHeapPct) : fmt("%.1f MB (N/A)", offHeapMb);
         drawCallsStr = String.valueOf(drawCalls);
         flushStr = flushCount + " / frame";
-        vertexStr = String.format("%,d", vertexCount);
+        vertexStr = fmt("%,d", vertexCount);
         textureStr = String.valueOf(textureCount);
     }
 
@@ -365,6 +365,14 @@ public final class DebugStatsComponent extends UIComponent {
         batch.drawText(font, label, x, y, Color.WHITE);
         var display = level.prefix + value;
         batch.drawText(font, display, x + valueX, y, level.color, level.shadowColor);
+    }
+
+    private String fmt(String format, Object... args) {
+        sb.setLength(0);
+        try (var formatter = new java.util.Formatter(sb)) {
+            formatter.format(format, args);
+        }
+        return sb.toString();
     }
 
     private String buildWindowStr() {
