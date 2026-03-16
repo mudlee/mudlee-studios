@@ -79,12 +79,14 @@ public class PlayerScene implements Screen {
         transform.position.set(960, 540);
 
         var player = world.entities.createEntity();
+        // TODO: I'm not sure if I like this below
         world.entities.addComponent(player, transform);
         world.entities.addComponent(player, sprite);
         world.entities.addComponent(player, anim);
         world.entities.addComponent(player, new PlayerStateComponent(300f));
 
         actions = new InputActionMap("Player");
+        // TODO: I don't like that moveAction is not added to actions.
         var moveAction = actions.addAction("Move", ActionType.VECTOR2);
         moveAction
                 .addCompositeBinding()
@@ -104,11 +106,7 @@ public class PlayerScene implements Screen {
 
         world.addSystem(new PlayerControlSystem(moveAction, attackAction, dieAction));
 
-        world.entities
-                .getComponent(cameraEntity, CameraComponent.class)
-                .camera
-                .position
-                .set(960, 540);
+        world.entities.getComponent(cameraEntity, CameraComponent.class).camera.setPosition(960, 540);
     }
 
     @Override

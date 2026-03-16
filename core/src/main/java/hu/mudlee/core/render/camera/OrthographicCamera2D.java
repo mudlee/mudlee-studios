@@ -41,12 +41,16 @@ public final class OrthographicCamera2D extends Camera2D {
         float hw = size.x / 2f;
         float hh = size.y / 2f;
 
+        var z = getZoom();
+        var r = getRotation();
+        var pos = getPosition();
+
         transformMatrix
                 .setOrtho(0f, size.x, 0f, size.y, -1f, 1f)
                 .translate(hw, hh, 0f)
-                .scale(zoom, zoom, 1f)
-                .rotateZ(rotation)
-                .translate(-position.x, -position.y, 0f);
+                .scale(z, z, 1f)
+                .rotateZ(r)
+                .translate(-pos.x, -pos.y, 0f);
 
         dirty = false;
         return transformMatrix;

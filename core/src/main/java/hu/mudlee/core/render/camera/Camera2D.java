@@ -18,10 +18,23 @@ import org.joml.Vector2f;
  */
 public abstract class Camera2D {
 
-    public final Vector2f position = new Vector2f();
-    public float zoom = 1f;
-    public float rotation = 0f;
+    private final Vector2f position = new Vector2f();
+    private float zoom = 1f;
+    private float rotation = 0f;
     protected boolean dirty = true;
+
+    /** Returns a read-only view of the position. To move the camera use {@link #setPosition}. */
+    public Vector2f getPosition() {
+        return position;
+    }
+
+    public float getZoom() {
+        return zoom;
+    }
+
+    public float getRotation() {
+        return rotation;
+    }
 
     /** Marks the camera transform as needing recalculation. */
     public void markDirty() {
