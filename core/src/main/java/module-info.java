@@ -10,6 +10,7 @@ module hu.mudlee.core {
     requires org.lwjgl.stb;
     requires org.lwjgl.stb.natives;
     requires org.lwjgl.vulkan;
+    requires org.lwjgl.vulkan.natives;
     requires org.lwjgl.vma;
     requires org.lwjgl.vma.natives;
     requires transitive org.joml;
