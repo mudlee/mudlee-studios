@@ -202,7 +202,6 @@ class VulkanSwapChain implements Disposable {
 
     private int choosePresentMode(MemoryStack stack, boolean vSync) {
         if (vSync) {
-            // FIFO is always guaranteed and provides v-sync
             return VK_PRESENT_MODE_FIFO_KHR;
         }
 
@@ -211,12 +210,25 @@ class VulkanSwapChain implements Disposable {
         var modes = stack.mallocInt(count.get(0));
         vkGetPhysicalDeviceSurfacePresentModesKHR(device.physicalDevice(), surface, count, modes);
 
-        // MAILBOX gives triple-buffering without tearing — prefer it when vSync is off
+        var hasMailbox = false;
+        var hasImmediate = false;
         for (int i = 0; i < count.get(0); i++) {
             if (modes.get(i) == VK_PRESENT_MODE_MAILBOX_KHR) {
-                return VK_PRESENT_MODE_MAILBOX_KHR;
+                hasMailbox = true;
+            }
+            if (modes.get(i) == VK_PRESENT_MODE_IMMEDIATE_KHR) {
+                hasImmediate = true;
             }
         }
+
+        if (hasMailbox) {
+            return VK_PRESENT_MODE_MAILBOX_KHR;
+        }
+        if (hasImmediate) {
+            log.warn("MAILBOX not available, falling back to IMMEDIATE");
+            return VK_PRESENT_MODE_IMMEDIATE_KHR;
+        }
+        log.warn("MAILBOX and IMMEDIATE not available, falling back to FIFO (vSync effectively forced on)");
         return VK_PRESENT_MODE_FIFO_KHR;
     }
 
