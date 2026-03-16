@@ -14,6 +14,10 @@ import hu.mudlee.core.render.VertexArray;
 import hu.mudlee.core.render.VertexBuffer;
 import hu.mudlee.core.render.types.PolygonMode;
 import hu.mudlee.core.render.types.RenderMode;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.joml.Vector4f;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.vulkan.*;
@@ -62,8 +66,10 @@ public class VulkanContext implements GraphicsContext {
 
     // Global descriptor layout for combined-image-sampler at set=0, binding=0
     private long textureDescriptorSetLayout = VK_NULL_HANDLE;
-    // Shared pool from which VulkanTexture2D allocates its descriptor sets
-    private long descriptorPool = VK_NULL_HANDLE;
+    // Pool-of-pools: each pool is capped at MAX_TEXTURE_DESCRIPTORS; a new pool is created when all are full.
+    private final List<Long> descriptorPools = new ArrayList<>();
+    // Tracks which pool each allocated descriptor set came from, so it can be freed individually.
+    private final Map<Long, Long> descriptorSetToPool = new HashMap<>();
 
     // Frame state
     private int currentFrame = 0;
@@ -131,23 +137,55 @@ public class VulkanContext implements GraphicsContext {
     }
 
     /**
-     * Allocates a single descriptor set from the shared pool using the global texture layout. Called
-     * by VulkanTexture2D during construction.
+     * Allocates a single descriptor set using the global texture layout. Tries each existing pool in
+     * order; if all are exhausted, a new pool is created. Called by VulkanTexture2D and
+     * VulkanRenderTarget during construction.
      */
     long allocateTextureDescriptorSet() {
-        try (MemoryStack stack = stackPush()) {
-            var pLayout = stack.longs(textureDescriptorSetLayout);
+        for (var pool : descriptorPools) {
+            var set = tryAllocateFrom(pool);
+            if (set != VK_NULL_HANDLE) {
+                descriptorSetToPool.put(set, pool);
+                return set;
+            }
+        }
+        var newPool = createNewDescriptorPool();
+        descriptorPools.add(newPool);
+        var set = tryAllocateFrom(newPool);
+        if (set == VK_NULL_HANDLE) {
+            throw new RuntimeException("Failed to allocate texture descriptor set from fresh pool");
+        }
+        descriptorSetToPool.put(set, newPool);
+        return set;
+    }
 
+    /**
+     * Frees a descriptor set back to the pool it was allocated from. Called by VulkanTexture2D and
+     * VulkanRenderTarget on dispose and resize.
+     */
+    void freeTextureDescriptorSet(long descriptorSet) {
+        if (descriptorSet == VK_NULL_HANDLE) {
+            return;
+        }
+        var pool = descriptorSetToPool.remove(descriptorSet);
+        if (pool == null) {
+            log.warn("freeTextureDescriptorSet: untracked descriptor set handle {}", descriptorSet);
+            return;
+        }
+        try (MemoryStack stack = stackPush()) {
+            vkFreeDescriptorSets(device.device(), pool, stack.longs(descriptorSet));
+        }
+    }
+
+    private long tryAllocateFrom(long pool) {
+        try (MemoryStack stack = stackPush()) {
             var allocInfo = VkDescriptorSetAllocateInfo.calloc(stack)
                     .sType(VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO)
-                    .descriptorPool(descriptorPool)
-                    .pSetLayouts(pLayout);
-
-            var pDescriptorSet = stack.mallocLong(1);
-            if (vkAllocateDescriptorSets(device.device(), allocInfo, pDescriptorSet) != VK_SUCCESS) {
-                throw new RuntimeException("Failed to allocate texture descriptor set");
-            }
-            return pDescriptorSet.get(0);
+                    .descriptorPool(pool)
+                    .pSetLayouts(stack.longs(textureDescriptorSetLayout));
+            var pSet = stack.mallocLong(1);
+            var result = vkAllocateDescriptorSets(device.device(), allocInfo, pSet);
+            return result == VK_SUCCESS ? pSet.get(0) : VK_NULL_HANDLE;
         }
     }
 
@@ -411,9 +449,11 @@ public class VulkanContext implements GraphicsContext {
         syncObjects.dispose();
         commandPool.dispose();
 
-        if (descriptorPool != VK_NULL_HANDLE) {
-            vkDestroyDescriptorPool(device.device(), descriptorPool, null);
+        for (var pool : descriptorPools) {
+            vkDestroyDescriptorPool(device.device(), pool, null);
         }
+        descriptorPools.clear();
+        descriptorSetToPool.clear();
         if (textureDescriptorSetLayout != VK_NULL_HANDLE) {
             vkDestroyDescriptorSetLayout(device.device(), textureDescriptorSetLayout, null);
         }
@@ -528,6 +568,10 @@ public class VulkanContext implements GraphicsContext {
     }
 
     private void createDescriptorPool() {
+        descriptorPools.add(createNewDescriptorPool());
+    }
+
+    private long createNewDescriptorPool() {
         try (MemoryStack stack = stackPush()) {
             var poolSizes = VkDescriptorPoolSize.calloc(1, stack)
                     .type(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
@@ -535,6 +579,7 @@ public class VulkanContext implements GraphicsContext {
 
             var poolInfo = VkDescriptorPoolCreateInfo.calloc(stack)
                     .sType(VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO)
+                    .flags(VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT)
                     .pPoolSizes(poolSizes)
                     .maxSets(MAX_TEXTURE_DESCRIPTORS);
 
@@ -542,9 +587,9 @@ public class VulkanContext implements GraphicsContext {
             if (vkCreateDescriptorPool(device.device(), poolInfo, null, pPool) != VK_SUCCESS) {
                 throw new RuntimeException("Failed to create descriptor pool");
             }
-            descriptorPool = pPool.get(0);
+            log.debug("Descriptor pool created (max {} texture sets)", MAX_TEXTURE_DESCRIPTORS);
+            return pPool.get(0);
         }
-        log.debug("Descriptor pool created (max {} texture sets)", MAX_TEXTURE_DESCRIPTORS);
     }
 
     private void logDeviceInfo() {

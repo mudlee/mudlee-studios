@@ -109,6 +109,9 @@ public class VulkanTexture2D extends Texture2D {
     }
 
     public void dispose() {
+        var ctx = VulkanContext.get();
+        ctx.freeTextureDescriptorSet(descriptorSet);
+        descriptorSet = VK_NULL_HANDLE;
         if (sampler != VK_NULL_HANDLE) {
             vkDestroySampler(device.device(), sampler, null);
         }
@@ -116,7 +119,7 @@ public class VulkanTexture2D extends Texture2D {
             vkDestroyImageView(device.device(), imageView, null);
         }
         if (image != VK_NULL_HANDLE && imageAllocation != VK_NULL_HANDLE) {
-            vmaDestroyImage(VulkanContext.get().allocator().handle(), image, imageAllocation);
+            vmaDestroyImage(ctx.allocator().handle(), image, imageAllocation);
         }
         Renderer.decrementTextureCount();
         log.debug("VulkanTexture2D disposed: {}", path);

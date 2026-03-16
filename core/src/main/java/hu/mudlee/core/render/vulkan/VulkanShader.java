@@ -22,7 +22,8 @@ import org.slf4j.LoggerFactory;
  *
  * <p>Pipeline creation is DEFERRED to the first renderRaw() call so that the vertex layout, render
  * pass, and swap chain extent are available (they aren't known at shader construction time). The
- * pipeline is cached and recreated only if the vertex layout changes.
+ * pipeline is cached by (vertexLayout, renderPass) and recreated when either changes, so the same
+ * shader can correctly target both the swapchain backbuffer and off-screen VulkanRenderTargets.
  *
  * <p>Uniforms: "uProjection" and "uView" mat4 values are stored locally and uploaded as push
  * constants (VK_SHADER_STAGE_VERTEX_BIT, 128 bytes total) in renderRaw(). This is the Vulkan best
@@ -53,9 +54,10 @@ public class VulkanShader extends Shader {
     private long descriptorSetLayout = VK_NULL_HANDLE;
     private long pipelineLayout = VK_NULL_HANDLE;
 
-    // Lazily created on first draw; recreated if the vertex layout changes
+    // Lazily created on first draw; recreated if the vertex layout or render pass changes
     private long pipeline = VK_NULL_HANDLE;
     private VertexBufferLayout cachedLayout;
+    private long cachedRenderPass = VK_NULL_HANDLE;
 
     // Cached matrix values written to push constants in VulkanContext.renderRaw()
     private final float[] projectionData = new float[16];
@@ -88,12 +90,13 @@ public class VulkanShader extends Shader {
      * layout changed.
      */
     long getOrCreatePipeline(VertexBufferLayout layout, long renderPass, VkExtent2D extent) {
-        if (pipeline == VK_NULL_HANDLE || cachedLayout != layout) {
+        if (pipeline == VK_NULL_HANDLE || cachedLayout != layout || cachedRenderPass != renderPass) {
             if (pipeline != VK_NULL_HANDLE) {
                 vkDestroyPipeline(device.device(), pipeline, null);
             }
             pipeline = createGraphicsPipeline(layout, renderPass, extent);
             cachedLayout = layout;
+            cachedRenderPass = renderPass;
         }
         return pipeline;
     }

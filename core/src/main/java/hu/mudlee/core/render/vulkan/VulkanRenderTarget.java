@@ -53,6 +53,7 @@ public final class VulkanRenderTarget extends RenderTarget {
         log.debug("VulkanRenderTarget created ({}x{})", width, height);
     }
 
+    // TODO: what are these?
     long renderPassHandle() {
         return renderPassHandleField;
     }
@@ -122,6 +123,10 @@ public final class VulkanRenderTarget extends RenderTarget {
     }
 
     private void destroyGpuObjects() {
+        var ctx = VulkanContext.get();
+        ctx.freeTextureDescriptorSet(descriptorSet);
+        descriptorSet = VK_NULL_HANDLE;
+
         if (framebufferHandleField != VK_NULL_HANDLE) {
             vkDestroyFramebuffer(device.device(), framebufferHandleField, null);
             framebufferHandleField = VK_NULL_HANDLE;
@@ -139,7 +144,7 @@ public final class VulkanRenderTarget extends RenderTarget {
             imageView = VK_NULL_HANDLE;
         }
         if (image != VK_NULL_HANDLE) {
-            vmaDestroyImage(VulkanContext.get().allocator().handle(), image, imageAllocation);
+            vmaDestroyImage(ctx.allocator().handle(), image, imageAllocation);
             image = VK_NULL_HANDLE;
             imageAllocation = VK_NULL_HANDLE;
         }
