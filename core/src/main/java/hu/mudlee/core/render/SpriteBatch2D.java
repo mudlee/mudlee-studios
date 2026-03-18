@@ -26,7 +26,7 @@ import org.joml.Vector2f;
  * pattern (0,1,2, 0,2,3) repeated for each quad. This reduces vertex buffer size by 33% compared
  * to non-indexed rendering with 6 vertices per sprite.
  */
-public class SpriteBatch2D implements Disposable, RenderContext {
+public class SpriteBatch2D implements Disposable, SpriteRenderPass {
 
     private static final int MAX_SPRITES = 1000;
     private static final int FLOATS_PER_VERTEX = 9; // vec3 pos + vec4 color + vec2 uv
@@ -84,22 +84,30 @@ public class SpriteBatch2D implements Disposable, RenderContext {
     public void begin() {
         var size = Window.getSize();
         defaultOrthoMatrix.setOrtho(0f, size.x, 0f, size.y, -1f, 1f);
-        begin(defaultOrthoMatrix, identityMatrix);
+        beginPass(defaultOrthoMatrix, identityMatrix);
     }
 
     public void begin(Matrix4f transformMatrix) {
-        begin(transformMatrix, identityMatrix);
+        beginPass(transformMatrix, identityMatrix);
     }
 
     public void begin(Matrix4f projection, Matrix4f view) {
+        beginPass(projection, view);
+    }
+
+    public void beginPass(Matrix4f projection, Matrix4f view) {
         if (begun) {
             throw new IllegalStateException("SpriteBatch2D.begin() called without a matching end()");
+        }
+        if (!Renderer.isFrameInProgress()) {
+            throw new IllegalStateException("SpriteBatch2D.begin() requires an active frame");
         }
         begun = true;
         spriteCount = 0;
         currentTexture = null;
         shader.setUniform(ShaderProps.UNIFORM_PROJECTION_MATRIX.glslName, projection);
         shader.setUniform(ShaderProps.UNIFORM_VIEW_MATRIX.glslName, view);
+        Renderer.beginRenderPass(null);
     }
 
     public void draw(Texture2D texture, Vector2f position, Color color) {
@@ -181,18 +189,37 @@ public class SpriteBatch2D implements Disposable, RenderContext {
     }
 
     public void end() {
+        endPass();
+    }
+
+    public void endPass() {
         if (!begun) {
             throw new IllegalStateException("SpriteBatch2D.end() called without a matching begin()");
         }
         flush();
+        Renderer.endRenderPass();
         begun = false;
     }
 
     @Override
     public void dispose() {
         shader.dispose();
-        // vertexArray.dispose() owns and disposes the index buffer — do not call indexBuffer.dispose() separately
+        dynamicVbo.dispose();
+        indexBuffer.dispose();
         vertexArray.dispose();
+    }
+
+    @Override
+    public void drawSprite(
+            TextureRegion region,
+            Vector2f position,
+            Color color,
+            float rotation,
+            Vector2f origin,
+            float scale,
+            boolean flipX,
+            boolean flipY) {
+        draw(region, position, color, rotation, origin, scale, flipX, flipY);
     }
 
     public void draw(

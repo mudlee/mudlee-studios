@@ -90,7 +90,9 @@ class VulkanCommandPool implements Disposable {
 
     /** Ends, submits, waits, and frees a single-use command buffer. */
     void endSingleUse(VkCommandBuffer cmdBuf) {
-        vkEndCommandBuffer(cmdBuf);
+        if (vkEndCommandBuffer(cmdBuf) != VK_SUCCESS) {
+            throw new RuntimeException("Failed to end single-use command buffer");
+        }
 
         try (MemoryStack stack = stackPush()) {
             var pCmdBuf = stack.pointers(cmdBuf);
@@ -98,8 +100,20 @@ class VulkanCommandPool implements Disposable {
                     .sType(VK_STRUCTURE_TYPE_SUBMIT_INFO)
                     .pCommandBuffers(pCmdBuf);
 
-            vkQueueSubmit(device.graphicsQueue(), submitInfo, VK_NULL_HANDLE);
-            vkQueueWaitIdle(device.graphicsQueue());
+            var fenceInfo = VkFenceCreateInfo.calloc(stack).sType(VK_STRUCTURE_TYPE_FENCE_CREATE_INFO);
+            var pFence = stack.mallocLong(1);
+            if (vkCreateFence(device.device(), fenceInfo, null, pFence) != VK_SUCCESS) {
+                throw new RuntimeException("Failed to create upload fence");
+            }
+            var fence = pFence.get(0);
+
+            if (vkQueueSubmit(device.graphicsQueue(), submitInfo, fence) != VK_SUCCESS) {
+                vkDestroyFence(device.device(), fence, null);
+                throw new RuntimeException("Failed to submit single-use command buffer");
+            }
+
+            vkWaitForFences(device.device(), fence, true, Long.MAX_VALUE);
+            vkDestroyFence(device.device(), fence, null);
             vkFreeCommandBuffers(device.device(), handle, pCmdBuf);
         }
     }

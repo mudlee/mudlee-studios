@@ -98,7 +98,7 @@ public final class VulkanRenderTarget extends RenderTarget {
         width = newWidth;
         height = newHeight;
         extentField.set(width, height);
-        context.waitIdle();
+        context.waitForInFlightFrames();
         destroyGpuObjects();
         create(context);
         log.debug("VulkanRenderTarget resized ({}x{})", width, height);
@@ -119,7 +119,7 @@ public final class VulkanRenderTarget extends RenderTarget {
             return;
         }
 
-        context.waitIdle();
+        context.waitForInFlightFrames();
         destroyGpuObjects();
         extentField.free();
         log.debug("VulkanRenderTarget disposed");

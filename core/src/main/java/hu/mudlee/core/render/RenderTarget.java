@@ -11,9 +11,10 @@ import hu.mudlee.core.render.texture.Texture2D;
  * <pre>
  * var rt = RenderTarget.create(width, height);
  * // in draw():
- * Renderer.setRenderTarget(rt);
+ * Renderer.beginRenderPass(rt);
  * // ... draw scene to rt ...
- * Renderer.setRenderTarget(null); // restore backbuffer
+ * Renderer.endRenderPass();
+ * Renderer.beginRenderPass(null); // restore backbuffer
  * spriteBatch.draw(rt.getColorTexture(), ...);
  * // on shutdown:
  * rt.dispose();

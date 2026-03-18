@@ -3,10 +3,14 @@ package hu.mudlee.core.render.vulkan;
 import static org.lwjgl.glfw.GLFWVulkan.glfwGetRequiredInstanceExtensions;
 import static org.lwjgl.system.MemoryStack.stackPush;
 import static org.lwjgl.vulkan.EXTDebugUtils.*;
+import static org.lwjgl.vulkan.KHRPortabilityEnumeration.VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+import static org.lwjgl.vulkan.KHRPortabilityEnumeration.VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME;
 import static org.lwjgl.vulkan.VK12.*;
 
 import hu.mudlee.core.Disposable;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.vulkan.*;
@@ -20,6 +24,7 @@ class VulkanInstance implements Disposable {
 
     private final VkInstance handle;
     private final boolean debug;
+    private final boolean portabilityEnumerationEnabled;
     private long debugMessenger = VK_NULL_HANDLE;
 
     VulkanInstance(String appName, boolean debug) {
@@ -38,10 +43,16 @@ class VulkanInstance implements Disposable {
                     .engineVersion(VK_MAKE_VERSION(1, 0, 0))
                     .apiVersion(VK_MAKE_API_VERSION(0, 1, 3, 0));
 
+            var extensionSelection = selectInstanceExtensions();
+
             var createInfo = VkInstanceCreateInfo.calloc(stack)
                     .sType(VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO)
                     .pApplicationInfo(appInfo)
-                    .ppEnabledExtensionNames(buildExtensionList(stack));
+                    .ppEnabledExtensionNames(buildExtensionList(stack, extensionSelection.extensions()));
+            portabilityEnumerationEnabled = extensionSelection.portabilityEnumerationEnabled();
+            if (portabilityEnumerationEnabled) {
+                createInfo.flags(VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR);
+            }
 
             if (debug && isValidationLayerAvailable()) {
                 var layers = stack.mallocPointer(1);
@@ -107,21 +118,52 @@ class VulkanInstance implements Disposable {
                 });
     }
 
-    private PointerBuffer buildExtensionList(MemoryStack stack) {
+    private PointerBuffer buildExtensionList(MemoryStack stack, List<String> extensionsToEnable) {
+        var extensions = stack.mallocPointer(extensionsToEnable.size());
+        for (var ext : extensionsToEnable) {
+            extensions.put(stack.UTF8(ext));
+        }
+        return extensions.rewind();
+    }
+
+    boolean portabilityEnumerationEnabled() {
+        return portabilityEnumerationEnabled;
+    }
+
+    private ExtensionSelection selectInstanceExtensions() {
         var glfwExtensions = glfwGetRequiredInstanceExtensions();
         if (glfwExtensions == null) {
             throw new RuntimeException("Failed to get GLFW required Vulkan extensions");
         }
 
-        if (!debug) {
-            return glfwExtensions;
+        var availableExtensions = enumerateInstanceExtensions();
+        var selected = new ArrayList<String>(glfwExtensions.remaining() + 2);
+        while (glfwExtensions.hasRemaining()) {
+            selected.add(glfwExtensions.getStringUTF8());
         }
+        if (debug && availableExtensions.contains(VK_EXT_DEBUG_UTILS_EXTENSION_NAME)) {
+            selected.add(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+        }
+        var portabilityEnabled = availableExtensions.contains(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+        if (portabilityEnabled) {
+            selected.add(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+        }
+        return new ExtensionSelection(selected, portabilityEnabled);
+    }
 
-        // Append VK_EXT_debug_utils for validation layer messages
-        var extensions = stack.mallocPointer(glfwExtensions.remaining() + 1);
-        extensions.put(glfwExtensions);
-        extensions.put(stack.UTF8(VK_EXT_DEBUG_UTILS_EXTENSION_NAME));
-        return extensions.rewind();
+    private HashSet<String> enumerateInstanceExtensions() {
+        try (MemoryStack stack = stackPush()) {
+            var count = stack.mallocInt(1);
+            vkEnumerateInstanceExtensionProperties((String) null, count, null);
+            var extensions = VkExtensionProperties.malloc(count.get(0), stack);
+            vkEnumerateInstanceExtensionProperties((String) null, count, extensions);
+
+            var names = new HashSet<String>();
+            for (var extension : extensions) {
+                names.add(extension.extensionNameString());
+            }
+            return names;
+        }
     }
 
     private boolean isValidationLayerAvailable() {
@@ -148,4 +190,6 @@ class VulkanInstance implements Disposable {
         vkDestroyInstance(handle, null);
         log.debug("VkInstance destroyed");
     }
+
+    private record ExtensionSelection(List<String> extensions, boolean portabilityEnumerationEnabled) {}
 }

@@ -6,8 +6,7 @@ import hu.mudlee.core.ecs.Entity;
 import hu.mudlee.core.ecs.RenderSystemBase;
 import hu.mudlee.core.ecs.component.Sprite2DComponent;
 import hu.mudlee.core.ecs.component.Transform2DComponent;
-import hu.mudlee.core.render.RenderContext;
-import hu.mudlee.core.render.SpriteBatch2D;
+import hu.mudlee.core.render.SpriteRenderPass;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -29,11 +28,7 @@ public final class SpriteRender2DSystem extends RenderSystemBase {
     }
 
     @Override
-    public void render(RenderContext context) {
-        if (!(context instanceof SpriteBatch2D batch)) {
-            return;
-        }
-
+    public void render(SpriteRenderPass renderPass) {
         sortBuffer.clear();
         sortBuffer.addAll(em.getEntitiesWith(Transform2DComponent.class, Sprite2DComponent.class));
         sortBuffer.sort(zComparator);
@@ -45,7 +40,7 @@ public final class SpriteRender2DSystem extends RenderSystemBase {
             if (s.region == null) {
                 continue;
             }
-            batch.draw(
+            renderPass.drawSprite(
                     s.region,
                     t.getWorldPosition(),
                     s.tint,

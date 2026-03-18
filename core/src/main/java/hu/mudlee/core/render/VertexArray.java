@@ -22,5 +22,9 @@ public abstract class VertexArray {
 
     public abstract boolean isInstanced();
 
+    /**
+     * Releases the lightweight binding description only. Vertex and index buffers are owned and
+     * disposed by their actual creator, not by the vertex array.
+     */
     public abstract void dispose();
 }

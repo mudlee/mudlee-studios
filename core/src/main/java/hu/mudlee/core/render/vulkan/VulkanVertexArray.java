@@ -75,12 +75,8 @@ public class VulkanVertexArray extends VertexArray {
 
     @Override
     public void dispose() {
-        for (VertexBuffer vb : vertexBuffers) {
-            vb.dispose();
-        }
-        if (indexBuffer != null) {
-            indexBuffer.dispose();
-        }
+        vertexBuffers.clear();
+        indexBuffer = null;
         log.debug("VulkanVertexArray disposed");
     }
 }

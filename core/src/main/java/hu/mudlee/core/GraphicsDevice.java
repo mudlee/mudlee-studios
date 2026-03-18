@@ -21,9 +21,17 @@ public final class GraphicsDevice {
      * Sets the clear colour and begins the frame. Returns {@code false} when the frame was skipped,
      * for example because the swapchain needs to be recreated.
      */
-    public boolean clear(Color color) {
+    public boolean beginFrame(Color color) {
         Renderer.setClearColor(clearColorVec.set(color.r, color.g, color.b, color.a));
         return Renderer.beginFrame();
+    }
+
+    public boolean clear(Color color) {
+        return beginFrame(color);
+    }
+
+    public void present(float frameTime) {
+        Renderer.present(frameTime);
     }
 
     /** Returns a {@link Viewport} that covers the full window. */

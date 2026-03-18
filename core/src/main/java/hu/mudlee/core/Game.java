@@ -128,7 +128,7 @@ public abstract class Game implements WindowEventListener {
             }
             iteratingServices = false;
             applyPendingServiceChanges();
-            Renderer.swapBuffers(deltaSeconds);
+            graphicsDevice.present(deltaSeconds);
 
             // When vSync is enabled, swapBuffers already blocks for the display refresh interval,
             // so no additional sleep is needed. Sleep only when running uncapped to avoid

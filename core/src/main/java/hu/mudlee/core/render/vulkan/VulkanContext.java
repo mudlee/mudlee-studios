@@ -60,6 +60,7 @@ public class VulkanContext implements GraphicsContext {
     private VulkanDevice device;
     private VulkanSwapChain swapChain;
     private VulkanRenderPass renderPass;
+    private VulkanRenderPass loadRenderPass;
     private VulkanCommandPool commandPool;
     private VulkanSyncObjects syncObjects;
     private VulkanAllocator allocator;
@@ -80,6 +81,8 @@ public class VulkanContext implements GraphicsContext {
     private boolean renderPassActive = false;
     private boolean frameInProgress = false;
     private VulkanRenderTarget activeRenderTarget = null;
+    private long activeRenderPassHandle = VK_NULL_HANDLE;
+    private boolean backbufferPassStarted = false;
 
     private final float[] clearColor = {0f, 0f, 0f, 1f};
     private long activeDescriptorSet = VK_NULL_HANDLE;
@@ -233,10 +236,11 @@ public class VulkanContext implements GraphicsContext {
                 surface = pSurface.get(0);
             }
 
-            device = new VulkanDevice(vkInstance.handle(), surface);
+            device = new VulkanDevice(vkInstance, surface);
             allocator = new VulkanAllocator(vkInstance.handle(), device.physicalDevice(), device.device());
             swapChain = new VulkanSwapChain(device, surface, windowId, vSync);
-            renderPass = new VulkanRenderPass(device, swapChain.imageFormat());
+            renderPass = new VulkanRenderPass(device, swapChain.imageFormat(), true);
+            loadRenderPass = new VulkanRenderPass(device, swapChain.imageFormat(), false);
             swapChain.buildFramebuffers(renderPass.handle());
             commandPool = new VulkanCommandPool(device);
             syncObjects = new VulkanSyncObjects(device, swapChain.imageCount());
@@ -261,9 +265,9 @@ public class VulkanContext implements GraphicsContext {
     }
 
     /**
-     * Begins a new frame: waits for the GPU fence, acquires the next swap chain image, resets and
-     * begins recording the command buffer, then starts the render pass targeting the current render
-     * target (or the swapchain backbuffer if none is set).
+     * Begins a new frame: waits for the GPU fence, acquires the next swap chain image, and begins
+     * command buffer recording. Render passes are started explicitly via {@link
+     * #beginRenderPass(RenderTarget)}.
      */
     @Override
     public boolean beginFrame() {
@@ -307,13 +311,12 @@ public class VulkanContext implements GraphicsContext {
             }
         }
 
-        beginCurrentRenderPass();
         frameInProgress = true;
         return true;
     }
 
     @Override
-    public void setRenderTarget(RenderTarget renderTarget) {
+    public void beginRenderPass(RenderTarget renderTarget) {
         if (!frameInProgress) {
             return;
         }
@@ -324,6 +327,18 @@ public class VulkanContext implements GraphicsContext {
         }
         activeRenderTarget = (renderTarget instanceof VulkanRenderTarget vrt) ? vrt : null;
         beginCurrentRenderPass();
+    }
+
+    @Override
+    public void endRenderPass() {
+        if (!frameInProgress || !renderPassActive) {
+            return;
+        }
+        var cmdBuf = commandPool.commandBuffer(currentFrame);
+        vkCmdEndRenderPass(cmdBuf);
+        renderPassActive = false;
+        activeRenderTarget = null;
+        activeRenderPassHandle = VK_NULL_HANDLE;
     }
 
     /**
@@ -347,6 +362,9 @@ public class VulkanContext implements GraphicsContext {
         if (!frameInProgress) {
             return;
         }
+        if (!renderPassActive) {
+            throw new IllegalStateException("renderRaw requires an active render pass");
+        }
         if (!(shader instanceof VulkanShader vs)) {
             throw new IllegalArgumentException("VulkanContext requires a VulkanShader");
         }
@@ -362,7 +380,8 @@ public class VulkanContext implements GraphicsContext {
         // Create the VkPipeline lazily using the currently active render pass and extent
         var boundVertexBuffers = va.vertexBuffers();
         var firstVbo = boundVertexBuffers.get(0);
-        var currentRpHandle = activeRenderTarget != null ? activeRenderTarget.renderPassHandle() : renderPass.handle();
+        var currentRpHandle =
+                activeRenderTarget != null ? activeRenderTarget.renderPassHandle() : activeRenderPassHandle;
         var currentExtent = activeRenderTarget != null ? activeRenderTarget.extent() : swapChain.extent();
         var pipeline = vs.getOrCreatePipeline(boundVertexBuffers, currentRpHandle, currentExtent);
 
@@ -409,7 +428,7 @@ public class VulkanContext implements GraphicsContext {
 
     /** Ends the render pass, submits the command buffer to the graphics queue, and presents. */
     @Override
-    public void swapBuffers(float frameTime) {
+    public void present(float frameTime) {
         if (!frameInProgress) {
             return;
         }
@@ -499,10 +518,12 @@ public class VulkanContext implements GraphicsContext {
                 w = activeRenderTarget.vkWidth();
                 h = activeRenderTarget.vkHeight();
             } else {
-                rpHandle = renderPass.handle();
+                var backbufferRenderPass = backbufferPassStarted ? loadRenderPass : renderPass;
+                rpHandle = backbufferRenderPass.handle();
                 fbHandle = swapChain.framebuffer(currentImageIndex);
                 w = swapChain.extent().width();
                 h = swapChain.extent().height();
+                backbufferPassStarted = true;
             }
 
             var rpBeginInfo = VkRenderPassBeginInfo.calloc(stack)
@@ -515,6 +536,7 @@ public class VulkanContext implements GraphicsContext {
 
             vkCmdBeginRenderPass(cmdBuf, rpBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
             renderPassActive = true;
+            activeRenderPassHandle = rpHandle;
 
             // Negative height + y=height flips the Vulkan Y-axis to match OpenGL conventions.
             var viewport = VkViewport.calloc(1, stack)
@@ -537,10 +559,12 @@ public class VulkanContext implements GraphicsContext {
         frameInProgress = false;
         renderPassActive = false;
         activeRenderTarget = null;
+        activeRenderPassHandle = VK_NULL_HANDLE;
+        backbufferPassStarted = false;
     }
 
     private void recreateSwapChain() {
-        device.waitIdle();
+        waitForInFlightFrames();
         var oldFormat = swapChain.imageFormat();
         var oldImageCount = swapChain.imageCount();
         swapChain.recreate(vSync);
@@ -564,7 +588,11 @@ public class VulkanContext implements GraphicsContext {
         if (renderPass != null) {
             renderPass.dispose();
         }
-        renderPass = new VulkanRenderPass(device, swapChain.imageFormat());
+        if (loadRenderPass != null) {
+            loadRenderPass.dispose();
+        }
+        renderPass = new VulkanRenderPass(device, swapChain.imageFormat(), true);
+        loadRenderPass = new VulkanRenderPass(device, swapChain.imageFormat(), false);
         invalidateGraphicsPipelines();
         log.debug("Main render pass rebuilt for swapchain format {}", swapChain.imageFormat());
     }
@@ -572,6 +600,12 @@ public class VulkanContext implements GraphicsContext {
     private void invalidateGraphicsPipelines() {
         for (var shader : liveShaders) {
             shader.invalidatePipeline();
+        }
+    }
+
+    void waitForInFlightFrames() {
+        if (syncObjects != null) {
+            syncObjects.waitForAllFences();
         }
     }
 
@@ -676,6 +710,10 @@ public class VulkanContext implements GraphicsContext {
         if (renderPass != null) {
             renderPass.dispose();
             renderPass = null;
+        }
+        if (loadRenderPass != null) {
+            loadRenderPass.dispose();
+            loadRenderPass = null;
         }
         if (swapChain != null) {
             swapChain.dispose();

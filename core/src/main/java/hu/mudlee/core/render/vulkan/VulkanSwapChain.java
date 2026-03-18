@@ -37,10 +37,10 @@ class VulkanSwapChain implements Disposable {
         this.device = device;
         this.surface = surface;
         this.windowHandle = windowHandle;
-        create(vSync);
+        create(vSync, VK_NULL_HANDLE);
     }
 
-    private void create(boolean vSync) {
+    private void create(boolean vSync, long oldSwapChain) {
         try (MemoryStack stack = stackPush()) {
             var capabilities = VkSurfaceCapabilitiesKHR.malloc(stack);
             vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device.physicalDevice(), surface, capabilities);
@@ -55,7 +55,10 @@ class VulkanSwapChain implements Disposable {
             extent.width(stackExtent.width()).height(stackExtent.height());
             imageFormat = surfaceFormat.format();
 
-            var imageCount = capabilities.minImageCount();
+            var imageCount = capabilities.minImageCount() + 1;
+            if (capabilities.maxImageCount() > 0 && imageCount > capabilities.maxImageCount()) {
+                imageCount = capabilities.maxImageCount();
+            }
 
             var createInfo = VkSwapchainCreateInfoKHR.calloc(stack)
                     .sType(VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR)
@@ -80,7 +83,7 @@ class VulkanSwapChain implements Disposable {
                     .compositeAlpha(VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR)
                     .presentMode(presentMode)
                     .clipped(true)
-                    .oldSwapchain(VK_NULL_HANDLE);
+                    .oldSwapchain(oldSwapChain);
 
             var pSwapChain = stack.mallocLong(1);
             if (vkCreateSwapchainKHR(device.device(), createInfo, null, pSwapChain) != VK_SUCCESS) {
@@ -155,10 +158,13 @@ class VulkanSwapChain implements Disposable {
     }
 
     void recreate(boolean vSync) {
+        var oldSwapChain = swapChain;
         destroyFramebuffers();
         destroyImageViews();
-        vkDestroySwapchainKHR(device.device(), swapChain, null);
-        create(vSync);
+        create(vSync, oldSwapChain);
+        if (oldSwapChain != VK_NULL_HANDLE) {
+            vkDestroySwapchainKHR(device.device(), oldSwapChain, null);
+        }
         log.debug("VkSwapchainKHR recreated");
     }
 

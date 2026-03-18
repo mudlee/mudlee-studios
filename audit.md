@@ -184,7 +184,7 @@ What I would change:
 - Use a pipeline cache keyed by a stable pipeline signature, not one mutable slot.
 - Respect normalized vertex attributes when choosing Vulkan formats.
 
-### 8. High: ownership is modeled like OpenGL objects, not Vulkan resources
+### 8. DONE: High: ownership is modeled like OpenGL objects, not Vulkan resources
 
 `VulkanVertexArray.dispose()` recursively disposes every attached vertex buffer and the index buffer. That makes buffer sharing unsafe and creates double-destroy risk. The public abstraction itself still treats `VertexArray` like the owner of the buffers it references.
 
@@ -205,7 +205,7 @@ What I would change:
 - Turn the current vertex-array concept into a lightweight binding description or mesh view.
 - Make disposal idempotent and tied to the true owner.
 
-### 9. Medium: the engine spends too much time idling the whole device or graphics queue
+### 9. DONE: Medium: the engine spends too much time idling the whole device or graphics queue
 
 Single-use transfer helpers end with `vkQueueWaitIdle`, swapchain recreation uses `device.waitIdle()`, and render-target resize/dispose also call `waitIdle()`.
 
@@ -227,7 +227,7 @@ What I would change:
 - Defer resource destruction until the relevant in-flight frames have completed.
 - Prefer a dedicated transfer path when the selected device exposes one.
 
-### 10. Medium: swapchain creation follows minimums rather than engine-grade defaults
+### 10. DONE: Medium: swapchain creation follows minimums rather than engine-grade defaults
 
 The swapchain requests `capabilities.minImageCount()` exactly and throws away the old swapchain during recreation instead of passing it through `oldSwapchain`.
 
@@ -248,7 +248,7 @@ What I would change:
 - Request `minImageCount + 1`, clamped to `maxImageCount` when needed.
 - Pass the previous swapchain handle in `oldSwapchain` and destroy it only after the new chain is ready.
 
-### 11. Medium: the render API encodes pass ownership as call ordering instead of explicit objects
+### 11. DONE: Medium: the render API encodes pass ownership as call ordering instead of explicit objects
 
 `Game.loop()` lets arbitrary draw code run between clear and present, `GraphicsDevice` only exposes `clear`, `VulkanContext.setRenderTarget(...)` can end and restart passes at arbitrary times, and `RenderContext` is only a marker interface. Systems like `SpriteRender2DSystem` degrade into `instanceof` checks and silent no-ops.
 
@@ -272,7 +272,7 @@ What I would change:
 - Replace marker `RenderContext` usage with typed pass interfaces.
 - Make incorrect usage fail structurally, not through runtime guesswork.
 
-### 12. Medium: platform and portability support is too narrow
+### 12. DONE: Medium: platform and portability support is too narrow
 
 The instance/device setup targets a simple desktop Vulkan path. Device creation only requires `VK_KHR_swapchain`, and selection/creation does not account for portability subsets or a declared feature manifest.
 

@@ -79,6 +79,10 @@ class VulkanSyncObjects implements Disposable {
         return inFlightFences[frame];
     }
 
+    void waitForAllFences() {
+        vkWaitForFences(device.device(), inFlightFences, true, Long.MAX_VALUE);
+    }
+
     @Override
     public void dispose() {
         for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {

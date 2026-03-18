@@ -1,6 +1,7 @@
 package hu.mudlee.core.render.vulkan;
 
 import static org.lwjgl.system.MemoryStack.stackPush;
+import static org.lwjgl.vulkan.KHRPortabilitySubset.VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME;
 import static org.lwjgl.vulkan.KHRSurface.*;
 import static org.lwjgl.vulkan.KHRSwapchain.VK_KHR_SWAPCHAIN_EXTENSION_NAME;
 import static org.lwjgl.vulkan.VK12.*;
@@ -16,7 +17,8 @@ import org.slf4j.LoggerFactory;
 class VulkanDevice implements Disposable {
 
     private static final Logger log = LoggerFactory.getLogger(VulkanDevice.class);
-    private static final Set<String> REQUIRED_DEVICE_EXTENSIONS = Set.of(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+    private static final DeviceRequirements DEVICE_REQUIREMENTS =
+            new DeviceRequirements(Set.of(VK_KHR_SWAPCHAIN_EXTENSION_NAME));
 
     /**
      * Indices for the queue families needed for rendering and presentation. graphicsFamily: submits
@@ -35,10 +37,12 @@ class VulkanDevice implements Disposable {
     private final VkQueue presentQueue;
     private final QueueFamilyIndices queueFamilyIndices;
     private final VkPhysicalDeviceMemoryProperties memoryProperties;
+    private final Set<String> enabledDeviceExtensions;
 
-    VulkanDevice(VkInstance instance, long surface) {
-        physicalDevice = selectPhysicalDevice(instance, surface);
+    VulkanDevice(VulkanInstance instance, long surface) {
+        physicalDevice = selectPhysicalDevice(instance.handle(), surface);
         queueFamilyIndices = findQueueFamilies(physicalDevice, surface);
+        enabledDeviceExtensions = determineEnabledExtensions(physicalDevice);
         logicalDevice = createLogicalDevice();
         graphicsQueue = retrieveQueue(queueFamilyIndices.graphicsFamily());
         presentQueue = retrieveQueue(queueFamilyIndices.presentFamily());
@@ -153,16 +157,32 @@ class VulkanDevice implements Disposable {
     }
 
     private boolean supportsRequiredExtensions(VkPhysicalDevice device, MemoryStack stack) {
+        var availableExtensions = enumerateDeviceExtensions(device, stack);
+        return availableExtensions.containsAll(DEVICE_REQUIREMENTS.requiredExtensions());
+    }
+
+    private Set<String> determineEnabledExtensions(VkPhysicalDevice device) {
+        try (MemoryStack stack = stackPush()) {
+            var availableExtensions = enumerateDeviceExtensions(device, stack);
+            var enabledExtensions = new HashSet<>(DEVICE_REQUIREMENTS.requiredExtensions());
+            if (availableExtensions.contains(VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME)) {
+                enabledExtensions.add(VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME);
+            }
+            return enabledExtensions;
+        }
+    }
+
+    private Set<String> enumerateDeviceExtensions(VkPhysicalDevice device, MemoryStack stack) {
         var count = stack.mallocInt(1);
         vkEnumerateDeviceExtensionProperties(device, (String) null, count, null);
         var available = VkExtensionProperties.malloc(count.get(0), stack);
         vkEnumerateDeviceExtensionProperties(device, (String) null, count, available);
 
-        var remaining = new HashSet<>(REQUIRED_DEVICE_EXTENSIONS);
+        var extensionNames = new HashSet<String>();
         for (VkExtensionProperties ext : available) {
-            remaining.remove(ext.extensionNameString());
+            extensionNames.add(ext.extensionNameString());
         }
-        return remaining.isEmpty();
+        return extensionNames;
     }
 
     static QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device, long surface) {
@@ -214,8 +234,8 @@ class VulkanDevice implements Disposable {
                         .pQueuePriorities(priority);
             }
 
-            var extensions = stack.mallocPointer(REQUIRED_DEVICE_EXTENSIONS.size());
-            for (String ext : REQUIRED_DEVICE_EXTENSIONS) {
+            var extensions = stack.mallocPointer(enabledDeviceExtensions.size());
+            for (String ext : enabledDeviceExtensions) {
                 extensions.put(stack.ASCII(ext));
             }
             extensions.rewind();
@@ -250,4 +270,6 @@ class VulkanDevice implements Disposable {
         vkDestroyDevice(logicalDevice, null);
         log.debug("VkDevice destroyed");
     }
+
+    private record DeviceRequirements(Set<String> requiredExtensions) {}
 }

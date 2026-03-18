@@ -85,7 +85,15 @@ public class Renderer implements WindowEventListener {
     }
 
     public static void setRenderTarget(RenderTarget renderTarget) {
-        get().context.setRenderTarget(renderTarget);
+        beginRenderPass(renderTarget);
+    }
+
+    public static void beginRenderPass(RenderTarget renderTarget) {
+        get().context.beginRenderPass(renderTarget);
+    }
+
+    public static void endRenderPass() {
+        get().context.endRenderPass();
     }
 
     public static void setClearColor(Vector4f color) {
@@ -101,10 +109,14 @@ public class Renderer implements WindowEventListener {
     }
 
     public static void swapBuffers(float frameTime) {
+        present(frameTime);
+    }
+
+    public static void present(float frameTime) {
         if (!frameInProgress) {
             return;
         }
-        get().context.swapBuffers(frameTime);
+        get().context.present(frameTime);
         frameInProgress = false;
     }
 

@@ -1,7 +1,7 @@
 package hu.mudlee.core.ecs;
 
 import hu.mudlee.core.GameTime;
-import hu.mudlee.core.render.RenderContext;
+import hu.mudlee.core.render.SpriteRenderPass;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,9 +24,9 @@ public final class SystemManager {
         }
     }
 
-    public void renderAll(RenderContext context) {
+    public void renderAll(SpriteRenderPass renderPass) {
         for (int i = 0; i < renderSystems.size(); i++) {
-            renderSystems.get(i).render(context);
+            renderSystems.get(i).render(renderPass);
         }
     }
 

@@ -2,7 +2,7 @@ package hu.mudlee.core.ecs;
 
 import hu.mudlee.core.Disposable;
 import hu.mudlee.core.GameTime;
-import hu.mudlee.core.render.RenderContext;
+import hu.mudlee.core.render.SpriteRenderPass;
 
 public final class World implements Disposable {
 
@@ -20,8 +20,8 @@ public final class World implements Disposable {
         systems.updateAll(gameTime);
     }
 
-    public void render(RenderContext context) {
-        systems.renderAll(context);
+    public void render(SpriteRenderPass renderPass) {
+        systems.renderAll(renderPass);
     }
 
     @Override

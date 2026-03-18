@@ -11,8 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A single-subpass render pass with one color attachment. Clear on load, present-ready layout on
- * store — matches the standard frame rendering pattern.
+ * A single-subpass render pass with one color attachment targeting the swapchain backbuffer.
  */
 class VulkanRenderPass implements Disposable {
 
@@ -20,20 +19,26 @@ class VulkanRenderPass implements Disposable {
 
     private final VulkanDevice device;
     private final long handle;
+    private final boolean clearsOnLoad;
 
     VulkanRenderPass(VulkanDevice device, int colorFormat) {
+        this(device, colorFormat, true);
+    }
+
+    VulkanRenderPass(VulkanDevice device, int colorFormat, boolean clearsOnLoad) {
         this.device = device;
+        this.clearsOnLoad = clearsOnLoad;
 
         try (MemoryStack stack = stackPush()) {
             // Describe the single color attachment (swapchain image)
             var colorAttachment = VkAttachmentDescription.calloc(1, stack)
                     .format(colorFormat)
                     .samples(VK_SAMPLE_COUNT_1_BIT)
-                    .loadOp(VK_ATTACHMENT_LOAD_OP_CLEAR) // Clear to clearColor at render pass start
+                    .loadOp(clearsOnLoad ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD)
                     .storeOp(VK_ATTACHMENT_STORE_OP_STORE) // Keep contents for presentation
                     .stencilLoadOp(VK_ATTACHMENT_LOAD_OP_DONT_CARE)
                     .stencilStoreOp(VK_ATTACHMENT_STORE_OP_DONT_CARE)
-                    .initialLayout(VK_IMAGE_LAYOUT_UNDEFINED)
+                    .initialLayout(clearsOnLoad ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
                     .finalLayout(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 
             var colorRef = VkAttachmentReference.calloc(1, stack)
@@ -72,6 +77,10 @@ class VulkanRenderPass implements Disposable {
 
     long handle() {
         return handle;
+    }
+
+    boolean clearsOnLoad() {
+        return clearsOnLoad;
     }
 
     @Override
