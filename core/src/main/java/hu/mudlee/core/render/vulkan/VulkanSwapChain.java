@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory;
  * Manages the VkSwapchainKHR and the per-image VkImageViews + VkFramebuffers.
  *
  * <p>Call {@link #buildFramebuffers(long)} after the render pass is created. Call {@link
- * #recreate(long, long, boolean)} on window resize.
+ * #recreate(boolean)} on window resize, then rebuild framebuffers against the current render pass.
  */
 class VulkanSwapChain implements Disposable {
 
@@ -154,12 +154,11 @@ class VulkanSwapChain implements Disposable {
         }
     }
 
-    void recreate(long renderPass, boolean vSync) {
+    void recreate(boolean vSync) {
         destroyFramebuffers();
         destroyImageViews();
         vkDestroySwapchainKHR(device.device(), swapChain, null);
         create(vSync);
-        buildFramebuffers(renderPass);
         log.debug("VkSwapchainKHR recreated");
     }
 

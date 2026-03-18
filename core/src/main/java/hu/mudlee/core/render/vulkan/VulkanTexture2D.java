@@ -30,6 +30,7 @@ public class VulkanTexture2D extends Texture2D {
 
     private static final Logger log = LoggerFactory.getLogger(VulkanTexture2D.class);
 
+    private final VulkanContext context;
     private final VulkanDevice device;
     private final String path;
     private final boolean pixelPerfect;
@@ -47,13 +48,13 @@ public class VulkanTexture2D extends Texture2D {
         this.path = path;
         this.pixelPerfect = true;
 
-        var ctx = VulkanContext.get();
-        this.device = ctx.device();
+        this.context = VulkanContext.get();
+        this.device = context.device();
 
-        uploadTexture(ctx);
+        uploadTexture(context);
         createImageView();
         createSampler();
-        allocateAndWriteDescriptorSet(ctx);
+        allocateAndWriteDescriptorSet(context);
 
         log.debug("VulkanTexture2D created: {}", path);
         Renderer.incrementTextureCount();
@@ -63,15 +64,15 @@ public class VulkanTexture2D extends Texture2D {
     public VulkanTexture2D(ByteBuffer pixels, int width, int height, boolean pixelPerfect) {
         this.path = "<pixels>"; // TODO: what is this hacky solution?
         this.pixelPerfect = pixelPerfect;
-        var ctx = VulkanContext.get();
-        this.device = ctx.device();
+        this.context = VulkanContext.get();
+        this.device = context.device();
         this.width = width;
         this.height = height;
 
-        uploadPixels(ctx, pixels);
+        uploadPixels(context, pixels);
         createImageView();
         createSampler();
-        allocateAndWriteDescriptorSet(ctx);
+        allocateAndWriteDescriptorSet(context);
 
         log.debug("VulkanTexture2D created from pixels: {}x{}", width, height);
         Renderer.incrementTextureCount();
@@ -90,7 +91,9 @@ public class VulkanTexture2D extends Texture2D {
     /** Informs VulkanContext that this is the texture to bind for the next draw call(s). */
     @Override
     public void bind() {
-        VulkanContext.get().setActiveDescriptorSet(descriptorSet);
+        if (!context.isDisposed()) {
+            context.setActiveDescriptorSet(descriptorSet);
+        }
     }
 
     long descriptorSet() {
@@ -98,17 +101,29 @@ public class VulkanTexture2D extends Texture2D {
     }
 
     public void dispose() {
-        var ctx = VulkanContext.get();
-        ctx.freeTextureDescriptorSet(descriptorSet);
+        if (context.isDisposed()) {
+            descriptorSet = VK_NULL_HANDLE;
+            sampler = VK_NULL_HANDLE;
+            imageView = VK_NULL_HANDLE;
+            image = VK_NULL_HANDLE;
+            imageAllocation = VK_NULL_HANDLE;
+            return;
+        }
+
+        context.freeTextureDescriptorSet(descriptorSet);
         descriptorSet = VK_NULL_HANDLE;
         if (sampler != VK_NULL_HANDLE) {
             vkDestroySampler(device.device(), sampler, null);
+            sampler = VK_NULL_HANDLE;
         }
         if (imageView != VK_NULL_HANDLE) {
             vkDestroyImageView(device.device(), imageView, null);
+            imageView = VK_NULL_HANDLE;
         }
         if (image != VK_NULL_HANDLE && imageAllocation != VK_NULL_HANDLE) {
-            vmaDestroyImage(ctx.allocator().handle(), image, imageAllocation);
+            vmaDestroyImage(context.allocator().handle(), image, imageAllocation);
+            image = VK_NULL_HANDLE;
+            imageAllocation = VK_NULL_HANDLE;
         }
         Renderer.decrementTextureCount();
         log.debug("VulkanTexture2D disposed: {}", path);
@@ -189,13 +204,7 @@ public class VulkanTexture2D extends Texture2D {
 
             var pImage = stack.mallocLong(1);
             var pAllocation = stack.mallocPointer(1);
-            if (vmaCreateImage(
-                            VulkanContext.get().allocator().handle(),
-                            imageInfo,
-                            allocationCreateInfo,
-                            pImage,
-                            pAllocation,
-                            null)
+            if (vmaCreateImage(context.allocator().handle(), imageInfo, allocationCreateInfo, pImage, pAllocation, null)
                     != VK_SUCCESS) {
                 throw new RuntimeException("Failed to create VkImage for texture '" + path + "'");
             }

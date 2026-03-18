@@ -28,6 +28,7 @@ public final class VulkanRenderTarget extends RenderTarget {
     private static final Logger log = LoggerFactory.getLogger(VulkanRenderTarget.class);
     static final int FORMAT = VK_FORMAT_R8G8B8A8_UNORM;
 
+    private final VulkanContext context;
     private final VulkanDevice device;
     private int width;
     private int height;
@@ -44,12 +45,12 @@ public final class VulkanRenderTarget extends RenderTarget {
     private final ColorTexture colorTexture = new ColorTexture();
 
     public VulkanRenderTarget(int width, int height) {
-        var ctx = VulkanContext.get();
-        this.device = ctx.device();
+        this.context = VulkanContext.get();
+        this.device = context.device();
         this.width = width;
         this.height = height;
         this.extentField = VkExtent2D.malloc().set(width, height);
-        create(ctx);
+        create(context);
         log.debug("VulkanRenderTarget created ({}x{})", width, height);
     }
 
@@ -97,16 +98,28 @@ public final class VulkanRenderTarget extends RenderTarget {
         width = newWidth;
         height = newHeight;
         extentField.set(width, height);
-        var ctx = VulkanContext.get();
-        ctx.waitIdle();
+        context.waitIdle();
         destroyGpuObjects();
-        create(ctx);
+        create(context);
         log.debug("VulkanRenderTarget resized ({}x{})", width, height);
     }
 
     @Override
     public void dispose() {
-        VulkanContext.get().waitIdle();
+        if (context.isDisposed()) {
+            descriptorSet = VK_NULL_HANDLE;
+            framebufferHandleField = VK_NULL_HANDLE;
+            renderPassHandleField = VK_NULL_HANDLE;
+            sampler = VK_NULL_HANDLE;
+            imageView = VK_NULL_HANDLE;
+            image = VK_NULL_HANDLE;
+            imageAllocation = VK_NULL_HANDLE;
+            extentField.free();
+            log.debug("VulkanRenderTarget disposed after context shutdown");
+            return;
+        }
+
+        context.waitIdle();
         destroyGpuObjects();
         extentField.free();
         log.debug("VulkanRenderTarget disposed");
@@ -123,8 +136,7 @@ public final class VulkanRenderTarget extends RenderTarget {
     }
 
     private void destroyGpuObjects() {
-        var ctx = VulkanContext.get();
-        ctx.freeTextureDescriptorSet(descriptorSet);
+        context.freeTextureDescriptorSet(descriptorSet);
         descriptorSet = VK_NULL_HANDLE;
 
         if (framebufferHandleField != VK_NULL_HANDLE) {
@@ -144,7 +156,7 @@ public final class VulkanRenderTarget extends RenderTarget {
             imageView = VK_NULL_HANDLE;
         }
         if (image != VK_NULL_HANDLE) {
-            vmaDestroyImage(ctx.allocator().handle(), image, imageAllocation);
+            vmaDestroyImage(context.allocator().handle(), image, imageAllocation);
             image = VK_NULL_HANDLE;
             imageAllocation = VK_NULL_HANDLE;
         }
@@ -370,7 +382,9 @@ public final class VulkanRenderTarget extends RenderTarget {
 
         @Override
         public void bind() {
-            VulkanContext.get().setActiveDescriptorSet(descriptorSet);
+            if (!context.isDisposed()) {
+                context.setActiveDescriptorSet(descriptorSet);
+            }
         }
 
         @Override

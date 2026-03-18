@@ -44,6 +44,7 @@ public class VulkanShader extends Shader {
 
     private static final Logger log = LoggerFactory.getLogger(VulkanShader.class);
 
+    private final VulkanContext context;
     private final VulkanDevice device;
     private final long vertShaderModule;
     private final long fragShaderModule;
@@ -61,8 +62,8 @@ public class VulkanShader extends Shader {
     private final float[] viewData = new float[16];
 
     public VulkanShader(String vertexShaderName, String fragmentShaderName) {
-        var ctx = VulkanContext.get();
-        device = ctx.device();
+        context = VulkanContext.get();
+        device = context.device();
 
         // Derive SPIR-V paths from the GLSL names
         var vertPath = "/shaders/" + vertexShaderName.replace(".glsl", ".spv");
@@ -72,8 +73,9 @@ public class VulkanShader extends Shader {
         fragShaderModule = createShaderModule(fragPath);
 
         // Re-use the global layout owned by VulkanContext — no per-shader allocation needed
-        descriptorSetLayout = ctx.textureDescriptorSetLayout();
+        descriptorSetLayout = context.textureDescriptorSetLayout();
         createPipelineLayout();
+        context.registerShader(this);
 
         log.debug("VulkanShader created from {} + {}", vertPath, fragPath);
     }
@@ -88,9 +90,7 @@ public class VulkanShader extends Shader {
      */
     long getOrCreatePipeline(VertexBufferLayout layout, long renderPass, VkExtent2D extent) {
         if (pipeline == VK_NULL_HANDLE || cachedLayout != layout || cachedRenderPass != renderPass) {
-            if (pipeline != VK_NULL_HANDLE) {
-                vkDestroyPipeline(device.device(), pipeline, null);
-            }
+            invalidatePipeline();
             pipeline = createGraphicsPipeline(layout, renderPass, extent);
             cachedLayout = layout;
             cachedRenderPass = renderPass;
@@ -136,11 +136,11 @@ public class VulkanShader extends Shader {
 
     @Override
     public void dispose() {
-        if (pipeline != VK_NULL_HANDLE) {
-            vkDestroyPipeline(device.device(), pipeline, null);
-        }
+        context.unregisterShader(this);
+        invalidatePipeline();
         if (pipelineLayout != VK_NULL_HANDLE) {
             vkDestroyPipelineLayout(device.device(), pipelineLayout, null);
+            pipelineLayout = VK_NULL_HANDLE;
         }
         // descriptorSetLayout is owned by VulkanContext — do NOT destroy it here
         vkDestroyShaderModule(device.device(), fragShaderModule, null);
@@ -317,6 +317,15 @@ public class VulkanShader extends Shader {
             log.debug("VkPipeline created for layout {}", layout);
             return pPipeline.get(0);
         }
+    }
+
+    void invalidatePipeline() {
+        if (pipeline != VK_NULL_HANDLE) {
+            vkDestroyPipeline(device.device(), pipeline, null);
+            pipeline = VK_NULL_HANDLE;
+        }
+        cachedLayout = null;
+        cachedRenderPass = VK_NULL_HANDLE;
     }
 
     private int toVulkanFormat(ShaderTypes dataType, int componentCount) {

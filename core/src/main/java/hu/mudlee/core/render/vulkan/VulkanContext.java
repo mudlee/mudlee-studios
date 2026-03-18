@@ -13,9 +13,12 @@ import hu.mudlee.core.render.Shader;
 import hu.mudlee.core.render.VertexArray;
 import hu.mudlee.core.render.VertexBuffer;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.WeakHashMap;
 import org.joml.Vector4f;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.vulkan.*;
@@ -82,10 +85,11 @@ public class VulkanContext implements GraphicsContext {
     private final float[] clearColor = {0f, 0f, 0f, 1f};
     private long activeDescriptorSet = VK_NULL_HANDLE;
     private String rendererInfo = "";
+    private boolean disposed = false;
+    private final Set<VulkanShader> liveShaders = Collections.newSetFromMap(new WeakHashMap<>());
 
     public VulkanContext(boolean debug) {
         this.debug = debug;
-        instance = this;
     }
 
     // -------------------------------------------------------------------------
@@ -133,6 +137,18 @@ public class VulkanContext implements GraphicsContext {
 
     void setActiveDescriptorSet(long descriptorSet) {
         activeDescriptorSet = descriptorSet;
+    }
+
+    boolean isDisposed() {
+        return disposed;
+    }
+
+    void registerShader(VulkanShader shader) {
+        liveShaders.add(shader);
+    }
+
+    void unregisterShader(VulkanShader shader) {
+        liveShaders.remove(shader);
     }
 
     /**
@@ -204,30 +220,37 @@ public class VulkanContext implements GraphicsContext {
         log.debug("Initialising Vulkan context...");
         this.windowId = windowId;
         this.vSync = vSync;
+        disposed = false;
 
-        vkInstance = new VulkanInstance("MudleeEngine", debug);
+        try {
+            vkInstance = new VulkanInstance("MudleeEngine", debug);
 
-        try (MemoryStack stack = stackPush()) {
-            var pSurface = stack.mallocLong(1);
-            var result = glfwCreateWindowSurface(vkInstance.handle(), windowId, null, pSurface);
-            if (result != VK_SUCCESS) {
-                throw new RuntimeException("Failed to create Vulkan window surface: " + result);
+            try (MemoryStack stack = stackPush()) {
+                var pSurface = stack.mallocLong(1);
+                var result = glfwCreateWindowSurface(vkInstance.handle(), windowId, null, pSurface);
+                if (result != VK_SUCCESS) {
+                    throw new RuntimeException("Failed to create Vulkan window surface: " + result);
+                }
+                surface = pSurface.get(0);
             }
-            surface = pSurface.get(0);
+
+            device = new VulkanDevice(vkInstance.handle(), surface);
+            allocator = new VulkanAllocator(vkInstance.handle(), device.physicalDevice(), device.device());
+            swapChain = new VulkanSwapChain(device, surface, windowId, vSync);
+            renderPass = new VulkanRenderPass(device, swapChain.imageFormat());
+            swapChain.buildFramebuffers(renderPass.handle());
+            commandPool = new VulkanCommandPool(device);
+            syncObjects = new VulkanSyncObjects(device, swapChain.imageCount());
+            createTextureDescriptorSetLayout();
+            createDescriptorPool();
+
+            instance = this;
+            logDeviceInfo();
+            log.debug("Vulkan context ready. vSync={}", vSync);
+        } catch (RuntimeException | Error e) {
+            disposeInternal(false);
+            throw e;
         }
-
-        device = new VulkanDevice(vkInstance.handle(), surface);
-        allocator = new VulkanAllocator(vkInstance.handle(), device.physicalDevice(), device.device());
-        swapChain = new VulkanSwapChain(device, surface, windowId, vSync);
-        renderPass = new VulkanRenderPass(device, swapChain.imageFormat());
-        swapChain.buildFramebuffers(renderPass.handle());
-        commandPool = new VulkanCommandPool(device);
-        syncObjects = new VulkanSyncObjects(device, swapChain.imageCount());
-        createTextureDescriptorSetLayout();
-        createDescriptorPool();
-
-        logDeviceInfo();
-        log.debug("Vulkan context ready. vSync={}", vSync);
     }
 
     @Override
@@ -446,30 +469,7 @@ public class VulkanContext implements GraphicsContext {
 
     @Override
     public void dispose() {
-        device.waitIdle();
-
-        syncObjects.dispose();
-        commandPool.dispose();
-
-        for (var pool : descriptorPools) {
-            vkDestroyDescriptorPool(device.device(), pool, null);
-        }
-        descriptorPools.clear();
-        descriptorSetToPool.clear();
-        if (textureDescriptorSetLayout != VK_NULL_HANDLE) {
-            vkDestroyDescriptorSetLayout(device.device(), textureDescriptorSetLayout, null);
-        }
-
-        renderPass.dispose();
-        swapChain.dispose();
-        allocator.dispose();
-        device.dispose();
-
-        if (surface != VK_NULL_HANDLE) {
-            org.lwjgl.vulkan.KHRSurface.vkDestroySurfaceKHR(vkInstance.handle(), surface, null);
-        }
-        vkInstance.dispose();
-
+        disposeInternal(true);
         log.debug("VulkanContext disposed");
     }
 
@@ -542,8 +542,13 @@ public class VulkanContext implements GraphicsContext {
 
     private void recreateSwapChain() {
         device.waitIdle();
+        var oldFormat = swapChain.imageFormat();
         var oldImageCount = swapChain.imageCount();
-        swapChain.recreate(renderPass.handle(), vSync);
+        swapChain.recreate(vSync);
+        if (swapChain.imageFormat() != oldFormat) {
+            rebuildMainRenderPass();
+        }
+        swapChain.buildFramebuffers(renderPass.handle());
         if (swapChain.imageCount() != oldImageCount) {
             syncObjects.dispose();
             syncObjects = new VulkanSyncObjects(device, swapChain.imageCount());
@@ -554,6 +559,21 @@ public class VulkanContext implements GraphicsContext {
                 "Swap chain recreated ({}x{})",
                 swapChain.extent().width(),
                 swapChain.extent().height());
+    }
+
+    private void rebuildMainRenderPass() {
+        if (renderPass != null) {
+            renderPass.dispose();
+        }
+        renderPass = new VulkanRenderPass(device, swapChain.imageFormat());
+        invalidateGraphicsPipelines();
+        log.debug("Main render pass rebuilt for swapchain format {}", swapChain.imageFormat());
+    }
+
+    private void invalidateGraphicsPipelines() {
+        for (var shader : liveShaders) {
+            shader.invalidatePipeline();
+        }
     }
 
     /**
@@ -618,6 +638,73 @@ public class VulkanContext implements GraphicsContext {
                     VK_API_VERSION_MINOR(props.apiVersion()),
                     VK_API_VERSION_PATCH(props.apiVersion()));
         }
+    }
+
+    private void disposeInternal(boolean waitForDeviceIdle) {
+        if (disposed) {
+            return;
+        }
+        disposed = true;
+        if (instance == this) {
+            instance = null;
+        }
+
+        if (waitForDeviceIdle && device != null) {
+            device.waitIdle();
+        }
+
+        if (syncObjects != null) {
+            syncObjects.dispose();
+            syncObjects = null;
+        }
+        if (commandPool != null) {
+            commandPool.dispose();
+            commandPool = null;
+        }
+
+        if (device != null) {
+            for (var pool : descriptorPools) {
+                vkDestroyDescriptorPool(device.device(), pool, null);
+            }
+            if (textureDescriptorSetLayout != VK_NULL_HANDLE) {
+                vkDestroyDescriptorSetLayout(device.device(), textureDescriptorSetLayout, null);
+                textureDescriptorSetLayout = VK_NULL_HANDLE;
+            }
+        }
+        descriptorPools.clear();
+        descriptorSetToPool.clear();
+
+        if (renderPass != null) {
+            renderPass.dispose();
+            renderPass = null;
+        }
+        if (swapChain != null) {
+            swapChain.dispose();
+            swapChain = null;
+        }
+        if (allocator != null) {
+            allocator.dispose();
+            allocator = null;
+        }
+        if (device != null) {
+            device.dispose();
+            device = null;
+        }
+
+        if (surface != VK_NULL_HANDLE && vkInstance != null) {
+            org.lwjgl.vulkan.KHRSurface.vkDestroySurfaceKHR(vkInstance.handle(), surface, null);
+            surface = VK_NULL_HANDLE;
+        }
+        if (vkInstance != null) {
+            vkInstance.dispose();
+            vkInstance = null;
+        }
+
+        activeDescriptorSet = VK_NULL_HANDLE;
+        frameInProgress = false;
+        renderPassActive = false;
+        activeRenderTarget = null;
+        swapchainOutOfDate = false;
     }
 
     @Override
