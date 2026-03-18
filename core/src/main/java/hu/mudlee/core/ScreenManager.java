@@ -8,7 +8,7 @@ import java.util.Queue;
 /**
  * A stack-based screen manager.
  *
- * <p>Add it to {@link Game#components} once, then use {@link #set}, {@link #push}, and
+ * <p>Add it via {@link Game#addModule} once, then use {@link #set}, {@link #push}, and
  * {@link #pop} to navigate between screens:
  *
  * <ul>
@@ -23,7 +23,7 @@ import java.util.Queue;
  * <p>Transitions requested during {@code update()} or {@code draw()} are deferred and applied
  * at the end of the frame, so the currently executing screen is never mutated mid-callback.
  */
-public final class ScreenManager extends GameService {
+public final class ScreenManager extends GameModule {
 
     private static ScreenManager instance;
 

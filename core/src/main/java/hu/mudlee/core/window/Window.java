@@ -29,14 +29,6 @@ public class Window implements Disposable {
         this.preferences = WindowPreferences.builder().build();
     }
 
-    public static Window get() {
-        if (instance == null) {
-            instance = new Window();
-        }
-
-        return instance;
-    }
-
     @Override
     public void dispose() {
         glfwFreeCallbacks(id);
@@ -48,6 +40,14 @@ public class Window implements Disposable {
         glfwTerminate();
     }
 
+    public static Window get() {
+        if (instance == null) {
+            instance = new Window();
+        }
+
+        return instance;
+    }
+
     public static void remove() {
         get().dispose();
     }
@@ -56,13 +56,8 @@ public class Window implements Disposable {
         get().preferences = preferences;
     }
 
-    public static int addListener(WindowEventListener listener) {
+    public static void addListener(WindowEventListener listener) {
         get().listeners.add(listener);
-        return get().listeners.size() - 1;
-    }
-
-    public static long getId() {
-        return get().id;
     }
 
     public static Vector2i getSize() {

@@ -5,7 +5,7 @@ import hu.mudlee.core.GraphicsDeviceManager;
 import hu.mudlee.core.ScreenManager;
 import hu.mudlee.core.render.RenderBackend;
 import hu.mudlee.core.ui.DebugStatsComponent;
-import hu.mudlee.core.ui.UIService;
+import hu.mudlee.core.ui.UIManager;
 
 public class SandboxApplication extends Game {
 
@@ -22,13 +22,13 @@ public class SandboxApplication extends Game {
     @Override
     protected void loadContent() {
         var screenManager = new ScreenManager();
-        addService(screenManager);
+        addModule(screenManager);
         screenManager.set(new PlayerScene(this, graphicsDevice));
 
-        // UIService must be added after ScreenManager so it renders on top of the scene.
-        var uiService = new UIService();
-        addService(uiService);
-        uiService.getCanvas().create().addComponent(new DebugStatsComponent(uiService.getDefaultFont()));
+        // UIManager must be added after ScreenManager so it renders on top of the scene.
+        var uiManager = new UIManager();
+        addModule(uiManager);
+        uiManager.getCanvas().create().addComponent(new DebugStatsComponent(uiManager.getDefaultFont()));
     }
 
     public static void main(String[] args) {

@@ -17,7 +17,7 @@ import org.lwjgl.stb.STBTTAlignedQuad;
  * <p>Usage:
  *
  * <pre>
- * // in UIService.draw():
+ * // in UIManager.draw():
  * uiBatch.begin();
  * canvas.draw(uiBatch);
  * uiBatch.end();

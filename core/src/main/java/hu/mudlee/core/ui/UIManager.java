@@ -1,6 +1,6 @@
 package hu.mudlee.core.ui;
 
-import hu.mudlee.core.GameService;
+import hu.mudlee.core.GameModule;
 import hu.mudlee.core.GameTime;
 import hu.mudlee.core.content.ContentManager;
 import hu.mudlee.core.render.Renderer;
@@ -8,19 +8,19 @@ import hu.mudlee.core.render.font.BitmapFont;
 import hu.mudlee.core.window.Window;
 
 /**
- * {@link GameService} that drives the entire UI system each frame.
+ * {@link GameModule} that drives the entire UI system each frame.
  *
- * <p>Owns a {@link UIBatch} and a default {@link BitmapFont}. Register once at startup and add to
- * {@code components} after all scene managers so it renders on top:
+ * <p>Owns a {@link UIBatch} and a default {@link BitmapFont}. Register once at startup via
+ * {@link hu.mudlee.core.Game#addModule} after all scene managers so it renders on top:
  *
  * <pre>
  * // in loadContent():
- * var uiService = new UIService();
- * components.add(uiService);
- * uiService.getCanvas().create().addComponent(new DebugStatsComponent());
+ * var uiManager = new UIManager();
+ * addModule(uiManager);
+ * uiManager.getCanvas().create().addComponent(new DebugStatsComponent());
  * </pre>
  */
-public final class UIService extends GameService {
+public final class UIManager extends GameModule {
 
     private static final String DEFAULT_FONT = "/fonts/Inter.ttf";
     private static final float DEFAULT_FONT_SIZE = 22.4f;
@@ -32,7 +32,7 @@ public final class UIService extends GameService {
     private int screenW, screenH;
     private boolean started = false;
 
-    public UIService() {
+    public UIManager() {
         var size = Window.getSize();
         screenW = size.x;
         screenH = size.y;

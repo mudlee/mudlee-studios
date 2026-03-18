@@ -8,7 +8,7 @@ import java.util.List;
  * Manages the retained tree of {@link UIObject}s for a single screen.
  *
  * <p>Mirrors the role of {@link hu.mudlee.core.gameobject.GameScene2D} for game objects. Owned and
- * driven by {@link UIService}.
+ * driven by {@link UIManager}.
  *
  * <pre>
  * var debugObj = uiService.getCanvas().create();

@@ -46,7 +46,7 @@ There are no automated tests. The sandbox (`./gradlew run`) is the manual testin
 | `CLAUDE.md` / `AGENTS.md`                                         | Full project instructions and conventions                |
 | `core/src/main/java/module-info.java`                             | Module exports — update when adding new packages         |
 | `core/src/main/java/hu/mudlee/core/Game.java`                     | Main game loop and lifecycle                             |
-| `core/src/main/java/hu/mudlee/core/GameService.java`              | Base class for game-level services (ScreenManager, etc.) |
+| `core/src/main/java/hu/mudlee/core/GameModule.java`               | Base class for game-level modules (ScreenManager, etc.)  |
 | `core/src/main/java/hu/mudlee/core/ScreenManager.java`            | Screen/scene stack management                            |
 | `core/src/main/java/hu/mudlee/core/gameobject/GameObject.java`    | Entity base class                                        |
 | `core/src/main/java/hu/mudlee/core/gameobject/Component.java`     | Entity-level component base class                        |
@@ -62,7 +62,7 @@ There are no automated tests. The sandbox (`./gradlew run`) is the manual testin
 
 ## Architecture Overview
 
-- **Game loop**: `Game` → `Window` (GLFW) + `Renderer` + `ScreenManager` + `GameService` list.
+- **Game loop**: `Game` → `Window` (GLFW) + `Renderer` + `ScreenManager` + `GameModule` list.
 - **Screens**: `Screen` interface managed by `ScreenManager` (stack-based).
 - **GameObjects**: `GameScene` holds `GameObject` instances; each has `Component`s (`SpriteRenderer`, `Animator`, etc.) and a `Transform`.
 - **Rendering**: `Renderer` facade over `GraphicsContext` (Vulkan backend).

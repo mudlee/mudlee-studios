@@ -1,0 +1,3 @@
+- Format the codebase
+- Commit all files without any coauthor.
+- Commit must contain changes clearly, but briefly written.

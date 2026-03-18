@@ -1,16 +1,16 @@
 package hu.mudlee.core;
 
 /**
- * An optional service that plugs into the {@link Game} loop.
+ * An optional module that plugs into the {@link Game} loop.
  *
- * <p>Add instances to {@link Game#components}. The game will call {@link #update}, {@link #draw},
+ * <p>Add instances via {@link Game#addModule}. The game will call {@link #update}, {@link #draw},
  * {@link #resize}, and {@link #dispose} automatically. Override only the methods you need.
  *
  * <pre>
- * game.addService(new ScreenManager());
+ * game.addModule(new ScreenManager());
  * </pre>
  */
-public abstract class GameService {
+public abstract class GameModule {
 
     public void update(GameTime gameTime) {}
 

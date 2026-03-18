@@ -18,10 +18,10 @@ public abstract class Game implements WindowEventListener {
     private static final long TARGET_ELAPSED_NANOS = 1_000_000_000L / 60;
     private static final long MAX_DELTA_NANOS = 100_000_000L;
 
-    private final List<GameService> services = new ArrayList<>();
-    private final List<GameService> pendingAdds = new ArrayList<>();
-    private final List<GameService> pendingRemoves = new ArrayList<>();
-    private boolean iteratingServices;
+    private final List<GameModule> modules = new ArrayList<>();
+    private final List<GameModule> pendingModuleAdds = new ArrayList<>();
+    private final List<GameModule> pendingModuleRemoves = new ArrayList<>();
+    private boolean iteratingModules;
     protected GraphicsDeviceManager gdm;
     protected GraphicsDevice graphicsDevice;
     protected ContentManager content;
@@ -68,26 +68,26 @@ public abstract class Game implements WindowEventListener {
         Window.close();
     }
 
-    public void addService(GameService service) {
-        if (iteratingServices) {
-            pendingAdds.add(service);
+    public void addModule(GameModule module) {
+        if (iteratingModules) {
+            pendingModuleAdds.add(module);
         } else {
-            services.add(service);
+            modules.add(module);
         }
     }
 
-    public void removeService(GameService service) {
-        if (iteratingServices) {
-            pendingRemoves.add(service);
+    public void removeModule(GameModule module) {
+        if (iteratingModules) {
+            pendingModuleRemoves.add(module);
         } else {
-            services.remove(service);
+            modules.remove(module);
         }
     }
 
     @Override
     public void onWindowResized(int width, int height) {
-        for (var service : services) {
-            service.resize(width, height);
+        for (var module : modules) {
+            module.resize(width, height);
         }
     }
 
@@ -118,16 +118,16 @@ public abstract class Game implements WindowEventListener {
             var totalSeconds = (float) (totalNanos * 1e-9);
             gameTime.set(deltaSeconds, totalSeconds, clampedDeltaNanos > TARGET_ELAPSED_NANOS);
             update(gameTime);
-            iteratingServices = true;
-            for (var service : services) {
-                service.update(gameTime);
+            iteratingModules = true;
+            for (var module : modules) {
+                module.update(gameTime);
             }
             draw(gameTime);
-            for (var service : services) {
-                service.draw(gameTime);
+            for (var module : modules) {
+                module.draw(gameTime);
             }
-            iteratingServices = false;
-            applyPendingServiceChanges();
+            iteratingModules = false;
+            applyPendingModuleChanges();
             graphicsDevice.present(deltaSeconds);
 
             // When vSync is enabled, present already blocks for the display refresh interval,
@@ -163,11 +163,11 @@ public abstract class Game implements WindowEventListener {
         } catch (Exception e) {
             log.error("Error unloading content", e);
         }
-        for (var service : services) {
+        for (var module : modules) {
             try {
-                service.dispose();
+                module.dispose();
             } catch (Exception e) {
-                log.error("Error disposing service: {}", service.getClass().getSimpleName(), e);
+                log.error("Error disposing module: {}", module.getClass().getSimpleName(), e);
             }
         }
         try {
@@ -183,14 +183,14 @@ public abstract class Game implements WindowEventListener {
         log.info("Terminated");
     }
 
-    private void applyPendingServiceChanges() {
-        if (!pendingAdds.isEmpty()) {
-            services.addAll(pendingAdds);
-            pendingAdds.clear();
+    private void applyPendingModuleChanges() {
+        if (!pendingModuleAdds.isEmpty()) {
+            modules.addAll(pendingModuleAdds);
+            pendingModuleAdds.clear();
         }
-        if (!pendingRemoves.isEmpty()) {
-            services.removeAll(pendingRemoves);
-            pendingRemoves.clear();
+        if (!pendingModuleRemoves.isEmpty()) {
+            modules.removeAll(pendingModuleRemoves);
+            pendingModuleRemoves.clear();
         }
     }
 }
