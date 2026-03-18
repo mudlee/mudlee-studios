@@ -27,10 +27,10 @@ import org.slf4j.LoggerFactory;
 public class VulkanTexture2D extends Texture2D implements VulkanTextureBinding {
 
     private static final Logger log = LoggerFactory.getLogger(VulkanTexture2D.class);
+    private static final String RAW_PIXELS_DEBUG_NAME = "<raw_rgba8_pixels>";
 
     private final VulkanContext context;
     private final VulkanDevice device;
-    private final String path;
     private final boolean pixelPerfect;
 
     private int width;
@@ -43,15 +43,14 @@ public class VulkanTexture2D extends Texture2D implements VulkanTextureBinding {
     private long descriptorSet = VK_NULL_HANDLE;
 
     public VulkanTexture2D(String path) {
-        this.path = path;
         this.pixelPerfect = true;
 
         this.context = VulkanContext.get();
         this.device = context.device();
 
-        uploadTexture(context);
-        createImageView();
-        createSampler();
+        uploadTexture(context, path);
+        createImageView(path);
+        createSampler(path);
         allocateAndWriteDescriptorSet(context);
 
         log.debug("VulkanTexture2D created: {}", path);
@@ -60,16 +59,15 @@ public class VulkanTexture2D extends Texture2D implements VulkanTextureBinding {
 
     /** Creates a texture from raw RGBA8 pixel data (e.g. a font atlas). */
     public VulkanTexture2D(ByteBuffer pixels, int width, int height, boolean pixelPerfect) {
-        this.path = "<pixels>"; // TODO: what is this hacky solution?
         this.pixelPerfect = pixelPerfect;
         this.context = VulkanContext.get();
         this.device = context.device();
         this.width = width;
         this.height = height;
 
-        uploadPixels(context, pixels);
-        createImageView();
-        createSampler();
+        uploadPixels(context, pixels, RAW_PIXELS_DEBUG_NAME);
+        createImageView(RAW_PIXELS_DEBUG_NAME);
+        createSampler(RAW_PIXELS_DEBUG_NAME);
         allocateAndWriteDescriptorSet(context);
 
         log.debug("VulkanTexture2D created from pixels: {}x{}", width, height);
@@ -125,14 +123,14 @@ public class VulkanTexture2D extends Texture2D implements VulkanTextureBinding {
             }
         });
         Renderer.decrementTextureCount();
-        log.debug("VulkanTexture2D disposed: {}", path);
+        log.debug("VulkanTexture2D disposed ({}x{})", width, height);
     }
 
     // -------------------------------------------------------------------------
     // Texture upload
     // -------------------------------------------------------------------------
 
-    private void uploadTexture(VulkanContext ctx) {
+    private void uploadTexture(VulkanContext ctx, String path) {
         try (MemoryStack stack = stackPush()) {
             // Force RGBA output from STBImage — Vulkan prefers a consistent 4-channel format
             var w = stack.mallocInt(1);
@@ -148,12 +146,12 @@ public class VulkanTexture2D extends Texture2D implements VulkanTextureBinding {
             width = w.get(0);
             height = h.get(0);
 
-            uploadPixels(ctx, pixels);
+            uploadPixels(ctx, pixels, path);
             stbi_image_free(pixels.rewind());
         }
     }
 
-    private void uploadPixels(VulkanContext ctx, java.nio.ByteBuffer pixels) {
+    private void uploadPixels(VulkanContext ctx, java.nio.ByteBuffer pixels, String debugName) {
         var imageSizeBytes = (long) width * height * 4; // RGBA = 4 bytes per pixel
 
         var staging = new VulkanBuffer(
@@ -172,7 +170,8 @@ public class VulkanTexture2D extends Texture2D implements VulkanTextureBinding {
                 VK_FORMAT_R8G8B8A8_SRGB,
                 VK_IMAGE_TILING_OPTIMAL,
                 VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                debugName);
 
         transitionImageLayout(ctx.commandPool(), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
         copyBufferToImage(staging, width, height, ctx.commandPool());
@@ -182,7 +181,8 @@ public class VulkanTexture2D extends Texture2D implements VulkanTextureBinding {
         staging.dispose();
     }
 
-    private void createImage(int width, int height, int format, int tiling, int usage, int memoryProps) {
+    private void createImage(
+            int width, int height, int format, int tiling, int usage, int memoryProps, String debugName) {
         try (MemoryStack stack = stackPush()) {
             var imageInfo = VkImageCreateInfo.calloc(stack)
                     .sType(VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO)
@@ -203,7 +203,7 @@ public class VulkanTexture2D extends Texture2D implements VulkanTextureBinding {
             var pAllocation = stack.mallocPointer(1);
             if (vmaCreateImage(context.allocator().handle(), imageInfo, allocationCreateInfo, pImage, pAllocation, null)
                     != VK_SUCCESS) {
-                throw new RuntimeException("Failed to create VkImage for texture '" + path + "'");
+                throw new RuntimeException("Failed to create VkImage for texture '" + debugName + "'");
             }
             image = pImage.get(0);
             imageAllocation = pAllocation.get(0);
@@ -272,7 +272,7 @@ public class VulkanTexture2D extends Texture2D implements VulkanTextureBinding {
         }
     }
 
-    private void createImageView() {
+    private void createImageView(String debugName) {
         try (MemoryStack stack = stackPush()) {
             var viewInfo = VkImageViewCreateInfo.calloc(stack)
                     .sType(VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO)
@@ -288,13 +288,13 @@ public class VulkanTexture2D extends Texture2D implements VulkanTextureBinding {
 
             var pView = stack.mallocLong(1);
             if (vkCreateImageView(device.device(), viewInfo, null, pView) != VK_SUCCESS) {
-                throw new RuntimeException("Failed to create VkImageView for '" + path + "'");
+                throw new RuntimeException("Failed to create VkImageView for '" + debugName + "'");
             }
             imageView = pView.get(0);
         }
     }
 
-    private void createSampler() {
+    private void createSampler(String debugName) {
         try (MemoryStack stack = stackPush()) {
             var filter = pixelPerfect ? VK_FILTER_NEAREST : VK_FILTER_LINEAR;
             var samplerInfo = VkSamplerCreateInfo.calloc(stack)
@@ -317,7 +317,7 @@ public class VulkanTexture2D extends Texture2D implements VulkanTextureBinding {
 
             var pSampler = stack.mallocLong(1);
             if (vkCreateSampler(device.device(), samplerInfo, null, pSampler) != VK_SUCCESS) {
-                throw new RuntimeException("Failed to create VkSampler for '" + path + "'");
+                throw new RuntimeException("Failed to create VkSampler for '" + debugName + "'");
             }
             sampler = pSampler.get(0);
         }
