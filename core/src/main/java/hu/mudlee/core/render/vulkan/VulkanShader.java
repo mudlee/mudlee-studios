@@ -34,8 +34,7 @@ import org.slf4j.LoggerFactory;
  * practice for per-draw data that changes every frame. setUniform() for any other name or type is a
  * no-op until the HAL is extended.
  *
- * <p>"TEX_SAMPLER" / createUniform() calls are intentionally ignored — textures are bound via
- * VkDescriptorSets inside VulkanContext.renderRaw().
+ * <p>Textures are bound via VkDescriptorSets inside VulkanContext.renderRaw().
  *
  * <p>To compile the GLSL sources to SPIR-V: glslc resources/shaders/vulkan/2d/vert.glsl -o
  * resources/shaders/vulkan/2d/vert.spv glslc resources/shaders/vulkan/2d/frag.glsl -o
@@ -119,13 +118,6 @@ public class VulkanShader extends Shader {
     // -------------------------------------------------------------------------
     // Shader abstract class implementation
     // -------------------------------------------------------------------------
-
-    @Override
-    public int getPipelineId() {
-        // Vulkan pipelines are long handles — callers that need the pipeline should cast to
-        // VulkanShader
-        return 0;
-    }
 
     @Override
     public void setUniform(String name, Matrix4f value) {

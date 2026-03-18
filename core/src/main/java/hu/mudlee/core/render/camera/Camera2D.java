@@ -10,7 +10,7 @@ import org.joml.Vector2f;
  * {@link #zoom} multiplier, and {@link #rotation} in radians. Subclasses decide how to compute
  * the combined projection × view matrix returned by {@link #getTransformMatrix()}.
  *
- * <p>Pass the result to {@link hu.mudlee.core.render.SpriteBatch2D#begin(Matrix4f)}.
+ * <p>Pass the result to the active sprite render coordinator or sprite batch begin call.
  *
  * <p>Uses a dirty flag pattern: the transform matrix is only recomputed when position, zoom, or
  * rotation changes. Call {@link #markDirty()} after modifying these fields, or use the setter
@@ -61,7 +61,7 @@ public abstract class Camera2D {
 
     /**
      * Returns the combined projection × view matrix for this camera.
-     * Pass it directly to {@link hu.mudlee.core.render.SpriteBatch2D#begin(Matrix4f)}.
+     * Pass it directly to the active sprite render coordinator or sprite batch begin call.
      */
     public abstract Matrix4f getTransformMatrix();
 }

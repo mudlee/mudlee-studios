@@ -55,12 +55,6 @@ public class VulkanIndexBuffer extends ElementBuffer {
     }
 
     @Override
-    public int getId() {
-        // Vulkan handles are long — return 0, use bufferHandle() instead
-        return 0;
-    }
-
-    @Override
     public int getLength() {
         return length;
     }

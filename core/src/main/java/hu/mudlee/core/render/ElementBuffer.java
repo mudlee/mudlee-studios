@@ -7,8 +7,6 @@ public abstract class ElementBuffer {
         return Renderer.backendFactory().createElementBuffer(indices);
     }
 
-    public abstract int getId();
-
     public abstract int getLength();
 
     public abstract IndexType getIndexType();

@@ -7,8 +7,6 @@ public abstract class Shader {
         return Renderer.backendFactory().createShader(vertexShaderName, fragmentShaderName);
     }
 
-    public abstract int getPipelineId();
-
     public abstract void setUniform(String name, Matrix4f value);
 
     public abstract void dispose();

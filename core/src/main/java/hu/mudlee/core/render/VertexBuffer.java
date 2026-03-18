@@ -13,8 +13,6 @@ public abstract class VertexBuffer {
         throw new UnsupportedOperationException("This VertexBuffer does not support dynamic float updates");
     }
 
-    public abstract int getId();
-
     public abstract int getLength();
 
     public abstract VertexBufferLayout getLayout();

@@ -130,7 +130,7 @@ public abstract class Game implements WindowEventListener {
             applyPendingServiceChanges();
             graphicsDevice.present(deltaSeconds);
 
-            // When vSync is enabled, swapBuffers already blocks for the display refresh interval,
+            // When vSync is enabled, present already blocks for the display refresh interval,
             // so no additional sleep is needed. Sleep only when running uncapped to avoid
             // Thread.sleep(1) overshooting on Windows and pulling FPS below 60.
             if (!vSync) {

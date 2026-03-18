@@ -100,11 +100,6 @@ public class VulkanVertexBuffer extends VertexBuffer {
     }
 
     @Override
-    public int getId() {
-        return 0;
-    }
-
-    @Override
     public int getLength() {
         return length;
     }
