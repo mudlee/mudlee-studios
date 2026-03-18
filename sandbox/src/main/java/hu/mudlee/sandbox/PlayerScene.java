@@ -118,7 +118,9 @@ public class PlayerScene implements Screen {
 
     @Override
     public void draw(GameTime gameTime) {
-        graphicsDevice.clear(Color.BLACK);
+        if (!graphicsDevice.clear(Color.BLACK)) {
+            return;
+        }
         var camera = world.entities.getComponent(cameraEntity, CameraComponent.class).camera;
         spriteBatch.begin(camera.getTransformMatrix());
         spriteBatch.draw(atlas.getRegion("mario"), new Vector2f(50, 50), Color.WHITE);

@@ -9,6 +9,7 @@ public class Renderer implements WindowEventListener {
     private static int vertexCount = 0;
     private static int textureCount = 0;
     private static int spriteBatchFlushCount = 0;
+    private static boolean frameInProgress = false;
 
     private final GraphicsContext context;
     private static Renderer instance;
@@ -57,11 +58,17 @@ public class Renderer implements WindowEventListener {
     }
 
     public static void renderRaw(VertexArray vao, Shader shader) {
+        if (!frameInProgress) {
+            return;
+        }
         drawCallCount++;
         get().context.renderRaw(vao, shader);
     }
 
     public static void renderRaw(VertexArray vao, Shader shader, int elementOffset, int elementCount) {
+        if (!frameInProgress) {
+            return;
+        }
         drawCallCount++;
         get().context.renderRaw(vao, shader, elementOffset, elementCount);
     }
@@ -74,15 +81,24 @@ public class Renderer implements WindowEventListener {
         get().context.setClearColor(color);
     }
 
-    public static void swapBuffers(float frameTime) {
-        get().context.swapBuffers(frameTime);
-    }
-
-    public static void clear() {
+    public static boolean beginFrame() {
         drawCallCount = 0;
         vertexCount = 0;
         spriteBatchFlushCount = 0;
-        get().context.clear();
+        frameInProgress = get().context.beginFrame();
+        return frameInProgress;
+    }
+
+    public static void swapBuffers(float frameTime) {
+        if (!frameInProgress) {
+            return;
+        }
+        get().context.swapBuffers(frameTime);
+        frameInProgress = false;
+    }
+
+    public static boolean isFrameInProgress() {
+        return frameInProgress;
     }
 
     public static void waitForGPU() {
@@ -126,6 +142,7 @@ public class Renderer implements WindowEventListener {
     }
 
     public static void dispose() {
+        frameInProgress = false;
         get().context.dispose();
     }
 }

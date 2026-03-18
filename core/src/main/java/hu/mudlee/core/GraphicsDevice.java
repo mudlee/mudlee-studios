@@ -17,10 +17,13 @@ public final class GraphicsDevice {
 
     GraphicsDevice() {}
 
-    /** Clears the back-buffer with the given colour. Call once at the start of {@code draw()}. */
-    public void clear(Color color) {
+    /**
+     * Sets the clear colour and begins the frame. Returns {@code false} when the frame was skipped,
+     * for example because the swapchain needs to be recreated.
+     */
+    public boolean clear(Color color) {
         Renderer.setClearColor(clearColorVec.set(color.r, color.g, color.b, color.a));
-        Renderer.clear();
+        return Renderer.beginFrame();
     }
 
     /** Returns a {@link Viewport} that covers the full window. */

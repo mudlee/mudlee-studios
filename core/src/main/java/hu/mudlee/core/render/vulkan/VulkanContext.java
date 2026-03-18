@@ -30,12 +30,12 @@ import org.slf4j.LoggerFactory;
  *
  * <p>Frame loop (called by Application each frame):
  *
- * <p>clear() → wait fence → acquire swap chain image → begin command buffer → begin render pass
- * renderRaw() → bind pipeline → push constants → bind texture descriptor set → draw swapBuffers()→
- * end render pass → end command buffer → submit → present → advance frame index
+ * <p>beginFrame() → wait fence → acquire swap chain image → begin command buffer → begin render
+ * pass renderRaw() → bind pipeline → push constants → bind texture descriptor set → draw
+ * swapBuffers()→ end render pass → end command buffer → submit → present → advance frame index
  *
  * <p>Window resize is handled lazily: swapchainOutOfDate is set on windowResized() and the swap
- * chain is recreated at the next clear() call.
+ * chain is recreated at the next beginFrame() call.
  *
  * <p>Descriptor set layout for textures is owned here (not per-shader) so that VulkanTexture2D can
  * allocate and write its own descriptor set without knowing about any specific shader. VulkanShader
@@ -76,6 +76,7 @@ public class VulkanContext implements GraphicsContext {
     private boolean vSync = true;
     private long windowId = 0;
     private boolean renderPassActive = false;
+    private boolean frameInProgress = false;
     private VulkanRenderTarget activeRenderTarget = null;
 
     private final float[] clearColor = {0f, 0f, 0f, 1f};
@@ -243,7 +244,9 @@ public class VulkanContext implements GraphicsContext {
      * target (or the swapchain backbuffer if none is set).
      */
     @Override
-    public void clear() {
+    public boolean beginFrame() {
+        resetFrameState();
+
         if (swapchainOutOfDate) {
             recreateSwapChain();
         }
@@ -263,7 +266,7 @@ public class VulkanContext implements GraphicsContext {
 
             if (result == VK_ERROR_OUT_OF_DATE_KHR) {
                 recreateSwapChain();
-                return;
+                return false;
             } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
                 throw new RuntimeException("Failed to acquire swap chain image: " + result);
             }
@@ -283,10 +286,15 @@ public class VulkanContext implements GraphicsContext {
         }
 
         beginCurrentRenderPass();
+        frameInProgress = true;
+        return true;
     }
 
     @Override
     public void setRenderTarget(RenderTarget renderTarget) {
+        if (!frameInProgress) {
+            return;
+        }
         var cmdBuf = commandPool.commandBuffer(currentFrame);
         if (renderPassActive) {
             vkCmdEndRenderPass(cmdBuf);
@@ -297,8 +305,8 @@ public class VulkanContext implements GraphicsContext {
     }
 
     /**
-     * Records a draw call into the current command buffer. clear() must have been called earlier in
-     * the same frame.
+     * Records a draw call into the current command buffer. beginFrame() must have succeeded earlier
+     * in the same frame.
      *
      * <p>Per Vulkan best practice: – Matrices pushed as push constants (no per-frame UBO allocation).
      * – Texture bound via a pre-built descriptor set (written at texture creation time).
@@ -314,6 +322,9 @@ public class VulkanContext implements GraphicsContext {
     }
 
     private void renderRawInternal(VertexArray vertexArray, Shader shader, int elementCount, int elementOffset) {
+        if (!frameInProgress) {
+            return;
+        }
         if (!(shader instanceof VulkanShader vs)) {
             throw new IllegalArgumentException("VulkanContext requires a VulkanShader");
         }
@@ -377,6 +388,9 @@ public class VulkanContext implements GraphicsContext {
     /** Ends the render pass, submits the command buffer to the graphics queue, and presents. */
     @Override
     public void swapBuffers(float frameTime) {
+        if (!frameInProgress) {
+            return;
+        }
         try (MemoryStack stack = stackPush()) {
             var cmdBuf = commandPool.commandBuffer(currentFrame);
 
@@ -417,6 +431,7 @@ public class VulkanContext implements GraphicsContext {
 
             currentFrame = (currentFrame + 1) % FRAMES_IN_FLIGHT;
         }
+        resetFrameState();
     }
 
     @Override
@@ -517,6 +532,12 @@ public class VulkanContext implements GraphicsContext {
             scissor.extent().width(w).height(h);
             vkCmdSetScissor(cmdBuf, 0, scissor);
         }
+    }
+
+    private void resetFrameState() {
+        frameInProgress = false;
+        renderPassActive = false;
+        activeRenderTarget = null;
     }
 
     private void recreateSwapChain() {

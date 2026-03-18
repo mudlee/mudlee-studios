@@ -10,7 +10,7 @@ public interface GraphicsContext extends Disposable {
 
     void setClearColor(Vector4f color);
 
-    void clear();
+    boolean beginFrame();
 
     void renderRaw(VertexArray vao, Shader shader);
 
@@ -22,7 +22,7 @@ public interface GraphicsContext extends Disposable {
 
     /**
      * Redirects subsequent draw calls to {@code renderTarget}, or to the backbuffer if {@code null}.
-     * Must be called while a frame is in progress (after {@link #clear()} and before
+     * Must be called while a frame is in progress (after {@link #beginFrame()} and before
      * {@link #swapBuffers(float)}).
      */
     default void setRenderTarget(RenderTarget renderTarget) {}

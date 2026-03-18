@@ -250,6 +250,11 @@ public class SpriteBatch2D implements Disposable, RenderContext {
         if (spriteCount == 0) {
             return;
         }
+        if (!Renderer.isFrameInProgress()) {
+            spriteCount = 0;
+            currentTexture = null;
+            return;
+        }
         var floatCount = spriteCount * FLOATS_PER_SPRITE;
         var indexCount = spriteCount * INDICES_PER_SPRITE;
         dynamicVbo.update(vertexData, floatCount);

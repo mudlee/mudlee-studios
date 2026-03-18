@@ -248,7 +248,7 @@ public class VulkanShader extends Shader {
                     .topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
                     .primitiveRestartEnable(false);
 
-            // Viewport and scissor are dynamic — set each frame in VulkanContext.clear()
+            // Viewport and scissor are dynamic — set each frame in VulkanContext.beginFrame()
             var dynamicState = VkPipelineDynamicStateCreateInfo.calloc(stack)
                     .sType(VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO)
                     .pDynamicStates(stack.ints(VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR));
