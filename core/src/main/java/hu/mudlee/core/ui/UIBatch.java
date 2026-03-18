@@ -2,23 +2,23 @@ package hu.mudlee.core.ui;
 
 import hu.mudlee.core.Color;
 import hu.mudlee.core.Disposable;
-import hu.mudlee.core.render.SpriteBatch2D;
+import hu.mudlee.core.render.RenderPassOptions;
+import hu.mudlee.core.render.SpriteRenderCoordinator;
 import hu.mudlee.core.render.font.BitmapFont;
 import hu.mudlee.core.render.texture.TextureRegion;
-import org.joml.Matrix4f;
 import org.lwjgl.stb.STBTTAlignedQuad;
 
 /**
  * Screen-space 2D batch for UI rendering.
  *
- * <p>Wraps {@link SpriteBatch2D} with a pixel-coordinate orthographic projection (origin top-left,
- * y-down) and manages depth test state so UI always renders on top of any 3D scene.
+ * <p>Wraps a {@link SpriteRenderCoordinator} with a pixel-coordinate orthographic projection
+ * (origin top-left, y-down) so UI always renders on top of any 3D scene.
  *
  * <p>Usage:
  *
  * <pre>
  * // in UIService.draw():
- * uiBatch.begin(screenW, screenH);
+ * uiBatch.begin();
  * canvas.draw(uiBatch);
  * uiBatch.end();
  * </pre>
@@ -27,8 +27,7 @@ public final class UIBatch implements Disposable {
 
     private static final Color SHADOW_COLOR = new Color(0f, 0f, 0f, 1f);
 
-    private final SpriteBatch2D spriteBatch = new SpriteBatch2D();
-    private final Matrix4f ortho = new Matrix4f();
+    private final SpriteRenderCoordinator renderPass = new SpriteRenderCoordinator(RenderPassOptions.loadColor());
     private final STBTTAlignedQuad quad = STBTTAlignedQuad.malloc();
     private final float[] xCursor = new float[1];
     private final float[] yCursor = new float[1];
@@ -48,13 +47,12 @@ public final class UIBatch implements Disposable {
      * {@code VulkanContext.beginFrame()}, so a standard projection matrix works correctly.
      */
     public void begin() {
-        ortho.setOrtho(0f, screenW, screenH, 0f, -1f, 1f);
-        spriteBatch.begin(ortho);
+        renderPass.beginScreenSpace(screenW, screenH);
     }
 
     /** Ends the batch and flushes all queued draw calls to the GPU. */
     public void end() {
-        spriteBatch.end();
+        renderPass.end();
     }
 
     /**
@@ -93,19 +91,18 @@ public final class UIBatch implements Disposable {
             // Pre-swap here so the glyph samples the correct atlas rows.
             float v0 = quad.t1();
             float v1 = quad.t0();
-
-            spriteBatch.draw(atlas, qx, qy, qw, qh, color, u0, v0, u1, v1);
+            renderPass.draw(atlas, qx, qy, qw, qh, color, u0, v0, u1, v1);
         }
     }
 
     /** Draws a texture region at screen-pixel coordinates. */
     public void drawSprite(TextureRegion region, float x, float y, float w, float h, Color color) {
-        spriteBatch.draw(region.texture, x, y, w, h, color, region.u0(), region.v0(), region.u1(), region.v1());
+        renderPass.draw(region.texture, x, y, w, h, color, region.u0(), region.v0(), region.u1(), region.v1());
     }
 
     @Override
     public void dispose() {
         quad.free();
-        spriteBatch.dispose();
+        renderPass.dispose();
     }
 }

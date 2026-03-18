@@ -23,10 +23,8 @@ import org.slf4j.LoggerFactory;
  *
  * <p>STBImage is loaded with forced RGBA (4 channels) so we always use VK_FORMAT_R8G8B8A8_SRGB.
  *
- * <p>bind() registers this texture as the active texture on VulkanContext so that
- * VulkanContext.renderRaw() can bind the correct descriptor set.
  */
-public class VulkanTexture2D extends Texture2D {
+public class VulkanTexture2D extends Texture2D implements VulkanTextureBinding {
 
     private static final Logger log = LoggerFactory.getLogger(VulkanTexture2D.class);
 
@@ -88,15 +86,8 @@ public class VulkanTexture2D extends Texture2D {
         return height;
     }
 
-    /** Informs VulkanContext that this is the texture to bind for the next draw call(s). */
     @Override
-    public void bind() {
-        if (!context.isDisposed()) {
-            context.setActiveDescriptorSet(descriptorSet);
-        }
-    }
-
-    long descriptorSet() {
+    public long descriptorSetHandle() {
         return descriptorSet;
     }
 
@@ -110,21 +101,29 @@ public class VulkanTexture2D extends Texture2D {
             return;
         }
 
-        context.freeTextureDescriptorSet(descriptorSet);
+        var descriptorSetToFree = descriptorSet;
+        var samplerToDestroy = sampler;
+        var imageViewToDestroy = imageView;
+        var imageToDestroy = image;
+        var allocationToDestroy = imageAllocation;
+
         descriptorSet = VK_NULL_HANDLE;
-        if (sampler != VK_NULL_HANDLE) {
-            vkDestroySampler(device.device(), sampler, null);
-            sampler = VK_NULL_HANDLE;
-        }
-        if (imageView != VK_NULL_HANDLE) {
-            vkDestroyImageView(device.device(), imageView, null);
-            imageView = VK_NULL_HANDLE;
-        }
-        if (image != VK_NULL_HANDLE && imageAllocation != VK_NULL_HANDLE) {
-            vmaDestroyImage(context.allocator().handle(), image, imageAllocation);
-            image = VK_NULL_HANDLE;
-            imageAllocation = VK_NULL_HANDLE;
-        }
+        sampler = VK_NULL_HANDLE;
+        imageView = VK_NULL_HANDLE;
+        image = VK_NULL_HANDLE;
+        imageAllocation = VK_NULL_HANDLE;
+        context.deferRelease(() -> {
+            context.freeTextureDescriptorSet(descriptorSetToFree);
+            if (samplerToDestroy != VK_NULL_HANDLE) {
+                vkDestroySampler(device.device(), samplerToDestroy, null);
+            }
+            if (imageViewToDestroy != VK_NULL_HANDLE) {
+                vkDestroyImageView(device.device(), imageViewToDestroy, null);
+            }
+            if (imageToDestroy != VK_NULL_HANDLE && allocationToDestroy != VK_NULL_HANDLE) {
+                vmaDestroyImage(context.allocator().handle(), imageToDestroy, allocationToDestroy);
+            }
+        });
         Renderer.decrementTextureCount();
         log.debug("VulkanTexture2D disposed: {}", path);
     }

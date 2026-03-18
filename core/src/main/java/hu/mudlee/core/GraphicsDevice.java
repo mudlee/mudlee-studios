@@ -26,10 +26,6 @@ public final class GraphicsDevice {
         return Renderer.beginFrame();
     }
 
-    public boolean clear(Color color) {
-        return beginFrame(color);
-    }
-
     public void present(float frameTime) {
         Renderer.present(frameTime);
     }

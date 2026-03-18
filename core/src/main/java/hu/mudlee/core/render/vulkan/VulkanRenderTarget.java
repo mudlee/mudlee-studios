@@ -6,6 +6,8 @@ import static org.lwjgl.vulkan.VK12.*;
 
 import hu.mudlee.core.render.RenderTarget;
 import hu.mudlee.core.render.texture.Texture2D;
+import java.util.HashMap;
+import java.util.Map;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.util.vma.VmaAllocationCreateInfo;
 import org.lwjgl.vulkan.*;
@@ -15,9 +17,8 @@ import org.slf4j.LoggerFactory;
 /**
  * Vulkan off-screen render target.
  *
- * <p>Creates a device-local VkImage that can be rendered into via its own VkRenderPass and
- * VkFramebuffer, then sampled as a texture (via a pre-written descriptor set) once the render pass
- * has ended.
+ * <p>Creates a device-local VkImage that can be rendered into via per-pass-compatible framebuffers,
+ * then sampled as a texture (via a pre-written descriptor set) once the render pass has ended.
  *
  * <p>The render pass transitions the image from SHADER_READ_ONLY_OPTIMAL (initial) to
  * COLOR_ATTACHMENT_OPTIMAL (during rendering) and back to SHADER_READ_ONLY_OPTIMAL (final) so that
@@ -37,10 +38,9 @@ public final class VulkanRenderTarget extends RenderTarget {
     private long imageAllocation = VK_NULL_HANDLE;
     private long imageView = VK_NULL_HANDLE;
     private long sampler = VK_NULL_HANDLE;
-    private long renderPassHandleField = VK_NULL_HANDLE;
-    private long framebufferHandleField = VK_NULL_HANDLE;
     private long descriptorSet = VK_NULL_HANDLE;
     private VkExtent2D extentField;
+    private final Map<VulkanRenderPassSpec, Long> framebufferHandles = new HashMap<>();
 
     private final ColorTexture colorTexture = new ColorTexture();
 
@@ -54,13 +54,8 @@ public final class VulkanRenderTarget extends RenderTarget {
         log.debug("VulkanRenderTarget created ({}x{})", width, height);
     }
 
-    // TODO: what are these?
-    long renderPassHandle() {
-        return renderPassHandleField;
-    }
-
-    long framebufferHandle() {
-        return framebufferHandleField;
+    long framebufferHandle(VulkanRenderPassSpec spec, long renderPass) {
+        return framebufferHandles.computeIfAbsent(spec, ignored -> createFramebuffer(renderPass));
     }
 
     VkExtent2D extent() {
@@ -98,7 +93,6 @@ public final class VulkanRenderTarget extends RenderTarget {
         width = newWidth;
         height = newHeight;
         extentField.set(width, height);
-        context.waitForInFlightFrames();
         destroyGpuObjects();
         create(context);
         log.debug("VulkanRenderTarget resized ({}x{})", width, height);
@@ -108,8 +102,7 @@ public final class VulkanRenderTarget extends RenderTarget {
     public void dispose() {
         if (context.isDisposed()) {
             descriptorSet = VK_NULL_HANDLE;
-            framebufferHandleField = VK_NULL_HANDLE;
-            renderPassHandleField = VK_NULL_HANDLE;
+            framebufferHandles.clear();
             sampler = VK_NULL_HANDLE;
             imageView = VK_NULL_HANDLE;
             image = VK_NULL_HANDLE;
@@ -119,7 +112,6 @@ public final class VulkanRenderTarget extends RenderTarget {
             return;
         }
 
-        context.waitForInFlightFrames();
         destroyGpuObjects();
         extentField.free();
         log.debug("VulkanRenderTarget disposed");
@@ -129,37 +121,41 @@ public final class VulkanRenderTarget extends RenderTarget {
         createImage(ctx);
         transitionToShaderReadOnly(ctx.commandPool());
         createImageView();
-        createRenderPass();
-        createFramebuffer();
         createSampler();
         allocateAndWriteDescriptorSet(ctx);
     }
 
     private void destroyGpuObjects() {
-        context.freeTextureDescriptorSet(descriptorSet);
-        descriptorSet = VK_NULL_HANDLE;
+        var descriptorSetToFree = descriptorSet;
+        var framebuffersToDestroy =
+                framebufferHandles.values().stream().mapToLong(Long::longValue).toArray();
+        var samplerToDestroy = sampler;
+        var imageViewToDestroy = imageView;
+        var imageToDestroy = image;
+        var allocationToDestroy = imageAllocation;
 
-        if (framebufferHandleField != VK_NULL_HANDLE) {
-            vkDestroyFramebuffer(device.device(), framebufferHandleField, null);
-            framebufferHandleField = VK_NULL_HANDLE;
-        }
-        if (renderPassHandleField != VK_NULL_HANDLE) {
-            vkDestroyRenderPass(device.device(), renderPassHandleField, null);
-            renderPassHandleField = VK_NULL_HANDLE;
-        }
-        if (sampler != VK_NULL_HANDLE) {
-            vkDestroySampler(device.device(), sampler, null);
-            sampler = VK_NULL_HANDLE;
-        }
-        if (imageView != VK_NULL_HANDLE) {
-            vkDestroyImageView(device.device(), imageView, null);
-            imageView = VK_NULL_HANDLE;
-        }
-        if (image != VK_NULL_HANDLE) {
-            vmaDestroyImage(context.allocator().handle(), image, imageAllocation);
-            image = VK_NULL_HANDLE;
-            imageAllocation = VK_NULL_HANDLE;
-        }
+        descriptorSet = VK_NULL_HANDLE;
+        framebufferHandles.clear();
+        sampler = VK_NULL_HANDLE;
+        imageView = VK_NULL_HANDLE;
+        image = VK_NULL_HANDLE;
+        imageAllocation = VK_NULL_HANDLE;
+
+        context.deferRelease(() -> {
+            context.freeTextureDescriptorSet(descriptorSetToFree);
+            for (var framebuffer : framebuffersToDestroy) {
+                vkDestroyFramebuffer(device.device(), framebuffer, null);
+            }
+            if (samplerToDestroy != VK_NULL_HANDLE) {
+                vkDestroySampler(device.device(), samplerToDestroy, null);
+            }
+            if (imageViewToDestroy != VK_NULL_HANDLE) {
+                vkDestroyImageView(device.device(), imageViewToDestroy, null);
+            }
+            if (imageToDestroy != VK_NULL_HANDLE) {
+                vmaDestroyImage(context.allocator().handle(), imageToDestroy, allocationToDestroy);
+            }
+        });
     }
 
     private void createImage(VulkanContext ctx) {
@@ -243,66 +239,11 @@ public final class VulkanRenderTarget extends RenderTarget {
         }
     }
 
-    private void createRenderPass() {
-        try (MemoryStack stack = stackPush()) {
-            var colorAttachment = VkAttachmentDescription.calloc(1, stack)
-                    .format(FORMAT)
-                    .samples(VK_SAMPLE_COUNT_1_BIT)
-                    .loadOp(VK_ATTACHMENT_LOAD_OP_CLEAR)
-                    .storeOp(VK_ATTACHMENT_STORE_OP_STORE)
-                    .stencilLoadOp(VK_ATTACHMENT_LOAD_OP_DONT_CARE)
-                    .stencilStoreOp(VK_ATTACHMENT_STORE_OP_DONT_CARE)
-                    .initialLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
-                    .finalLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-            var colorRef = VkAttachmentReference.calloc(1, stack)
-                    .attachment(0)
-                    .layout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-
-            var subpass = VkSubpassDescription.calloc(1, stack)
-                    .pipelineBindPoint(VK_PIPELINE_BIND_POINT_GRAPHICS)
-                    .colorAttachmentCount(1)
-                    .pColorAttachments(colorRef);
-
-            // Dep 1: wait for any previous fragment shader reads before writing to the attachment
-            // Dep 2: make the color writes visible to the next fragment shader reads
-            var deps = VkSubpassDependency.calloc(2, stack);
-            deps.get(0)
-                    .srcSubpass(VK_SUBPASS_EXTERNAL)
-                    .dstSubpass(0)
-                    .srcStageMask(VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT)
-                    .srcAccessMask(VK_ACCESS_SHADER_READ_BIT)
-                    .dstStageMask(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT)
-                    .dstAccessMask(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT)
-                    .dependencyFlags(VK_DEPENDENCY_BY_REGION_BIT);
-            deps.get(1)
-                    .srcSubpass(0)
-                    .dstSubpass(VK_SUBPASS_EXTERNAL)
-                    .srcStageMask(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT)
-                    .srcAccessMask(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT)
-                    .dstStageMask(VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT)
-                    .dstAccessMask(VK_ACCESS_SHADER_READ_BIT)
-                    .dependencyFlags(VK_DEPENDENCY_BY_REGION_BIT);
-
-            var rpInfo = VkRenderPassCreateInfo.calloc(stack)
-                    .sType(VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO)
-                    .pAttachments(colorAttachment)
-                    .pSubpasses(subpass)
-                    .pDependencies(deps);
-
-            var pRp = stack.mallocLong(1);
-            if (vkCreateRenderPass(device.device(), rpInfo, null, pRp) != VK_SUCCESS) {
-                throw new RuntimeException("Failed to create render pass for VulkanRenderTarget");
-            }
-            renderPassHandleField = pRp.get(0);
-        }
-    }
-
-    private void createFramebuffer() {
+    private long createFramebuffer(long renderPass) {
         try (MemoryStack stack = stackPush()) {
             var fbInfo = VkFramebufferCreateInfo.calloc(stack)
                     .sType(VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO)
-                    .renderPass(renderPassHandleField)
+                    .renderPass(renderPass)
                     .attachmentCount(1)
                     .pAttachments(stack.longs(imageView))
                     .width(width)
@@ -313,7 +254,7 @@ public final class VulkanRenderTarget extends RenderTarget {
             if (vkCreateFramebuffer(device.device(), fbInfo, null, pFb) != VK_SUCCESS) {
                 throw new RuntimeException("Failed to create VkFramebuffer for render target");
             }
-            framebufferHandleField = pFb.get(0);
+            return pFb.get(0);
         }
     }
 
@@ -368,7 +309,7 @@ public final class VulkanRenderTarget extends RenderTarget {
     }
 
     /** Non-owning Texture2D view over this render target's color attachment. */
-    private final class ColorTexture extends Texture2D {
+    private final class ColorTexture extends Texture2D implements VulkanTextureBinding {
 
         @Override
         public int getWidth() {
@@ -381,10 +322,8 @@ public final class VulkanRenderTarget extends RenderTarget {
         }
 
         @Override
-        public void bind() {
-            if (!context.isDisposed()) {
-                context.setActiveDescriptorSet(descriptorSet);
-            }
+        public long descriptorSetHandle() {
+            return descriptorSet;
         }
 
         @Override

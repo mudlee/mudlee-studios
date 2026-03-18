@@ -7,10 +7,13 @@ import static org.lwjgl.system.MemoryStack.stackPush;
 import static org.lwjgl.vulkan.KHRSwapchain.*;
 import static org.lwjgl.vulkan.VK12.*;
 
+import hu.mudlee.core.render.ColorLoadAction;
 import hu.mudlee.core.render.GraphicsContext;
+import hu.mudlee.core.render.RenderPassOptions;
 import hu.mudlee.core.render.RenderTarget;
 import hu.mudlee.core.render.Shader;
 import hu.mudlee.core.render.VertexArray;
+import hu.mudlee.core.render.texture.Texture2D;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -33,8 +36,8 @@ import org.slf4j.LoggerFactory;
  * <p>Frame loop (called by Application each frame):
  *
  * <p>beginFrame() → wait fence → acquire swap chain image → begin command buffer → begin render
- * pass renderRaw() → bind pipeline → push constants → bind texture descriptor set → draw
- * swapBuffers()→ end render pass → end command buffer → submit → present → advance frame index
+ * pass → renderRaw() → bind pipeline → push constants → bind texture descriptor set → draw →
+ * end render pass → end command buffer → submit → present → advance frame index
  *
  * <p>Window resize is handled lazily: swapchainOutOfDate is set on windowResized() and the swap
  * chain is recreated at the next beginFrame() call.
@@ -59,11 +62,10 @@ public class VulkanContext implements GraphicsContext {
     private long surface = VK_NULL_HANDLE;
     private VulkanDevice device;
     private VulkanSwapChain swapChain;
-    private VulkanRenderPass renderPass;
-    private VulkanRenderPass loadRenderPass;
     private VulkanCommandPool commandPool;
     private VulkanSyncObjects syncObjects;
     private VulkanAllocator allocator;
+    private final Map<VulkanRenderPassSpec, VulkanRenderPass> renderPassCache = new HashMap<>();
 
     // Global descriptor layout for combined-image-sampler at set=0, binding=0
     private long textureDescriptorSetLayout = VK_NULL_HANDLE;
@@ -82,16 +84,21 @@ public class VulkanContext implements GraphicsContext {
     private boolean frameInProgress = false;
     private VulkanRenderTarget activeRenderTarget = null;
     private long activeRenderPassHandle = VK_NULL_HANDLE;
-    private boolean backbufferPassStarted = false;
+    private RenderPassOptions activeRenderPassOptions = RenderPassOptions.clearColor();
+    private final List<Runnable>[] deferredReleases;
 
     private final float[] clearColor = {0f, 0f, 0f, 1f};
-    private long activeDescriptorSet = VK_NULL_HANDLE;
     private String rendererInfo = "";
     private boolean disposed = false;
     private final Set<VulkanShader> liveShaders = Collections.newSetFromMap(new WeakHashMap<>());
 
+    @SuppressWarnings("unchecked")
     public VulkanContext(boolean debug) {
         this.debug = debug;
+        this.deferredReleases = new List[FRAMES_IN_FLIGHT];
+        for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
+            deferredReleases[i] = new ArrayList<>();
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -129,16 +136,8 @@ public class VulkanContext implements GraphicsContext {
         return textureDescriptorSetLayout;
     }
 
-    long renderPassHandle() {
-        return renderPass.handle();
-    }
-
     VkExtent2D swapChainExtent() {
         return swapChain.extent();
-    }
-
-    void setActiveDescriptorSet(long descriptorSet) {
-        activeDescriptorSet = descriptorSet;
     }
 
     boolean isDisposed() {
@@ -239,9 +238,6 @@ public class VulkanContext implements GraphicsContext {
             device = new VulkanDevice(vkInstance, surface);
             allocator = new VulkanAllocator(vkInstance.handle(), device.physicalDevice(), device.device());
             swapChain = new VulkanSwapChain(device, surface, windowId, vSync);
-            renderPass = new VulkanRenderPass(device, swapChain.imageFormat(), true);
-            loadRenderPass = new VulkanRenderPass(device, swapChain.imageFormat(), false);
-            swapChain.buildFramebuffers(renderPass.handle());
             commandPool = new VulkanCommandPool(device);
             syncObjects = new VulkanSyncObjects(device, swapChain.imageCount());
             createTextureDescriptorSetLayout();
@@ -280,6 +276,7 @@ public class VulkanContext implements GraphicsContext {
         try (MemoryStack stack = stackPush()) {
             var fence = syncObjects.inFlightFence(currentFrame);
             vkWaitForFences(device.device(), fence, true, Long.MAX_VALUE);
+            flushDeferredReleases(currentFrame);
 
             var pImageIndex = stack.mallocInt(1);
             var result = vkAcquireNextImageKHR(
@@ -316,7 +313,7 @@ public class VulkanContext implements GraphicsContext {
     }
 
     @Override
-    public void beginRenderPass(RenderTarget renderTarget) {
+    public void beginRenderPass(RenderTarget renderTarget, RenderPassOptions options) {
         if (!frameInProgress) {
             return;
         }
@@ -326,6 +323,7 @@ public class VulkanContext implements GraphicsContext {
             renderPassActive = false;
         }
         activeRenderTarget = (renderTarget instanceof VulkanRenderTarget vrt) ? vrt : null;
+        activeRenderPassOptions = options;
         beginCurrentRenderPass();
     }
 
@@ -350,15 +348,22 @@ public class VulkanContext implements GraphicsContext {
      */
     @Override
     public void renderRaw(VertexArray vertexArray, Shader shader) {
-        renderRawInternal(vertexArray, shader, -1, 0);
+        renderRawInternal(vertexArray, shader, null, -1, 0);
     }
 
     @Override
     public void renderRaw(VertexArray vertexArray, Shader shader, int elementOffset, int elementCount) {
-        renderRawInternal(vertexArray, shader, elementCount, elementOffset);
+        renderRawInternal(vertexArray, shader, null, elementCount, elementOffset);
     }
 
-    private void renderRawInternal(VertexArray vertexArray, Shader shader, int elementCount, int elementOffset) {
+    @Override
+    public void renderRaw(
+            VertexArray vertexArray, Shader shader, Texture2D texture, int elementOffset, int elementCount) {
+        renderRawInternal(vertexArray, shader, texture, elementCount, elementOffset);
+    }
+
+    private void renderRawInternal(
+            VertexArray vertexArray, Shader shader, Texture2D texture, int elementCount, int elementOffset) {
         if (!frameInProgress) {
             return;
         }
@@ -380,8 +385,7 @@ public class VulkanContext implements GraphicsContext {
         // Create the VkPipeline lazily using the currently active render pass and extent
         var boundVertexBuffers = va.vertexBuffers();
         var firstVbo = boundVertexBuffers.get(0);
-        var currentRpHandle =
-                activeRenderTarget != null ? activeRenderTarget.renderPassHandle() : activeRenderPassHandle;
+        var currentRpHandle = activeRenderPassHandle;
         var currentExtent = activeRenderTarget != null ? activeRenderTarget.extent() : swapChain.extent();
         var pipeline = vs.getOrCreatePipeline(boundVertexBuffers, currentRpHandle, currentExtent);
 
@@ -394,8 +398,8 @@ public class VulkanContext implements GraphicsContext {
             vkCmdPushConstants(cmdBuf, vs.pipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, pushData);
 
             // Bind texture descriptor set (set=0)
-            if (activeDescriptorSet != VK_NULL_HANDLE) {
-                var pSet = stack.longs(activeDescriptorSet);
+            if (texture instanceof VulkanTextureBinding binding && binding.descriptorSetHandle() != VK_NULL_HANDLE) {
+                var pSet = stack.longs(binding.descriptorSetHandle());
                 vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, vs.pipelineLayout(), 0, pSet, null);
             }
 
@@ -512,18 +516,21 @@ public class VulkanContext implements GraphicsContext {
             long fbHandle;
             int w, h;
 
+            var spec = activeRenderTarget != null
+                    ? renderTargetPassSpec(activeRenderPassOptions)
+                    : backbufferPassSpec(activeRenderPassOptions);
             if (activeRenderTarget != null) {
-                rpHandle = activeRenderTarget.renderPassHandle();
-                fbHandle = activeRenderTarget.framebufferHandle();
+                var renderPass = getOrCreateRenderPass(spec);
+                rpHandle = renderPass.handle();
+                fbHandle = activeRenderTarget.framebufferHandle(spec, rpHandle);
                 w = activeRenderTarget.vkWidth();
                 h = activeRenderTarget.vkHeight();
             } else {
-                var backbufferRenderPass = backbufferPassStarted ? loadRenderPass : renderPass;
-                rpHandle = backbufferRenderPass.handle();
-                fbHandle = swapChain.framebuffer(currentImageIndex);
+                var renderPass = getOrCreateRenderPass(spec);
+                rpHandle = renderPass.handle();
+                fbHandle = swapChain.framebuffer(currentImageIndex, spec, rpHandle);
                 w = swapChain.extent().width();
                 h = swapChain.extent().height();
-                backbufferPassStarted = true;
             }
 
             var rpBeginInfo = VkRenderPassBeginInfo.calloc(stack)
@@ -560,7 +567,7 @@ public class VulkanContext implements GraphicsContext {
         renderPassActive = false;
         activeRenderTarget = null;
         activeRenderPassHandle = VK_NULL_HANDLE;
-        backbufferPassStarted = false;
+        activeRenderPassOptions = RenderPassOptions.clearColor();
     }
 
     private void recreateSwapChain() {
@@ -569,9 +576,8 @@ public class VulkanContext implements GraphicsContext {
         var oldImageCount = swapChain.imageCount();
         swapChain.recreate(vSync);
         if (swapChain.imageFormat() != oldFormat) {
-            rebuildMainRenderPass();
+            rebuildRenderPassCache();
         }
-        swapChain.buildFramebuffers(renderPass.handle());
         if (swapChain.imageCount() != oldImageCount) {
             syncObjects.dispose();
             syncObjects = new VulkanSyncObjects(device, swapChain.imageCount());
@@ -584,17 +590,13 @@ public class VulkanContext implements GraphicsContext {
                 swapChain.extent().height());
     }
 
-    private void rebuildMainRenderPass() {
-        if (renderPass != null) {
+    private void rebuildRenderPassCache() {
+        for (var renderPass : renderPassCache.values()) {
             renderPass.dispose();
         }
-        if (loadRenderPass != null) {
-            loadRenderPass.dispose();
-        }
-        renderPass = new VulkanRenderPass(device, swapChain.imageFormat(), true);
-        loadRenderPass = new VulkanRenderPass(device, swapChain.imageFormat(), false);
+        renderPassCache.clear();
         invalidateGraphicsPipelines();
-        log.debug("Main render pass rebuilt for swapchain format {}", swapChain.imageFormat());
+        log.debug("Render pass cache rebuilt for swapchain format {}", swapChain.imageFormat());
     }
 
     private void invalidateGraphicsPipelines() {
@@ -606,7 +608,16 @@ public class VulkanContext implements GraphicsContext {
     void waitForInFlightFrames() {
         if (syncObjects != null) {
             syncObjects.waitForAllFences();
+            flushAllDeferredReleases();
         }
+    }
+
+    void deferRelease(Runnable releaseAction) {
+        if (disposed || device == null || syncObjects == null) {
+            releaseAction.run();
+            return;
+        }
+        deferredReleases[currentFrame].add(releaseAction);
     }
 
     /**
@@ -685,6 +696,7 @@ public class VulkanContext implements GraphicsContext {
         if (waitForDeviceIdle && device != null) {
             device.waitIdle();
         }
+        flushAllDeferredReleases();
 
         if (syncObjects != null) {
             syncObjects.dispose();
@@ -707,14 +719,10 @@ public class VulkanContext implements GraphicsContext {
         descriptorPools.clear();
         descriptorSetToPool.clear();
 
-        if (renderPass != null) {
+        for (var renderPass : renderPassCache.values()) {
             renderPass.dispose();
-            renderPass = null;
         }
-        if (loadRenderPass != null) {
-            loadRenderPass.dispose();
-            loadRenderPass = null;
-        }
+        renderPassCache.clear();
         if (swapChain != null) {
             swapChain.dispose();
             swapChain = null;
@@ -737,11 +745,57 @@ public class VulkanContext implements GraphicsContext {
             vkInstance = null;
         }
 
-        activeDescriptorSet = VK_NULL_HANDLE;
         frameInProgress = false;
         renderPassActive = false;
         activeRenderTarget = null;
         swapchainOutOfDate = false;
+    }
+
+    private VulkanRenderPass getOrCreateRenderPass(VulkanRenderPassSpec spec) {
+        return renderPassCache.computeIfAbsent(spec, ignored -> new VulkanRenderPass(device, spec));
+    }
+
+    private VulkanRenderPassSpec backbufferPassSpec(RenderPassOptions options) {
+        return new VulkanRenderPassSpec(
+                swapChain.imageFormat(),
+                options.colorLoadAction() == ColorLoadAction.CLEAR
+                        ? VK_IMAGE_LAYOUT_UNDEFINED
+                        : VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                toVulkanLoadOp(options.colorLoadAction()));
+    }
+
+    private VulkanRenderPassSpec renderTargetPassSpec(RenderPassOptions options) {
+        return new VulkanRenderPassSpec(
+                VulkanRenderTarget.FORMAT,
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                toVulkanLoadOp(options.colorLoadAction()));
+    }
+
+    private int toVulkanLoadOp(ColorLoadAction loadAction) {
+        return switch (loadAction) {
+            case CLEAR -> VK_ATTACHMENT_LOAD_OP_CLEAR;
+            case LOAD -> VK_ATTACHMENT_LOAD_OP_LOAD;
+        };
+    }
+
+    private void flushDeferredReleases(int frameIndex) {
+        var releases = deferredReleases[frameIndex];
+        if (releases.isEmpty()) {
+            return;
+        }
+        var pending = List.copyOf(releases);
+        releases.clear();
+        for (var release : pending) {
+            release.run();
+        }
+    }
+
+    private void flushAllDeferredReleases() {
+        for (int i = 0; i < deferredReleases.length; i++) {
+            flushDeferredReleases(i);
+        }
     }
 
     @Override

@@ -3,15 +3,15 @@ package hu.mudlee.core.ui;
 import hu.mudlee.core.GameService;
 import hu.mudlee.core.GameTime;
 import hu.mudlee.core.content.ContentManager;
+import hu.mudlee.core.render.Renderer;
 import hu.mudlee.core.render.font.BitmapFont;
 import hu.mudlee.core.window.Window;
 
 /**
  * {@link GameService} that drives the entire UI system each frame.
  *
- * <p>Owns a {@link UIBatch} (backed by {@link hu.mudlee.core.render.SpriteBatch2D}) and a default
- * {@link BitmapFont}. Register once at startup and add to {@code components} after all scene
- * managers so it renders on top:
+ * <p>Owns a {@link UIBatch} and a default {@link BitmapFont}. Register once at startup and add to
+ * {@code components} after all scene managers so it renders on top:
  *
  * <pre>
  * // in loadContent():
@@ -63,6 +63,9 @@ public final class UIService extends GameService {
 
     @Override
     public void draw(GameTime gameTime) {
+        if (!Renderer.isFrameInProgress()) {
+            return;
+        }
         uiBatch.begin();
         canvas.draw(uiBatch);
         uiBatch.end();

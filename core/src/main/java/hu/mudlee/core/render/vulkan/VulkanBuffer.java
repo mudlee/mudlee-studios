@@ -56,6 +56,7 @@ class VulkanBuffer implements Disposable {
         }
     }
 
+    private final VulkanContext context;
     private final long allocator;
     private final long handle;
     private final long allocation;
@@ -65,7 +66,8 @@ class VulkanBuffer implements Disposable {
 
     VulkanBuffer(long size, int usage, AllocationRequest allocationRequest) {
         this.size = size;
-        this.allocator = VulkanContext.get().allocator().handle();
+        this.context = VulkanContext.get();
+        this.allocator = context.allocator().handle();
 
         try (MemoryStack stack = stackPush()) {
             var bufferInfo = VkBufferCreateInfo.calloc(stack)
@@ -158,6 +160,10 @@ class VulkanBuffer implements Disposable {
 
     @Override
     public void dispose() {
-        vmaDestroyBuffer(allocator, handle, allocation);
+        if (context.isDisposed()) {
+            vmaDestroyBuffer(allocator, handle, allocation);
+            return;
+        }
+        context.deferRelease(() -> vmaDestroyBuffer(allocator, handle, allocation));
     }
 }

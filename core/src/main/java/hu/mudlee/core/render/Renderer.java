@@ -1,5 +1,6 @@
 package hu.mudlee.core.render;
 
+import hu.mudlee.core.render.texture.Texture2D;
 import hu.mudlee.core.render.vulkan.VulkanRenderBackendFactory;
 import hu.mudlee.core.window.WindowEventListener;
 import org.joml.Vector4f;
@@ -84,12 +85,29 @@ public class Renderer implements WindowEventListener {
         get().context.renderRaw(vao, shader, elementOffset, elementCount);
     }
 
-    public static void setRenderTarget(RenderTarget renderTarget) {
-        beginRenderPass(renderTarget);
+    public static void renderRaw(VertexArray vao, Shader shader, Texture2D texture) {
+        if (!frameInProgress) {
+            return;
+        }
+        drawCallCount++;
+        get().context.renderRaw(vao, shader, texture);
+    }
+
+    public static void renderRaw(
+            VertexArray vao, Shader shader, Texture2D texture, int elementOffset, int elementCount) {
+        if (!frameInProgress) {
+            return;
+        }
+        drawCallCount++;
+        get().context.renderRaw(vao, shader, texture, elementOffset, elementCount);
     }
 
     public static void beginRenderPass(RenderTarget renderTarget) {
-        get().context.beginRenderPass(renderTarget);
+        beginRenderPass(renderTarget, RenderPassOptions.clearColor());
+    }
+
+    public static void beginRenderPass(RenderTarget renderTarget, RenderPassOptions options) {
+        get().context.beginRenderPass(renderTarget, options);
     }
 
     public static void endRenderPass() {
@@ -106,10 +124,6 @@ public class Renderer implements WindowEventListener {
         spriteBatchFlushCount = 0;
         frameInProgress = get().context.beginFrame();
         return frameInProgress;
-    }
-
-    public static void swapBuffers(float frameTime) {
-        present(frameTime);
     }
 
     public static void present(float frameTime) {

@@ -20,7 +20,7 @@ import hu.mudlee.core.input.GamepadAxis;
 import hu.mudlee.core.input.GamepadButton;
 import hu.mudlee.core.input.InputActionMap;
 import hu.mudlee.core.input.Keys;
-import hu.mudlee.core.render.SpriteBatch2D;
+import hu.mudlee.core.render.SpriteRenderCoordinator;
 import hu.mudlee.core.render.animation.PlayMode;
 import hu.mudlee.core.render.camera.OrthographicCamera2D;
 import hu.mudlee.core.render.texture.SpriteSheet2D;
@@ -33,7 +33,7 @@ public class PlayerScene implements Screen {
     private final GraphicsDevice graphicsDevice;
     private final World world = new World();
 
-    private SpriteBatch2D spriteBatch;
+    private SpriteRenderCoordinator spritePass;
     private Entity cameraEntity;
     private ContentManager content;
     private TextureAtlas atlas;
@@ -46,7 +46,7 @@ public class PlayerScene implements Screen {
 
     @Override
     public void show() {
-        spriteBatch = new SpriteBatch2D();
+        spritePass = new SpriteRenderCoordinator();
         cameraEntity = world.entities.createEntity();
         world.entities.addComponent(cameraEntity, new CameraComponent(new OrthographicCamera2D()));
         world.addSystem(new Transform2DPropagationSystem());
@@ -118,14 +118,14 @@ public class PlayerScene implements Screen {
 
     @Override
     public void draw(GameTime gameTime) {
-        if (!graphicsDevice.clear(Color.BLACK)) {
+        if (!graphicsDevice.beginFrame(Color.BLACK)) {
             return;
         }
         var camera = world.entities.getComponent(cameraEntity, CameraComponent.class).camera;
-        spriteBatch.begin(camera.getTransformMatrix());
-        spriteBatch.draw(atlas.getRegion("mario"), new Vector2f(50, 50), Color.WHITE);
-        world.render(spriteBatch);
-        spriteBatch.end();
+        spritePass.begin(camera.getTransformMatrix());
+        spritePass.draw(atlas.getRegion("mario"), new Vector2f(50, 50), Color.WHITE);
+        world.render(spritePass);
+        spritePass.end();
     }
 
     @Override
@@ -137,6 +137,6 @@ public class PlayerScene implements Screen {
         atlas.dispose();
         content.unload();
         world.dispose();
-        spriteBatch.dispose();
+        spritePass.dispose();
     }
 }

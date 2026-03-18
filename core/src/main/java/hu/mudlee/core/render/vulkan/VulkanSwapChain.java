@@ -7,6 +7,8 @@ import static org.lwjgl.vulkan.KHRSwapchain.*;
 import static org.lwjgl.vulkan.VK12.*;
 
 import hu.mudlee.core.Disposable;
+import java.util.HashMap;
+import java.util.Map;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.vulkan.*;
 import org.slf4j.Logger;
@@ -29,7 +31,7 @@ class VulkanSwapChain implements Disposable {
     private long swapChain = VK_NULL_HANDLE;
     private long[] images;
     private long[] imageViews;
-    private long[] framebuffers;
+    private final Map<VulkanRenderPassSpec, long[]> framebuffersBySpec = new HashMap<>();
     private int imageFormat;
     private VkExtent2D extent;
 
@@ -135,8 +137,13 @@ class VulkanSwapChain implements Disposable {
         }
     }
 
-    void buildFramebuffers(long renderPass) {
-        framebuffers = new long[imageViews.length];
+    long framebuffer(int index, VulkanRenderPassSpec spec, long renderPass) {
+        var framebuffers = framebuffersBySpec.computeIfAbsent(spec, ignored -> createFramebuffers(renderPass));
+        return framebuffers[index];
+    }
+
+    private long[] createFramebuffers(long renderPass) {
+        var framebuffers = new long[imageViews.length];
         try (MemoryStack stack = stackPush()) {
             var pFramebuffer = stack.mallocLong(1);
             for (int i = 0; i < imageViews.length; i++) {
@@ -155,6 +162,7 @@ class VulkanSwapChain implements Disposable {
                 framebuffers[i] = pFramebuffer.get(0);
             }
         }
+        return framebuffers;
     }
 
     void recreate(boolean vSync) {
@@ -178,10 +186,6 @@ class VulkanSwapChain implements Disposable {
 
     int imageCount() {
         return images.length;
-    }
-
-    long framebuffer(int index) {
-        return framebuffers[index];
     }
 
     long swapChainHandle() {
@@ -262,12 +266,12 @@ class VulkanSwapChain implements Disposable {
     }
 
     private void destroyFramebuffers() {
-        if (framebuffers != null) {
+        for (var framebuffers : framebuffersBySpec.values()) {
             for (long fb : framebuffers) {
                 vkDestroyFramebuffer(device.device(), fb, null);
             }
-            framebuffers = null;
         }
+        framebuffersBySpec.clear();
     }
 
     private void destroyImageViews() {

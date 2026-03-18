@@ -139,14 +139,20 @@ public class VulkanShader extends Shader {
     @Override
     public void dispose() {
         context.unregisterShader(this);
-        invalidatePipeline();
-        if (pipelineLayout != VK_NULL_HANDLE) {
-            vkDestroyPipelineLayout(device.device(), pipelineLayout, null);
-            pipelineLayout = VK_NULL_HANDLE;
-        }
-        // descriptorSetLayout is owned by VulkanContext — do NOT destroy it here
-        vkDestroyShaderModule(device.device(), fragShaderModule, null);
-        vkDestroyShaderModule(device.device(), vertShaderModule, null);
+        var pipelinesToDestroy = List.copyOf(pipelines.values());
+        pipelines.clear();
+        var pipelineLayoutToDestroy = pipelineLayout;
+        pipelineLayout = VK_NULL_HANDLE;
+        context.deferRelease(() -> {
+            for (var pipeline : pipelinesToDestroy) {
+                vkDestroyPipeline(device.device(), pipeline, null);
+            }
+            if (pipelineLayoutToDestroy != VK_NULL_HANDLE) {
+                vkDestroyPipelineLayout(device.device(), pipelineLayoutToDestroy, null);
+            }
+            vkDestroyShaderModule(device.device(), fragShaderModule, null);
+            vkDestroyShaderModule(device.device(), vertShaderModule, null);
+        });
         log.debug("VulkanShader disposed");
     }
 

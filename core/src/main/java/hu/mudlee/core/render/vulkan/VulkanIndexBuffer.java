@@ -11,8 +11,8 @@ import org.slf4j.LoggerFactory;
  * Vulkan index buffer backed by device-local GPU memory. Index type is always VK_INDEX_TYPE_UINT32
  * (matches int[] input).
  *
- * <p>bind()/unbind() are no-ops — index buffer binding is done explicitly via vkCmdBindIndexBuffer
- * inside VulkanContext.renderRaw().
+ * <p>Index buffer binding is done explicitly via vkCmdBindIndexBuffer inside
+ * VulkanContext.renderRaw().
  */
 public class VulkanIndexBuffer extends ElementBuffer {
 

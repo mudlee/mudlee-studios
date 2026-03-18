@@ -21,7 +21,5 @@ public abstract class Texture2D implements Disposable {
 
     public abstract int getHeight();
 
-    public abstract void bind();
-
     public abstract void dispose();
 }
