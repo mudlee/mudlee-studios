@@ -40,7 +40,7 @@ What I would change:
 - Skip all render work and presentation when image acquisition fails.
 - Make `swapBuffers()` legal only after a successful frame begin.
 
-### 2. High: swapchain recreation is incomplete and assumes the render pass remains compatible
+### 2. DONE: High: swapchain recreation is incomplete and assumes the render pass remains compatible
 
 The swapchain is recreated in `VulkanContext.recreateSwapChain()`, but the main render pass is not. The initial render pass is created from `swapChain.imageFormat()` during startup only. If the surface format changes during recreation, the render pass and pipelines become incompatible with the new swapchain images.
 
@@ -62,7 +62,7 @@ What I would change:
 - Rebuild the render pass when the format changes.
 - Invalidate all dependent graphics pipelines and rebuild framebuffers afterward.
 
-### 3. High: initialization and shutdown lifetime handling is unsafe
+### 3. DONE: High: initialization and shutdown lifetime handling is unsafe
 
 `VulkanContext.windowCreated()` constructs native objects in a straight line with no rollback if a later step fails. The constructor also publishes `VulkanContext.instance` immediately, but `dispose()` never clears it. Several resources call back into `VulkanContext.get()` during disposal.
 
@@ -85,7 +85,7 @@ What I would change:
 - Clear the singleton on shutdown, or preferably remove the global singleton entirely.
 - Pass explicit backend/device ownership into resources instead of letting them reach back into global state.
 
-### 4. High: the backend abstraction is not real
+### 4. DONE: High: the backend abstraction is not real
 
 The code exposes `RenderBackend`, `GraphicsDeviceManager.setPreferredBackend(...)`, and `GraphicsDevice.getBackend()`, but the engine-level factories instantiate Vulkan directly everywhere. `Renderer` always constructs `new VulkanContext(true)`, and the main render resource abstractions directly create Vulkan implementations.
 
@@ -110,7 +110,7 @@ What I would change:
 - Move resource creation behind backend-owned factories or a proper `GraphicsDevice`.
 - Remove backend selection from the public API until the abstraction is real.
 
-### 5. High: memory allocation semantics are too loose for Vulkan
+### 5. DONE: High: memory allocation semantics are too loose for Vulkan
 
 `VulkanBuffer` accepts requested memory flags, but only actually branches on `HOST_VISIBLE`. It does not preserve coherence requirements and never flushes mapped allocations. Callers currently assume `HOST_VISIBLE | HOST_COHERENT` staging and dynamic buffer behavior.
 

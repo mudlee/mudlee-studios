@@ -21,12 +21,49 @@ import org.lwjgl.vulkan.VkBufferCreateInfo;
  */
 class VulkanBuffer implements Disposable {
 
+    static final class AllocationRequest {
+        private final int requiredFlags;
+        private final int preferredFlags;
+        private final int vmaUsage;
+        private final int vmaFlags;
+
+        private AllocationRequest(int requiredFlags, int preferredFlags, int vmaUsage, int vmaFlags) {
+            this.requiredFlags = requiredFlags;
+            this.preferredFlags = preferredFlags;
+            this.vmaUsage = vmaUsage;
+            this.vmaFlags = vmaFlags;
+        }
+
+        static AllocationRequest deviceLocal() {
+            return new AllocationRequest(
+                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE, 0);
+        }
+
+        static AllocationRequest stagingUpload() {
+            return new AllocationRequest(
+                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+                    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                    VMA_MEMORY_USAGE_AUTO_PREFER_HOST,
+                    VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
+        }
+
+        static AllocationRequest dynamicUpload() {
+            return new AllocationRequest(
+                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+                    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                    VMA_MEMORY_USAGE_AUTO_PREFER_HOST,
+                    VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
+        }
+    }
+
     private final long allocator;
     private final long handle;
     private final long allocation;
     final long size;
+    private final boolean hostVisible;
+    private final boolean hostCoherent;
 
-    VulkanBuffer(long size, int usage, int memoryPropertyFlags) {
+    VulkanBuffer(long size, int usage, AllocationRequest allocationRequest) {
         this.size = size;
         this.allocator = VulkanContext.get().allocator().handle();
 
@@ -37,15 +74,11 @@ class VulkanBuffer implements Disposable {
                     .usage(usage)
                     .sharingMode(VK_SHARING_MODE_EXCLUSIVE);
 
-            var allocationCreateInfo = VmaAllocationCreateInfo.calloc(stack);
-            var hostVisible = (memoryPropertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0;
-            if (hostVisible) {
-                allocationCreateInfo
-                        .usage(VMA_MEMORY_USAGE_AUTO)
-                        .flags(VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
-            } else {
-                allocationCreateInfo.usage(VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE);
-            }
+            var allocationCreateInfo = VmaAllocationCreateInfo.calloc(stack)
+                    .usage(allocationRequest.vmaUsage)
+                    .flags(allocationRequest.vmaFlags)
+                    .requiredFlags(allocationRequest.requiredFlags)
+                    .preferredFlags(allocationRequest.preferredFlags);
 
             var pBuffer = stack.mallocLong(1);
             var pAllocation = stack.mallocPointer(1);
@@ -55,6 +88,19 @@ class VulkanBuffer implements Disposable {
             }
             handle = pBuffer.get(0);
             allocation = pAllocation.get(0);
+
+            var pMemoryFlags = stack.mallocInt(1);
+            vmaGetAllocationMemoryProperties(allocator, allocation, pMemoryFlags);
+            var actualMemoryFlags = pMemoryFlags.get(0);
+            this.hostVisible = (actualMemoryFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0;
+            this.hostCoherent = (actualMemoryFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) != 0;
+
+            if ((allocationRequest.requiredFlags & actualMemoryFlags) != allocationRequest.requiredFlags) {
+                throw new RuntimeException("Allocated Vulkan buffer memory does not satisfy required flags. required="
+                        + allocationRequest.requiredFlags
+                        + " actual="
+                        + actualMemoryFlags);
+            }
         }
     }
 
@@ -67,9 +113,30 @@ class VulkanBuffer implements Disposable {
      * for buffers created with VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT.
      */
     void map(Consumer<ByteBuffer> action) {
+        if (!hostVisible) {
+            throw new IllegalStateException("Cannot map a non-host-visible Vulkan buffer");
+        }
         try (MemoryStack stack = stackPush()) {
             var ppData = stack.mallocPointer(1);
             vmaMapMemory(allocator, allocation, ppData);
+            action.accept(ppData.getByteBuffer(0, (int) size));
+            if (!hostCoherent) {
+                vmaFlushAllocation(allocator, allocation, 0, size);
+            }
+            vmaUnmapMemory(allocator, allocation);
+        }
+    }
+
+    void read(Consumer<ByteBuffer> action) {
+        if (!hostVisible) {
+            throw new IllegalStateException("Cannot map a non-host-visible Vulkan buffer");
+        }
+        try (MemoryStack stack = stackPush()) {
+            var ppData = stack.mallocPointer(1);
+            vmaMapMemory(allocator, allocation, ppData);
+            if (!hostCoherent) {
+                vmaInvalidateAllocation(allocator, allocation, 0, size);
+            }
             action.accept(ppData.getByteBuffer(0, (int) size));
             vmaUnmapMemory(allocator, allocation);
         }

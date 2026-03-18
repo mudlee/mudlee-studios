@@ -2,7 +2,6 @@ package hu.mudlee.core.render;
 
 import hu.mudlee.core.Disposable;
 import hu.mudlee.core.render.texture.Texture2D;
-import hu.mudlee.core.render.vulkan.VulkanRenderTarget;
 
 /**
  * An off-screen render surface that can be drawn into and then sampled as a texture.
@@ -23,7 +22,7 @@ import hu.mudlee.core.render.vulkan.VulkanRenderTarget;
 public abstract class RenderTarget implements Disposable {
 
     public static RenderTarget create(int width, int height) {
-        return new VulkanRenderTarget(width, height);
+        return Renderer.backendFactory().createRenderTarget(width, height);
     }
 
     public abstract int getWidth();

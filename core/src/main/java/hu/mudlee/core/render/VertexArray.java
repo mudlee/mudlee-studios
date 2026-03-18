@@ -1,12 +1,11 @@
 package hu.mudlee.core.render;
 
-import hu.mudlee.core.render.vulkan.VulkanVertexArray;
 import java.util.List;
 import java.util.Optional;
 
 public abstract class VertexArray {
     public static VertexArray create() {
-        return new VulkanVertexArray();
+        return Renderer.backendFactory().createVertexArray();
     }
 
     public abstract void addVBO(VertexBuffer buffer);

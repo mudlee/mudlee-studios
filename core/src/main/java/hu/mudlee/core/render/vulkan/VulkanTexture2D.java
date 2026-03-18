@@ -158,9 +158,7 @@ public class VulkanTexture2D extends Texture2D {
         var imageSizeBytes = (long) width * height * 4; // RGBA = 4 bytes per pixel
 
         var staging = new VulkanBuffer(
-                imageSizeBytes,
-                VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+                imageSizeBytes, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VulkanBuffer.AllocationRequest.stagingUpload());
 
         staging.map(dst -> {
             var src = pixels.duplicate();

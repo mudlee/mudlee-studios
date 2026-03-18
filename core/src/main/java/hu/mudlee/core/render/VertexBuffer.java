@@ -1,14 +1,12 @@
 package hu.mudlee.core.render;
 
-import hu.mudlee.core.render.vulkan.VulkanVertexBuffer;
-
 public abstract class VertexBuffer {
     public static VertexBuffer create(float[] vertices, VertexBufferLayout layout) {
-        return new VulkanVertexBuffer(vertices, layout);
+        return Renderer.backendFactory().createVertexBuffer(vertices, layout);
     }
 
     public static VertexBuffer createDynamic(VertexBufferLayout layout, int maxFloats) {
-        return new VulkanVertexBuffer(layout, maxFloats);
+        return Renderer.backendFactory().createDynamicVertexBuffer(layout, maxFloats);
     }
 
     public void update(float[] data, int floatCount) {

@@ -1,6 +1,6 @@
 package hu.mudlee.core.render;
 
-import hu.mudlee.core.render.vulkan.VulkanContext;
+import hu.mudlee.core.render.vulkan.VulkanRenderBackendFactory;
 import hu.mudlee.core.window.WindowEventListener;
 import org.joml.Vector4f;
 
@@ -12,11 +12,14 @@ public class Renderer implements WindowEventListener {
     private static boolean frameInProgress = false;
 
     private final GraphicsContext context;
+    private final RenderBackendFactory factory;
     private static Renderer instance;
     private static RenderBackend backend = RenderBackend.VULKAN;
+    private static RenderBackendFactory backendFactory = createBackendFactory(backend);
 
     private Renderer() {
-        context = new VulkanContext(true);
+        factory = backendFactory();
+        context = factory.createGraphicsContext(true);
     }
 
     /**
@@ -28,6 +31,7 @@ public class Renderer implements WindowEventListener {
             throw new IllegalStateException("Renderer already initialised — configure() must be called before get()");
         }
         backend = selectedBackend;
+        backendFactory = createBackendFactory(selectedBackend);
     }
 
     public static RenderBackend activeBackend() {
@@ -40,6 +44,13 @@ public class Renderer implements WindowEventListener {
         }
 
         return instance;
+    }
+
+    public static RenderBackendFactory backendFactory() {
+        if (backendFactory == null) {
+            backendFactory = createBackendFactory(backend);
+        }
+        return backendFactory;
     }
 
     @Override
@@ -144,5 +155,11 @@ public class Renderer implements WindowEventListener {
     public static void dispose() {
         frameInProgress = false;
         get().context.dispose();
+    }
+
+    private static RenderBackendFactory createBackendFactory(RenderBackend selectedBackend) {
+        return switch (selectedBackend) {
+            case VULKAN -> new VulkanRenderBackendFactory();
+        };
     }
 }

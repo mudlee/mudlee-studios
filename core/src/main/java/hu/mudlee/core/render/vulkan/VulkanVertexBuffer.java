@@ -42,9 +42,7 @@ public class VulkanVertexBuffer extends VertexBuffer {
         var sizeBytes = (long) vertices.length * Float.BYTES;
 
         var staging = new VulkanBuffer(
-                sizeBytes,
-                VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+                sizeBytes, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VulkanBuffer.AllocationRequest.stagingUpload());
 
         staging.map(dst -> {
             var floatView = dst.asFloatBuffer();
@@ -54,7 +52,7 @@ public class VulkanVertexBuffer extends VertexBuffer {
         gpuBuffer = new VulkanBuffer(
                 sizeBytes,
                 VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+                VulkanBuffer.AllocationRequest.deviceLocal());
 
         gpuBuffer.copyFrom(staging, commandPool);
         staging.dispose();
@@ -77,9 +75,7 @@ public class VulkanVertexBuffer extends VertexBuffer {
         perFrameBuffers = new VulkanBuffer[FRAMES_IN_FLIGHT];
         for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
             perFrameBuffers[i] = new VulkanBuffer(
-                    sizeBytes,
-                    VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+                    sizeBytes, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VulkanBuffer.AllocationRequest.dynamicUpload());
         }
 
         log.debug(

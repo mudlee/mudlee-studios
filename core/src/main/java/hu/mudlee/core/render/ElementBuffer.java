@@ -1,11 +1,10 @@
 package hu.mudlee.core.render;
 
 import hu.mudlee.core.render.types.IndexType;
-import hu.mudlee.core.render.vulkan.VulkanIndexBuffer;
 
 public abstract class ElementBuffer {
     public static ElementBuffer create(int[] indices) {
-        return new VulkanIndexBuffer(indices);
+        return Renderer.backendFactory().createElementBuffer(indices);
     }
 
     public abstract int getId();
