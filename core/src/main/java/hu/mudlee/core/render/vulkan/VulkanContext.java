@@ -11,7 +11,6 @@ import hu.mudlee.core.render.GraphicsContext;
 import hu.mudlee.core.render.RenderTarget;
 import hu.mudlee.core.render.Shader;
 import hu.mudlee.core.render.VertexArray;
-import hu.mudlee.core.render.VertexBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -361,10 +360,11 @@ public class VulkanContext implements GraphicsContext {
         var cmdBuf = commandPool.commandBuffer(currentFrame);
 
         // Create the VkPipeline lazily using the currently active render pass and extent
-        var firstVbo = va.getVBOs().get(0);
+        var boundVertexBuffers = va.vertexBuffers();
+        var firstVbo = boundVertexBuffers.get(0);
         var currentRpHandle = activeRenderTarget != null ? activeRenderTarget.renderPassHandle() : renderPass.handle();
         var currentExtent = activeRenderTarget != null ? activeRenderTarget.extent() : swapChain.extent();
-        var pipeline = vs.getOrCreatePipeline(firstVbo.getLayout(), currentRpHandle, currentExtent);
+        var pipeline = vs.getOrCreatePipeline(boundVertexBuffers, currentRpHandle, currentExtent);
 
         vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
@@ -381,11 +381,11 @@ public class VulkanContext implements GraphicsContext {
             }
 
             // Bind vertex buffers
-            var vboCount = va.getVBOs().size();
+            var vboCount = boundVertexBuffers.size();
             var pBuffers = stack.mallocLong(vboCount);
             var pOffsets = stack.callocLong(vboCount);
-            for (VertexBuffer vb : va.getVBOs()) {
-                pBuffers.put(((VulkanVertexBuffer) vb).bufferHandle());
+            for (var vb : boundVertexBuffers) {
+                pBuffers.put(vb.bufferHandle());
             }
             pBuffers.flip();
             vkCmdBindVertexBuffers(cmdBuf, 0, pBuffers, pOffsets);
@@ -398,9 +398,8 @@ public class VulkanContext implements GraphicsContext {
                 vkCmdDrawIndexed(cmdBuf, actualCount, instanceCount, elementOffset, 0, 0);
             } else {
                 // Derive vertex count from buffer length and stride
-                var stride = (firstVbo.getLayout().attributes().length > 0)
-                        ? firstVbo.getLayout().attributes()[0].getStride()
-                        : Float.BYTES;
+                var stride =
+                        firstVbo.getLayout().stride() > 0 ? firstVbo.getLayout().stride() : Float.BYTES;
                 var vertexCount = (firstVbo.getLength() * Float.BYTES) / stride;
                 var instanceCount = va.isInstanced() ? va.getInstanceCount() : 1;
                 vkCmdDraw(cmdBuf, vertexCount, instanceCount, 0, 0);

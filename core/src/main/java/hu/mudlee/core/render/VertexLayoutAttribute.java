@@ -1,6 +1,7 @@
 package hu.mudlee.core.render;
 
 import hu.mudlee.core.render.types.ShaderTypes;
+import java.util.Objects;
 
 public class VertexLayoutAttribute {
     private final int index;
@@ -42,5 +43,26 @@ public class VertexLayoutAttribute {
 
     public int getOffset() {
         return offset;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (!(obj instanceof VertexLayoutAttribute other)) {
+            return false;
+        }
+        return index == other.index
+                && dataSize == other.dataSize
+                && stride == other.stride
+                && offset == other.offset
+                && normalized == other.normalized
+                && dataType == other.dataType;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(index, dataSize, dataType, stride, offset, normalized);
     }
 }

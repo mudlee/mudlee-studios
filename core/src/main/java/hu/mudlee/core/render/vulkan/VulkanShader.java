@@ -6,7 +6,11 @@ import static org.lwjgl.vulkan.VK12.*;
 import hu.mudlee.core.io.ResourceLoader;
 import hu.mudlee.core.render.Shader;
 import hu.mudlee.core.render.VertexBufferLayout;
+import hu.mudlee.core.render.VertexInputRate;
 import hu.mudlee.core.render.types.ShaderTypes;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.joml.Matrix4f;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.vulkan.*;
@@ -52,10 +56,7 @@ public class VulkanShader extends Shader {
     private long descriptorSetLayout = VK_NULL_HANDLE;
     private long pipelineLayout = VK_NULL_HANDLE;
 
-    // Lazily created on first draw; recreated if the vertex layout or render pass changes
-    private long pipeline = VK_NULL_HANDLE;
-    private VertexBufferLayout cachedLayout;
-    private long cachedRenderPass = VK_NULL_HANDLE;
+    private final Map<PipelineKey, Long> pipelines = new HashMap<>();
 
     // Cached matrix values written to push constants in VulkanContext.renderRaw()
     private final float[] projectionData = new float[16];
@@ -85,15 +86,16 @@ public class VulkanShader extends Shader {
     // -------------------------------------------------------------------------
 
     /**
-     * Returns the VkPipeline for the given vertex layout. Creates or recreates the pipeline if the
-     * layout changed.
+     * Returns the VkPipeline for the given vertex buffer bindings and render pass. Creates and caches
+     * pipelines by stable signature so multiple layouts and passes can coexist.
      */
-    long getOrCreatePipeline(VertexBufferLayout layout, long renderPass, VkExtent2D extent) {
-        if (pipeline == VK_NULL_HANDLE || cachedLayout != layout || cachedRenderPass != renderPass) {
-            invalidatePipeline();
-            pipeline = createGraphicsPipeline(layout, renderPass, extent);
-            cachedLayout = layout;
-            cachedRenderPass = renderPass;
+    long getOrCreatePipeline(List<VulkanVertexBuffer> vertexBuffers, long renderPass, VkExtent2D extent) {
+        var layouts = vertexBuffers.stream().map(VulkanVertexBuffer::getLayout).toList();
+        var key = new PipelineKey(layouts, renderPass);
+        var pipeline = pipelines.get(key);
+        if (pipeline == null) {
+            pipeline = createGraphicsPipeline(layouts, renderPass, extent);
+            pipelines.put(key, pipeline);
         }
         return pipeline;
     }
@@ -202,7 +204,7 @@ public class VulkanShader extends Shader {
      * Compiles the full VkPipeline for the given vertex layout and render pass. Dynamic viewport and
      * scissor allow the pipeline to work across swapchain recreations.
      */
-    private long createGraphicsPipeline(VertexBufferLayout layout, long renderPass, VkExtent2D extent) {
+    private long createGraphicsPipeline(List<VertexBufferLayout> layouts, long renderPass, VkExtent2D extent) {
         try (MemoryStack stack = stackPush()) {
             var mainName = stack.UTF8("main");
 
@@ -220,27 +222,34 @@ public class VulkanShader extends Shader {
                     .module(fragShaderModule)
                     .pName(mainName);
 
-            // Vertex input: one binding, attributes from the provided VertexBufferLayout
-            var attrs = layout.attributes();
+            var totalAttributeCount = layouts.stream()
+                    .mapToInt(layout -> layout.attributes().length)
+                    .sum();
+            var bindingDescs = VkVertexInputBindingDescription.calloc(layouts.size(), stack);
+            var attrDescs = VkVertexInputAttributeDescription.calloc(totalAttributeCount, stack);
 
-            var bindingDesc = VkVertexInputBindingDescription.calloc(1, stack)
-                    .binding(0)
-                    .stride(attrs.length > 0 ? attrs[0].getStride() : 0)
-                    .inputRate(VK_VERTEX_INPUT_RATE_VERTEX);
+            var attributeIndex = 0;
+            for (int bindingIndex = 0; bindingIndex < layouts.size(); bindingIndex++) {
+                var layout = layouts.get(bindingIndex);
+                bindingDescs
+                        .get(bindingIndex)
+                        .binding(bindingIndex)
+                        .stride(layout.stride())
+                        .inputRate(toVulkanInputRate(layout.inputRate()));
 
-            var attrDescs = VkVertexInputAttributeDescription.calloc(attrs.length, stack);
-            for (int i = 0; i < attrs.length; i++) {
-                attrDescs
-                        .get(i)
-                        .binding(0)
-                        .location(attrs[i].getIndex())
-                        .format(toVulkanFormat(attrs[i].getDataType(), attrs[i].getDataSize()))
-                        .offset(attrs[i].getOffset());
+                for (var attr : layout.attributes()) {
+                    attrDescs
+                            .get(attributeIndex++)
+                            .binding(bindingIndex)
+                            .location(attr.getIndex())
+                            .format(toVulkanFormat(attr.getDataType(), attr.getDataSize(), attr.isNormalized()))
+                            .offset(attr.getOffset());
+                }
             }
 
             var vertexInput = VkPipelineVertexInputStateCreateInfo.calloc(stack)
                     .sType(VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO)
-                    .pVertexBindingDescriptions(bindingDesc)
+                    .pVertexBindingDescriptions(bindingDescs)
                     .pVertexAttributeDescriptions(attrDescs);
 
             var inputAssembly = VkPipelineInputAssemblyStateCreateInfo.calloc(stack)
@@ -314,21 +323,26 @@ public class VulkanShader extends Shader {
                 throw new RuntimeException("Failed to create VkPipeline");
             }
 
-            log.debug("VkPipeline created for layout {}", layout);
+            log.debug("VkPipeline created for layouts {}", layouts);
             return pPipeline.get(0);
         }
     }
 
     void invalidatePipeline() {
-        if (pipeline != VK_NULL_HANDLE) {
+        for (var pipeline : pipelines.values()) {
             vkDestroyPipeline(device.device(), pipeline, null);
-            pipeline = VK_NULL_HANDLE;
         }
-        cachedLayout = null;
-        cachedRenderPass = VK_NULL_HANDLE;
+        pipelines.clear();
     }
 
-    private int toVulkanFormat(ShaderTypes dataType, int componentCount) {
+    private int toVulkanInputRate(VertexInputRate inputRate) {
+        return switch (inputRate) {
+            case PER_VERTEX -> VK_VERTEX_INPUT_RATE_VERTEX;
+            case PER_INSTANCE -> VK_VERTEX_INPUT_RATE_INSTANCE;
+        };
+    }
+
+    private int toVulkanFormat(ShaderTypes dataType, int componentCount, boolean normalized) {
         return switch (dataType) {
             case FLOAT ->
                 switch (componentCount) {
@@ -340,13 +354,15 @@ public class VulkanShader extends Shader {
                 };
             case UNSIGNED_BYTE ->
                 switch (componentCount) {
-                    case 1 -> VK_FORMAT_R8_UINT;
-                    case 2 -> VK_FORMAT_R8G8_UINT;
-                    case 3 -> VK_FORMAT_R8G8B8_UINT;
-                    case 4 -> VK_FORMAT_R8G8B8A8_UINT;
+                    case 1 -> normalized ? VK_FORMAT_R8_UNORM : VK_FORMAT_R8_UINT;
+                    case 2 -> normalized ? VK_FORMAT_R8G8_UNORM : VK_FORMAT_R8G8_UINT;
+                    case 3 -> normalized ? VK_FORMAT_R8G8B8_UNORM : VK_FORMAT_R8G8B8_UINT;
+                    case 4 -> normalized ? VK_FORMAT_R8G8B8A8_UNORM : VK_FORMAT_R8G8B8A8_UINT;
                     default ->
                         throw new RuntimeException("Unsupported unsigned byte component count: " + componentCount);
                 };
         };
     }
+
+    private record PipelineKey(List<VertexBufferLayout> layouts, long renderPass) {}
 }

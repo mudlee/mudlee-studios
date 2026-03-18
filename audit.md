@@ -158,7 +158,7 @@ What I would change:
 - Submit texture/material bindings explicitly as part of a draw command or pass encoder.
 - Keep descriptor state inside backend-owned frame/pass objects.
 
-### 7. High: the vertex input model is inconsistent with the API it exposes
+### 7. DONE: High: the vertex input model is inconsistent with the API it exposes
 
 `VulkanVertexArray` accepts multiple VBOs and exposes instancing, but `VulkanShader.createGraphicsPipeline(...)` hardcodes one vertex binding at binding `0`, all attributes also use binding `0`, and input rate is always per-vertex. The pipeline cache also compares layouts by reference identity instead of value and only remembers one pipeline.
 

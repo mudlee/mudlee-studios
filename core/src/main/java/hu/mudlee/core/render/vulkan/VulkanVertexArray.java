@@ -69,6 +69,10 @@ public class VulkanVertexArray extends VertexArray {
         return instanceCount > 0;
     }
 
+    List<VulkanVertexBuffer> vertexBuffers() {
+        return vertexBuffers.stream().map(VulkanVertexBuffer.class::cast).toList();
+    }
+
     @Override
     public void dispose() {
         for (VertexBuffer vb : vertexBuffers) {
