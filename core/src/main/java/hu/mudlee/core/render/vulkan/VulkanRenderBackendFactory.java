@@ -9,6 +9,7 @@ import hu.mudlee.core.render.VertexArray;
 import hu.mudlee.core.render.VertexBuffer;
 import hu.mudlee.core.render.VertexBufferLayout;
 import hu.mudlee.core.render.texture.Texture2D;
+import hu.mudlee.core.render.types.ShaderConfig;
 import java.nio.ByteBuffer;
 
 public final class VulkanRenderBackendFactory implements RenderBackendFactory {
@@ -39,7 +40,14 @@ public final class VulkanRenderBackendFactory implements RenderBackendFactory {
 
     @Override
     public Shader createShader(String vertexShaderName, String fragmentShaderName) {
-        return new VulkanShader(vertexShaderName, fragmentShaderName);
+        return createShader(
+                vertexShaderName,
+                fragmentShaderName,
+                ShaderConfig.inferFromPaths(vertexShaderName, fragmentShaderName));
+    }
+
+    public Shader createShader(String vertexShaderName, String fragmentShaderName, ShaderConfig config) {
+        return new VulkanShader(vertexShaderName, fragmentShaderName, config);
     }
 
     @Override

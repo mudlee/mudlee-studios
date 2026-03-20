@@ -7,6 +7,8 @@ module hu.mudlee.core {
     requires org.slf4j.simple;
     requires org.lwjgl.stb;
     requires org.lwjgl.stb.natives;
+    requires org.lwjgl.shaderc;
+    requires org.lwjgl.shaderc.natives;
     requires org.lwjgl.vulkan;
     requires org.lwjgl.vulkan.natives;
     requires org.lwjgl.vma;
@@ -23,6 +25,7 @@ module hu.mudlee.core {
     exports hu.mudlee.core.render;
     exports hu.mudlee.core.render.camera;
     exports hu.mudlee.core.render.animation;
+    exports hu.mudlee.core.render.mesh;
     exports hu.mudlee.core.render.texture;
     exports hu.mudlee.core.render.types;
     exports hu.mudlee.core.render.font;

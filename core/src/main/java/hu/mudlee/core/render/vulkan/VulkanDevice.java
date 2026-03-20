@@ -76,6 +76,22 @@ class VulkanDevice implements Disposable {
         return memoryProperties;
     }
 
+    int findSupportedFormat(int tiling, int features, int... candidates) {
+        try (MemoryStack stack = stackPush()) {
+            var formatProps = VkFormatProperties.malloc(stack);
+            for (var format : candidates) {
+                vkGetPhysicalDeviceFormatProperties(physicalDevice, format, formatProps);
+                if (tiling == VK_IMAGE_TILING_LINEAR && (formatProps.linearTilingFeatures() & features) == features) {
+                    return format;
+                }
+                if (tiling == VK_IMAGE_TILING_OPTIMAL && (formatProps.optimalTilingFeatures() & features) == features) {
+                    return format;
+                }
+            }
+        }
+        throw new IllegalStateException("No supported Vulkan format found for requested tiling/features");
+    }
+
     void waitIdle() {
         vkDeviceWaitIdle(logicalDevice);
     }

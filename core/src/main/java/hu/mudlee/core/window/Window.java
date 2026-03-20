@@ -10,6 +10,7 @@ import hu.mudlee.core.settings.Antialiasing;
 import hu.mudlee.core.settings.WindowPreferences;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import org.joml.Vector2i;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWVidMode;
@@ -22,6 +23,7 @@ public class Window implements Disposable {
     private WindowPreferences preferences;
     private final Vector2i size = new Vector2i();
     private final List<WindowEventListener> listeners = new ArrayList<>();
+    private CursorMode cursorMode = CursorMode.NORMAL;
     private long id;
     private GLFWVidMode glfwVidMode;
 
@@ -58,6 +60,18 @@ public class Window implements Disposable {
 
     public static void addListener(WindowEventListener listener) {
         get().listeners.add(listener);
+    }
+
+    public static void setCursorMode(CursorMode mode) {
+        var window = get();
+        window.cursorMode = Objects.requireNonNull(mode, "mode");
+        if (window.id != NULL) {
+            glfwSetInputMode(window.id, GLFW_CURSOR, mode.glfwValue());
+        }
+    }
+
+    public static CursorMode getCursorMode() {
+        return get().cursorMode;
     }
 
     public static Vector2i getSize() {
@@ -113,6 +127,8 @@ public class Window implements Disposable {
 
         window.listeners.forEach(listener ->
                 listener.onWindowCreated(window.id, window.size.x, window.size.y, window.preferences.isvSync()));
+
+        glfwSetInputMode(window.id, GLFW_CURSOR, window.cursorMode.glfwValue());
 
         glfwSetFramebufferSizeCallback(window.id, window::framebufferResized);
         ScreenPixelRatioHandler.set(window.id, window.glfwVidMode);

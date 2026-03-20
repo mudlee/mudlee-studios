@@ -28,9 +28,12 @@ public final class InputSystem {
 
     private static float mouseX;
     private static float mouseY;
+    private static float mouseDeltaX;
+    private static float mouseDeltaY;
     private static float scrollX;
     private static float scrollY;
     private static int activePadId = -1;
+    private static boolean mousePositionInitialized;
 
     private static final List<InputAction> activeActions = new ArrayList<>();
 
@@ -41,7 +44,14 @@ public final class InputSystem {
     }
 
     static MouseState getMouseState() {
-        return new MouseState(mouseX, mouseY, scrollX, scrollY, Arrays.copyOf(MOUSE_STATE, MOUSE_STATE.length));
+        return new MouseState(
+                mouseX,
+                mouseY,
+                mouseDeltaX,
+                mouseDeltaY,
+                scrollX,
+                scrollY,
+                Arrays.copyOf(MOUSE_STATE, MOUSE_STATE.length));
     }
 
     static GamepadState getGamepadState() {
@@ -107,6 +117,8 @@ public final class InputSystem {
      * STARTED → PERFORMED and drives VECTOR2 composite actions.
      */
     public static void update() {
+        mouseDeltaX = 0f;
+        mouseDeltaY = 0f;
         scrollX = 0f;
         scrollY = 0f;
         pollGamepad();
@@ -199,8 +211,16 @@ public final class InputSystem {
 
     /** Wired to GLFW cursor position callback from {@code Window}. */
     public static void processMouseMove(double x, double y) {
-        mouseX = (float) x;
-        mouseY = (float) y;
+        var nextX = (float) x;
+        var nextY = (float) y;
+        if (mousePositionInitialized) {
+            mouseDeltaX += nextX - mouseX;
+            mouseDeltaY += nextY - mouseY;
+        } else {
+            mousePositionInitialized = true;
+        }
+        mouseX = nextX;
+        mouseY = nextY;
     }
 
     /** Wired to GLFW scroll callback from {@code Window}. Scroll is accumulated until reset in {@link #update()}. */

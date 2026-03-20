@@ -50,11 +50,13 @@ dependencies {
 	implementation("org.lwjgl:lwjgl")
 	api("org.lwjgl:lwjgl-glfw")
 	implementation("org.lwjgl:lwjgl-stb")
+	implementation("org.lwjgl:lwjgl-shaderc")
 	implementation("org.lwjgl:lwjgl-vulkan")
 	implementation("org.lwjgl:lwjgl-vma")
 	implementation("org.lwjgl:lwjgl::$lwjglNatives")
 	implementation("org.lwjgl:lwjgl-glfw::$lwjglNatives")
 	implementation("org.lwjgl:lwjgl-stb::$lwjglNatives")
+	implementation("org.lwjgl:lwjgl-shaderc::$lwjglNatives")
 	implementation("org.lwjgl:lwjgl-vma::$lwjglNatives")
 	if (lwjglNatives.startsWith("natives-macos")) {
 		implementation("org.lwjgl:lwjgl-vulkan::$lwjglNatives")

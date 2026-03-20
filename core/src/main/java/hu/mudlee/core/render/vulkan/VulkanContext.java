@@ -237,8 +237,8 @@ public class VulkanContext implements GraphicsContext {
 
             device = new VulkanDevice(vkInstance, surface);
             allocator = new VulkanAllocator(vkInstance.handle(), device.physicalDevice(), device.device());
-            swapChain = new VulkanSwapChain(device, surface, windowId, vSync);
             commandPool = new VulkanCommandPool(device);
+            swapChain = new VulkanSwapChain(device, allocator, commandPool, surface, windowId, vSync);
             syncObjects = new VulkanSyncObjects(device, swapChain.imageCount());
             createTextureDescriptorSetLayout();
             createDescriptorPool();
@@ -392,9 +392,12 @@ public class VulkanContext implements GraphicsContext {
         vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
         try (MemoryStack stack = stackPush()) {
-            // Push constants: projection (offset 0) + view (offset 64) — both mat4
-            var pushData = stack.mallocFloat(32);
-            pushData.put(vs.projectionData()).put(vs.viewData()).flip();
+            var pushData = stack.mallocFloat(vs.pushConstantFloatCount());
+            pushData.put(vs.projectionData()).put(vs.viewData());
+            if (vs.pushConstantFloatCount() > 32) {
+                pushData.put(vs.modelData());
+            }
+            pushData.flip();
             vkCmdPushConstants(cmdBuf, vs.pipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, pushData);
 
             // Bind texture descriptor set (set=0)
@@ -503,15 +506,6 @@ public class VulkanContext implements GraphicsContext {
         try (MemoryStack stack = stackPush()) {
             var cmdBuf = commandPool.commandBuffer(currentFrame);
 
-            var clearValues = VkClearValue.calloc(1, stack);
-            clearValues
-                    .get(0)
-                    .color()
-                    .float32(0, clearColor[0])
-                    .float32(1, clearColor[1])
-                    .float32(2, clearColor[2])
-                    .float32(3, clearColor[3]);
-
             long rpHandle;
             long fbHandle;
             int w, h;
@@ -519,6 +513,17 @@ public class VulkanContext implements GraphicsContext {
             var spec = activeRenderTarget != null
                     ? renderTargetPassSpec(activeRenderPassOptions)
                     : backbufferPassSpec(activeRenderPassOptions);
+            var clearValues = VkClearValue.calloc(spec.hasDepthAttachment() ? 2 : 1, stack);
+            clearValues
+                    .get(0)
+                    .color()
+                    .float32(0, clearColor[0])
+                    .float32(1, clearColor[1])
+                    .float32(2, clearColor[2])
+                    .float32(3, clearColor[3]);
+            if (spec.hasDepthAttachment()) {
+                clearValues.get(1).depthStencil().depth(1f).stencil(0);
+            }
             if (activeRenderTarget != null) {
                 var renderPass = getOrCreateRenderPass(spec);
                 rpHandle = renderPass.handle();
@@ -573,9 +578,10 @@ public class VulkanContext implements GraphicsContext {
     private void recreateSwapChain() {
         waitForInFlightFrames();
         var oldFormat = swapChain.imageFormat();
+        var oldDepthFormat = swapChain.depthFormat();
         var oldImageCount = swapChain.imageCount();
         swapChain.recreate(vSync);
-        if (swapChain.imageFormat() != oldFormat) {
+        if (swapChain.imageFormat() != oldFormat || swapChain.depthFormat() != oldDepthFormat) {
             rebuildRenderPassCache();
         }
         if (swapChain.imageCount() != oldImageCount) {
@@ -756,13 +762,16 @@ public class VulkanContext implements GraphicsContext {
     }
 
     private VulkanRenderPassSpec backbufferPassSpec(RenderPassOptions options) {
+        var clearDepth = options.colorLoadAction() == ColorLoadAction.CLEAR;
         return new VulkanRenderPassSpec(
                 swapChain.imageFormat(),
-                options.colorLoadAction() == ColorLoadAction.CLEAR
-                        ? VK_IMAGE_LAYOUT_UNDEFINED
-                        : VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                clearDepth ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
                 VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-                toVulkanLoadOp(options.colorLoadAction()));
+                toVulkanLoadOp(options.colorLoadAction()),
+                true,
+                swapChain.depthFormat(),
+                clearDepth ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+                VK_ATTACHMENT_STORE_OP_DONT_CARE);
     }
 
     private VulkanRenderPassSpec renderTargetPassSpec(RenderPassOptions options) {
@@ -770,7 +779,11 @@ public class VulkanContext implements GraphicsContext {
                 VulkanRenderTarget.FORMAT,
                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                toVulkanLoadOp(options.colorLoadAction()));
+                toVulkanLoadOp(options.colorLoadAction()),
+                false,
+                VK_FORMAT_UNDEFINED,
+                VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+                VK_ATTACHMENT_STORE_OP_DONT_CARE);
     }
 
     private int toVulkanLoadOp(ColorLoadAction loadAction) {

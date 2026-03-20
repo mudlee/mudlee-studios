@@ -23,7 +23,7 @@ public class SandboxApplication extends Game {
     protected void loadContent() {
         var screenManager = new ScreenManager();
         addModule(screenManager);
-        screenManager.set(new PlayerScene(this, graphicsDevice));
+        screenManager.set(new CubeScene(this, graphicsDevice));
 
         // UIManager must be added after ScreenManager so it renders on top of the scene.
         var uiManager = new UIManager();

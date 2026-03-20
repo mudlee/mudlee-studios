@@ -18,13 +18,17 @@ public final class MouseState {
 
     private final float x;
     private final float y;
+    private final float deltaX;
+    private final float deltaY;
     private final float scrollX;
     private final float scrollY;
     private final boolean[] buttons;
 
-    MouseState(float x, float y, float scrollX, float scrollY, boolean[] buttons) {
+    MouseState(float x, float y, float deltaX, float deltaY, float scrollX, float scrollY, boolean[] buttons) {
         this.x = x;
         this.y = y;
+        this.deltaX = deltaX;
+        this.deltaY = deltaY;
         this.scrollX = scrollX;
         this.scrollY = scrollY;
         this.buttons = buttons;
@@ -48,6 +52,16 @@ public final class MouseState {
     /** Writes cursor position into {@code dest} and returns it. Preferred in hot paths. */
     public Vector2f position(Vector2f dest) {
         return dest.set(x, y);
+    }
+
+    /** Horizontal mouse movement accumulated during the current frame. */
+    public float deltaX() {
+        return deltaX;
+    }
+
+    /** Vertical mouse movement accumulated during the current frame. */
+    public float deltaY() {
+        return deltaY;
     }
 
     /** Horizontal scroll offset accumulated since the last frame. */
